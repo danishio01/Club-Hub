@@ -48,14 +48,6 @@ const Dashboard = () => {
                 </div>
 
                 <div className="stat-card">
-                    <div className="stat-icon"><i className="ri-file-paper-2-line"></i></div>
-                    <div className="stat-details">
-                        <span className="stat-label">Certificates Generated</span>
-                        <span className="stat-value">{stats.totalCertificates}</span>
-                    </div>
-                </div>
-
-                <div className="stat-card">
                     <div className="stat-icon"><i className="ri-user-star-line"></i></div>
                     <div className="stat-details">
                         <span className="stat-label">Event Participation</span>

@@ -94,3 +94,20 @@ export const deleteStudent = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Failed to delete student' });
     }
 };
+export const updateStudentInterests = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { interests } = req.body;
+        
+        const student = await Student.findByIdAndUpdate(
+            id, 
+            { interests }, 
+            { new: true }
+        ).select('-password');
+        
+        return res.status(200).json({ success: true, data: student });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, message: 'Failed to update interests' });
+    }
+};

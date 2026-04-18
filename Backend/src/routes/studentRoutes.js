@@ -5,7 +5,8 @@ import {
     getStudents, 
     updateStudent, 
     bulkUpdateStudents,
-    deleteStudent 
+    deleteStudent,
+    updateStudentInterests
 } from '../controllers/studentController.js';
 
 const router = express.Router();
@@ -16,6 +17,7 @@ router.get('/', getStudents);
 
 router.put('/bulk-update', bulkUpdateStudents);
 router.put('/:id', updateStudent);
+router.put('/:id/interests', updateStudentInterests);
 
 router.delete('/:id', deleteStudent);
 
