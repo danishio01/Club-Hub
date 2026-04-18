@@ -1,0 +1,31 @@
+import axiosInstance from '../../../api/axiosInstance';
+import { fetchStudentsStart, fetchStudentsSuccess, fetchStudentsFailure } from '../state/studentSlice';
+
+export const getStudentsList = (semester = '', section = '', department = '') => async (dispatch) => {
+    dispatch(fetchStudentsStart());
+    try {
+        const params = new URLSearchParams();
+        if (semester) params.append('semester', semester);
+        if (section) params.append('section', section);
+        if (department) params.append('department', department);
+        
+        const query = params.toString() ? `?${params.toString()}` : '';
+        
+        const response = await axiosInstance.get(`/students${query}`);
+        dispatch(fetchStudentsSuccess(response.data.data));
+    } catch (error) {
+        dispatch(fetchStudentsFailure('Failed to load students'));
+    }
+};
+
+export const deleteStudentService = async (id) => {
+    return await axiosInstance.delete(`/students/${id}`);
+};
+
+export const createStudentService = async (studentData) => {
+    return await axiosInstance.post('/students', studentData);
+};
+
+export const bulkImportStudentsService = async (studentsArray) => {
+    return await axiosInstance.post('/students/bulk', { students: studentsArray });
+};
