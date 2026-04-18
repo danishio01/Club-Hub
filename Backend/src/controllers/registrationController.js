@@ -90,3 +90,29 @@ export const markAttendance = async (req, res) => {
         return res.status(401).json({ success: false, message: 'Invalid or expired QR Code.' });
     }
 };
+
+export const getAttendedEvents = async (req, res) => {
+    try {
+        const studentId = req.user._id;
+        const attended = await Registration.find({ 
+            student: studentId, 
+            status: 'Attended' 
+        }).populate({
+            path: 'event',
+            populate: { path: 'club', select: 'name' }
+        });
+
+        const data = attended.map(reg => ({
+            registrationId: reg._id,
+            eventName: reg.event.title,
+            eventDate: reg.event.date,
+            eventTime: reg.event.time,
+            clubName: reg.event.club?.name || 'Campus Club',
+            studentName: req.user.name 
+        }));
+
+        return res.status(200).json({ success: true, data });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to fetch certificates' });
+    }
+};

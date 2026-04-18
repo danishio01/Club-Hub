@@ -13,6 +13,7 @@ import StudentEvents from "../features/studentEvents/pages/StudentEvents";
 import StudentEventDetails from "../features/studentEvents/pages/StudentEventDetails";
 import MarkAttendance from "../features/studentEvents/pages/MarkAttendance";
 import Leaderboard from "../features/leaderboard/pages/Leaderboard";
+import Certificates from "../features/certificates/pages/Certificates";
 
 export const routes = createBrowserRouter([
     {
@@ -75,12 +76,7 @@ export const routes = createBrowserRouter([
             },
             {
                 path: "certificates",
-                element: (
-                    <div style={{ padding: '24px' }}>
-                        <h1>My Certificates</h1>
-                        <p>Integration coming next!</p>
-                    </div>
-                )
+                element: <Certificates/>
             },
             {
                 path: "profile",

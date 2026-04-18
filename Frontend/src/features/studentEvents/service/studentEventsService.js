@@ -26,3 +26,8 @@ export const markAttendanceApi = async (eventId, token) => {
     const response = await axiosInstance.post(`/events/${eventId}/attendance`, { token });
     return response.data;
 };
+
+export const getCertificatesApi = async () => {
+    const response = await axiosInstance.get('/events/student/certificates');
+    return response.data.data;
+};

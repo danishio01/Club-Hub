@@ -1,6 +1,6 @@
 import express from 'express';
 import { createEvent, getEvents, getEventById, updateEvent, deleteEvent, getStudentEvents, getStudentEventById, markEventCompleted } from '../controllers/eventController.js';
-import { registerForEvent, getEventRegistrations, generateAttendanceToken, markAttendance } from '../controllers/registrationController.js';
+import { registerForEvent, getEventRegistrations, generateAttendanceToken, markAttendance, getAttendedEvents } from '../controllers/registrationController.js';
 import { getLeaderboard, resetLeaderboard } from '../controllers/leaderboardController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -20,6 +20,7 @@ router.get('/:eventId/qr-token', generateAttendanceToken);
 router.post('/:eventId/register', protect, registerForEvent);
 router.post('/:eventId/attendance', protect, markAttendance);
 
+router.get('/student/certificates', protect, getAttendedEvents);
 router.patch('/:id/complete', markEventCompleted);
 router.get('/:id', getEventById);
 router.put('/:id', updateEvent);
