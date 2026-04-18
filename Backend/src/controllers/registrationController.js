@@ -1,5 +1,6 @@
 import Registration from '../models/registrationModel.js';
 import Event from '../models/eventModel.js';
+import Student from '../models/studentModel.js';
 import jwt from 'jsonwebtoken';
 
 export const registerForEvent = async (req, res) => {
@@ -81,7 +82,9 @@ export const markAttendance = async (req, res) => {
         registration.status = 'Attended';
         await registration.save();
 
-        return res.status(200).json({ success: true, message: 'Attendance recorded successfully!' });
+        await Student.findByIdAndUpdate(studentId, { $inc: { points: 100 } });
+
+        return res.status(200).json({ success: true, message: 'Attendance recorded! You earned 100 points.' });
 
     } catch (error) {
         return res.status(401).json({ success: false, message: 'Invalid or expired QR Code.' });

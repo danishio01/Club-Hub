@@ -63,11 +63,21 @@ export const deleteEvent = async (req, res) => {
     }
 };
 
+export const markEventCompleted = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const event = await Event.findByIdAndUpdate(id, { status: 'Completed' }, { new: true });
+        return res.status(200).json({ success: true, data: event });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to mark event as completed' });
+    }
+};
+
 export const getStudentEvents = async (req, res) => {
     try {
         const studentId = req.user._id;
         
-        const events = await Event.find()
+        const events = await Event.find({ status: { $ne: 'Completed' } })
             .populate('club', 'name isActive')
             .sort({ date: 1 })
             .lean();

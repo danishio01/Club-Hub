@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
-import { getEventByIdApi, deleteEventService, generateQrTokenApi } from '../service/eventService';
+import { getEventByIdApi, deleteEventService, generateQrTokenApi, markEventCompletedApi } from '../service/eventService';
 import EditEventModal from '../components/EditEventModal';
 import ViewRegistrationsModal from '../components/ViewRegistrationsModal';
 import '../style/EventDetails.scss';
@@ -48,6 +48,18 @@ const EventDetails = () => {
         }
     };
 
+    const handleMarkCompleted = async () => {
+        if(window.confirm('Are you sure you want to mark this event as completed? It will be removed from the student portal.')) {
+            try {
+                await markEventCompletedApi(eventId);
+                loadEvent();
+            } catch (error) {
+                console.error(error);
+                alert('Failed to mark event as completed.');
+            }
+        }
+    };
+
     const handleGenerateQR = async () => {
         try {
             const token = await generateQrTokenApi(eventId);
@@ -63,12 +75,20 @@ const EventDetails = () => {
     if (!event) return <div>Event not found.</div>;
 
     const formattedDate = new Date(event.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    const isCompleted = event.status === 'Completed';
 
     return (
         <div className="event-details-page">
             <div className="details-header">
                 <div>
-                    <h1>{event.title}</h1>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                        <h1 style={{ margin: 0 }}>{event.title}</h1>
+                        {isCompleted && (
+                            <span style={{ padding: '4px 10px', background: '#dcfce7', color: '#166534', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600 }}>
+                                <i className="ri-check-double-line"></i> Completed
+                            </span>
+                        )}
+                    </div>
                     <p>Organized by {event.club?.name || 'Unknown Club'}</p>
                 </div>
                 <div className="details-actions">
@@ -76,6 +96,11 @@ const EventDetails = () => {
                     <button className="btn-primary" style={{ backgroundColor: '#10b981' }} onClick={() => setIsRegistrationsModalOpen(true)}>
                         <i className="ri-group-line"></i> View Registrations ({event.currentRegistrations})
                     </button>
+                    {!isCompleted && (
+                        <button className="btn-primary" style={{ backgroundColor: '#3b82f6' }} onClick={handleMarkCompleted}>
+                            <i className="ri-flag-2-line"></i> Mark Completed
+                        </button>
+                    )}
                     <button className="btn-primary" onClick={() => setIsEditModalOpen(true)}>
                         <i className="ri-pencil-line"></i> Edit
                     </button>
@@ -121,24 +146,26 @@ const EventDetails = () => {
                     </div>
                 </div>
 
-                <div className="qr-panel">
-                    <h2 style={{ marginTop: 0, fontSize: '1.25rem' }}>Attendance QR Code</h2>
-                    <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>
-                        Generate and display this QR code at the venue. Students can scan it to automatically mark their attendance.
-                    </p>
-                    
-                    <div className="qr-container">
-                        {qrUrl ? (
-                            <QRCodeSVG value={qrUrl} size={200} level="H" />
-                        ) : (
-                            <span style={{ color: '#94a3b8' }}>QR Code not generated yet.</span>
-                        )}
+                {!isCompleted && (
+                    <div className="qr-panel">
+                        <h2 style={{ marginTop: 0, fontSize: '1.25rem' }}>Attendance QR Code</h2>
+                        <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>
+                            Generate and display this QR code at the venue. Students can scan it to automatically mark their attendance.
+                        </p>
+                        
+                        <div className="qr-container">
+                            {qrUrl ? (
+                                <QRCodeSVG value={qrUrl} size={200} level="H" />
+                            ) : (
+                                <span style={{ color: '#94a3b8' }}>QR Code not generated yet.</span>
+                            )}
+                        </div>
+                        
+                        <button className="btn-primary" style={{ width: '100%' }} onClick={handleGenerateQR}>
+                            {qrUrl ? 'Regenerate QR Code' : 'Generate QR Code'}
+                        </button>
                     </div>
-                    
-                    <button className="btn-primary" style={{ width: '100%' }} onClick={handleGenerateQR}>
-                        {qrUrl ? 'Regenerate QR Code' : 'Generate QR Code'}
-                    </button>
-                </div>
+                )}
             </div>
 
             {isEditModalOpen && <EditEventModal event={event} onClose={() => setIsEditModalOpen(false)} onSuccess={() => { setIsEditModalOpen(false); loadEvent(); }} />}

@@ -12,6 +12,7 @@ import Profile from "../features/profile/pages/Profile";
 import StudentEvents from "../features/studentEvents/pages/StudentEvents";
 import StudentEventDetails from "../features/studentEvents/pages/StudentEventDetails";
 import MarkAttendance from "../features/studentEvents/pages/MarkAttendance";
+import Leaderboard from "../features/leaderboard/pages/Leaderboard";
 
 export const routes = createBrowserRouter([
     {
@@ -45,6 +46,10 @@ export const routes = createBrowserRouter([
             {
                 path: "events/:eventId",
                 element: <EventDetails />
+            },
+            {
+                path: "leaderboard",
+                element: <Leaderboard isAdmin={true} />
             }
         ]
     },
@@ -66,12 +71,7 @@ export const routes = createBrowserRouter([
             },
             {
                 path: "leaderboard",
-                element: (
-                    <div style={{ padding: '24px' }}>
-                        <h1>Campus Leaderboard</h1>
-                        <p>Integration coming next!</p>
-                    </div>
-                )
+                element: <Leaderboard isAdmin={false} />
             },
             {
                 path: "certificates",
