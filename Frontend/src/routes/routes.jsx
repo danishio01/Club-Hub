@@ -8,6 +8,7 @@ import Students from "../features/students/pages/Students";
 import Clubs from "../features/clubs/pages/Clubs";
 import Events from "../features/events/pages/Events";
 import Profile from "../features/profile/pages/Profile";
+import StudentEvents from "../features/studentEvents/pages/StudentEvents";
 
 const PlaceholderComponent = ({ title }) => (
     <div style={{ padding: '24px' }}>
@@ -53,7 +54,7 @@ export const routes = createBrowserRouter([
         children: [
             {
                 path: "dashboard",
-                element: <PlaceholderComponent title="Student Dashboard (Events)" />
+                element: <StudentEvents />
             },
             {
                 path: "leaderboard",

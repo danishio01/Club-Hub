@@ -4,6 +4,7 @@ import dashboardReducer from '../features/dashboard/state/dashboardSlice';
 import studentReducer from '../features/students/state/studentSlice';
 import clubReducer from '../features/clubs/state/clubSlice';
 import eventReducer from '../features/events/state/eventSlice';
+import studentEventsReducer from '../features/studentEvents/state/studentEventsSlice';
 
 export const store = configureStore({
     reducer: {
@@ -11,6 +12,7 @@ export const store = configureStore({
         dashboard: dashboardReducer,
         students: studentReducer,
         clubs: clubReducer,
-        events: eventReducer
+        events: eventReducer,
+        studentEvents: studentEventsReducer
     },
 });
