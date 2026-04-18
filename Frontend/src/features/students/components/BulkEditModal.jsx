@@ -12,9 +12,8 @@ const BulkEditModal = ({ onClose, onSuccess }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
-        const activeCriteria = Object.fromEntries(Object.entries(criteria).filter(([key, v]) => v !== ''));
-        const activeUpdateData = Object.fromEntries(Object.entries(updateData).filter(([key, v]) => v !== ''));
+        const activeCriteria = Object.fromEntries(Object.entries(criteria).filter(([, v]) => v !== ''));
+        const activeUpdateData = Object.fromEntries(Object.entries(updateData).filter(([, v]) => v !== ''));
 
         if (Object.keys(activeCriteria).length === 0) {
             return alert('Please select at least one Target Group criteria.');

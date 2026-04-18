@@ -3,6 +3,7 @@ import AdminLogin from "../features/auth/pages/AdminLogin";
 import AdminLayout from "../components/layout/AdminLayout";
 import Dashboard from "../features/dashboard/pages/Dashboard";
 import Students from "../features/students/pages/Students";
+import Clubs from "../features/clubs/pages/Clubs";
 
 export const routes = createBrowserRouter([
     {
@@ -27,7 +28,7 @@ export const routes = createBrowserRouter([
             },
             {
                 path: "clubs",
-                element: <div>Clubs Management (Coming Soon)</div>
+                element: <Clubs />
             },
             {
                 path: "events",

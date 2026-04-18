@@ -21,6 +21,7 @@ const AdminLogin = () => {
             await dispatch(loginAdmin({ adminId, password }));
             navigate('/admin/dashboard');
         } catch (err) {
+            console.error("Login Error:", err);
         }
     };
 

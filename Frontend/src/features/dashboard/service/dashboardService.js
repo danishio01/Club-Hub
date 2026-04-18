@@ -7,6 +7,7 @@ export const getDashboardData = () => async (dispatch) => {
         const response = await axiosInstance.get('/dashboard/stats');
         dispatch(fetchStatsSuccess(response.data.data));
     } catch (error) {
+        console.error(error);
         dispatch(fetchStatsFailure('Failed to load dashboard statistics'));
     }
 };

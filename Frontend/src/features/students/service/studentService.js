@@ -15,6 +15,7 @@ export const getStudentsList = (semester = '', section = '', department = '', se
         const response = await axiosInstance.get(`/students${query}`);
         dispatch(fetchStudentsSuccess(response.data.data));
     } catch (error) {
+        console.error(error);
         dispatch(fetchStudentsFailure('Failed to load students'));
     }
 };
