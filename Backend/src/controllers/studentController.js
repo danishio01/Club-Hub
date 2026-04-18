@@ -30,12 +30,19 @@ export const createManyStudents = async (req, res) => {
 
 export const getStudents = async (req, res) => {
     try {
-        const { semester, section, department } = req.query;
+        const { semester, section, department, search } = req.query;
         const filter = {};
         
         if (semester) filter.semester = semester;
         if (section) filter.section = section;
         if (department) filter.department = department;
+        
+        if (search) {
+            filter.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { usn: { $regex: search, $options: 'i' } }
+            ];
+        }
 
         const students = await Student.find(filter).select('-password').sort({ usn: 1 });
         return res.status(200).json({ success: true, data: students });
@@ -52,12 +59,29 @@ export const updateStudent = async (req, res) => {
         if (updateData.password) {
             const salt = await bcrypt.genSalt(10);
             updateData.password = await bcrypt.hash(updateData.password, salt);
+        } else {
+            delete updateData.password; 
         }
 
         const student = await Student.findByIdAndUpdate(id, updateData, { new: true }).select('-password');
         return res.status(200).json({ success: true, data: student });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to update student' });
+    }
+};
+
+export const bulkUpdateStudents = async (req, res) => {
+    try {
+        const { criteria, updateData } = req.body;
+        
+        const result = await Student.updateMany(criteria, updateData);
+        
+        return res.status(200).json({ 
+            success: true, 
+            message: `${result.modifiedCount} students updated successfully` 
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to bulk update students' });
     }
 };
 
