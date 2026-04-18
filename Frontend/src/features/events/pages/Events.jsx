@@ -1,42 +1,27 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { getEventsList, deleteEventService } from '../service/eventService';
+import { useNavigate } from 'react-router-dom';
+import { getEventsList } from '../service/eventService';
 import AddEventModal from '../components/AddEventModal';
-import EditEventModal from '../components/EditEventModal';
-import ViewRegistrationsModal from '../components/ViewRegistrationsModal';
 import '../../students/style/Students.scss';
 
 const Events = () => {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const { events, isLoading } = useSelector((state) => state.events);
     
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [editingEvent, setEditingEvent] = useState(null);
-    const [viewingRegistrationsEvent, setViewingRegistrationsEvent] = useState(null);
 
-    const loadEvents = () => {
+    const loadEvents = useCallback(() => {
         dispatch(getEventsList());
-    };
+    }, [dispatch]);
 
     useEffect(() => {
         loadEvents();
-    }, [dispatch]);
-
-    const handleDelete = async (id) => {
-        if(window.confirm('Are you sure you want to delete this event?')) {
-            try {
-                await deleteEventService(id);
-                loadEvents();
-            } catch (error) {
-                console.error(error);
-                alert('Failed to delete event.');
-            }
-        }
-    };
+    }, [loadEvents]);
 
     const handleSuccess = () => {
         setIsAddModalOpen(false);
-        setEditingEvent(null);
         loadEvents();
     };
 
@@ -68,15 +53,14 @@ const Events = () => {
                             <th>Club</th>
                             <th>Venue</th>
                             <th>Type</th>
-                            <th>Capacity</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {isLoading ? (
-                            <tr><td colSpan="7" style={{textAlign: 'center'}}>Loading data...</td></tr>
+                            <tr><td colSpan="6" style={{textAlign: 'center'}}>Loading data...</td></tr>
                         ) : events.length === 0 ? (
-                            <tr><td colSpan="7" style={{textAlign: 'center'}}>No events scheduled.</td></tr>
+                            <tr><td colSpan="6" style={{textAlign: 'center'}}>No events scheduled.</td></tr>
                         ) : (
                             events.map(event => (
                                 <tr key={event._id}>
@@ -96,16 +80,13 @@ const Events = () => {
                                             {event.eventType === 'Paid' ? `₹${event.price}` : 'Free'}
                                         </span>
                                     </td>
-                                    <td>{event.maxParticipants}</td>
                                     <td>
-                                        <button className="action-icon" onClick={() => setViewingRegistrationsEvent(event)} title="View Registrations">
-                                            <i className="ri-group-line"></i>
-                                        </button>
-                                        <button className="action-icon edit" onClick={() => setEditingEvent(event)} title="Edit Event">
-                                            <i className="ri-pencil-line"></i>
-                                        </button>
-                                        <button className="action-icon delete" onClick={() => handleDelete(event._id)} title="Delete Event">
-                                            <i className="ri-delete-bin-line"></i>
+                                        <button 
+                                            className="btn-primary" 
+                                            style={{ padding: '6px 12px', fontSize: '0.85rem' }}
+                                            onClick={() => navigate(`/admin/events/${event._id}`)}
+                                        >
+                                            View Event
                                         </button>
                                     </td>
                                 </tr>
@@ -116,8 +97,6 @@ const Events = () => {
             </div>
 
             {isAddModalOpen && <AddEventModal onClose={() => setIsAddModalOpen(false)} onSuccess={handleSuccess} />}
-            {editingEvent && <EditEventModal event={editingEvent} onClose={() => setEditingEvent(null)} onSuccess={handleSuccess} />}
-            {viewingRegistrationsEvent && <ViewRegistrationsModal event={viewingRegistrationsEvent} onClose={() => setViewingRegistrationsEvent(null)} />}
         </div>
     );
 };

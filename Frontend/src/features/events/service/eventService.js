@@ -7,9 +7,14 @@ export const getEventsList = () => async (dispatch) => {
         const response = await axiosInstance.get('/events');
         dispatch(fetchEventsSuccess(response.data.data));
     } catch (error) {
-        console.error(error);
+        console.error(error)
         dispatch(fetchEventsFailure('Failed to load events'));
     }
+};
+
+export const getEventByIdApi = async (id) => {
+    const response = await axiosInstance.get(`/events/${id}`);
+    return response.data.data;
 };
 
 export const createEventService = async (eventData) => {
@@ -26,5 +31,10 @@ export const deleteEventService = async (id) => {
 
 export const getEventRegistrationsApi = async (eventId) => {
     const response = await axiosInstance.get(`/events/${eventId}/registrations`);
+    return response.data.data;
+};
+
+export const generateQrTokenApi = async (eventId) => {
+    const response = await axiosInstance.get(`/events/${eventId}/qr-token`);
     return response.data.data;
 };

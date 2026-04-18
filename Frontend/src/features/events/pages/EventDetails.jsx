@@ -1,0 +1,150 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
+import { getEventByIdApi, deleteEventService, generateQrTokenApi } from '../service/eventService';
+import EditEventModal from '../components/EditEventModal';
+import ViewRegistrationsModal from '../components/ViewRegistrationsModal';
+import '../style/EventDetails.scss';
+
+const EventDetails = () => {
+    const { eventId } = useParams();
+    const navigate = useNavigate();
+    const [event, setEvent] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [qrUrl, setQrUrl] = useState(null);
+    
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isRegistrationsModalOpen, setIsRegistrationsModalOpen] = useState(false);
+
+    const loadEvent = useCallback(async () => {
+        try {
+            const data = await getEventByIdApi(eventId);
+            setEvent(data);
+        } catch (error) {
+            console.error(error);
+            alert('Failed to load event details.');
+            navigate('/admin/events');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [eventId, navigate]);
+
+    useEffect(() => {
+        const fetchEventData = async () => {
+            await loadEvent();
+        };
+        fetchEventData();
+    }, [loadEvent]);
+
+    const handleDelete = async () => {
+        if(window.confirm('Are you sure you want to completely delete this event?')) {
+            try {
+                await deleteEventService(eventId);
+                navigate('/admin/events');
+            } catch (error) {
+                console.error(error);
+                alert('Failed to delete event.');
+            }
+        }
+    };
+
+    const handleGenerateQR = async () => {
+        try {
+            const token = await generateQrTokenApi(eventId);
+            const url = `${window.location.origin}/student/attendance/${eventId}?token=${token}`;
+            setQrUrl(url);
+        } catch (error) {
+            console.error(error);
+            alert('Failed to generate QR Code.');
+        }
+    };
+
+    if (isLoading) return <div>Loading event details...</div>;
+    if (!event) return <div>Event not found.</div>;
+
+    const formattedDate = new Date(event.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+
+    return (
+        <div className="event-details-page">
+            <div className="details-header">
+                <div>
+                    <h1>{event.title}</h1>
+                    <p>Organized by {event.club?.name || 'Unknown Club'}</p>
+                </div>
+                <div className="details-actions">
+                    <button className="btn-secondary" onClick={() => navigate('/admin/events')}>Back</button>
+                    <button className="btn-primary" style={{ backgroundColor: '#10b981' }} onClick={() => setIsRegistrationsModalOpen(true)}>
+                        <i className="ri-group-line"></i> View Registrations ({event.currentRegistrations})
+                    </button>
+                    <button className="btn-primary" onClick={() => setIsEditModalOpen(true)}>
+                        <i className="ri-pencil-line"></i> Edit
+                    </button>
+                    <button className="btn-danger" onClick={handleDelete}>
+                        <i className="ri-delete-bin-line"></i> Delete
+                    </button>
+                </div>
+            </div>
+
+            <div className="layout-grid">
+                <div className="info-panel">
+                    <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '1.25rem' }}>Event Information</h2>
+                    <p style={{ color: '#475569', lineHeight: 1.6 }}>{event.description}</p>
+                    
+                    <div className="info-grid">
+                        <div className="info-item">
+                            <span className="label">Date</span>
+                            <span className="value">{formattedDate}</span>
+                        </div>
+                        <div className="info-item">
+                            <span className="label">Time</span>
+                            <span className="value">{event.time}</span>
+                        </div>
+                        <div className="info-item">
+                            <span className="label">Venue</span>
+                            <span className="value">{event.venue}</span>
+                        </div>
+                        <div className="info-item">
+                            <span className="label">Type / Price</span>
+                            <span className="value">{event.eventType} {event.eventType === 'Paid' ? `- ₹${event.price}` : ''}</span>
+                        </div>
+                        <div className="info-item">
+                            <span className="label">Capacity</span>
+                            <span className="value">{event.currentRegistrations} / {event.maxParticipants} Registered</span>
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: '24px' }}>
+                        <span className="label" style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Tags</span>
+                        <div className="tag-list">
+                            {event.tags.map(tag => <span key={tag} className="tag">{tag}</span>)}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="qr-panel">
+                    <h2 style={{ marginTop: 0, fontSize: '1.25rem' }}>Attendance QR Code</h2>
+                    <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>
+                        Generate and display this QR code at the venue. Students can scan it to automatically mark their attendance.
+                    </p>
+                    
+                    <div className="qr-container">
+                        {qrUrl ? (
+                            <QRCodeSVG value={qrUrl} size={200} level="H" />
+                        ) : (
+                            <span style={{ color: '#94a3b8' }}>QR Code not generated yet.</span>
+                        )}
+                    </div>
+                    
+                    <button className="btn-primary" style={{ width: '100%' }} onClick={handleGenerateQR}>
+                        {qrUrl ? 'Regenerate QR Code' : 'Generate QR Code'}
+                    </button>
+                </div>
+            </div>
+
+            {isEditModalOpen && <EditEventModal event={event} onClose={() => setIsEditModalOpen(false)} onSuccess={() => { setIsEditModalOpen(false); loadEvent(); }} />}
+            {isRegistrationsModalOpen && <ViewRegistrationsModal event={event} onClose={() => setIsRegistrationsModalOpen(false)} />}
+        </div>
+    );
+};
+
+export default EventDetails;

@@ -1,10 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStudentEvents } from '../hooks/useStudentEvents';
 import '../style/StudentEvents.scss';
 
-const EventCard = ({ event, onRegister, formatDate }) => {
-    const isFull = event.currentRegistrations >= event.maxParticipants;
-    const isRegistered = event.isRegistered;
+const EventCard = ({ event, formatDate }) => {
+    const navigate = useNavigate();
 
     return (
         <div className="event-card">
@@ -38,28 +38,16 @@ const EventCard = ({ event, onRegister, formatDate }) => {
                 <div className={`event-price ${event.eventType === 'Free' ? 'price-free' : 'price-paid'}`}>
                     {event.eventType === 'Free' ? 'Free' : `₹${event.price}`}
                 </div>
-                
-                {/* Updated Button Logic */}
-                {isRegistered ? (
-                    <button className="btn-registered" disabled>
-                        <i className="ri-check-double-line"></i> Registered
-                    </button>
-                ) : isFull ? (
-                    <button className="btn-full" disabled>
-                        <i className="ri-forbid-line"></i> Registration Full
-                    </button>
-                ) : (
-                    <button className="btn-primary" onClick={() => onRegister(event._id)}>
-                        Register Now
-                    </button>
-                )}
+                <button className="btn-primary" onClick={() => navigate(`/student/events/${event._id}`)}>
+                    View Event
+                </button>
             </div>
         </div>
     );
 };
 
 const StudentEvents = () => {
-    const { isLoading, recommendedEvents, otherEvents, handleRegister, formatDate } = useStudentEvents();
+    const { isLoading, recommendedEvents, otherEvents, formatDate } = useStudentEvents();
 
     if (isLoading) {
         return <div style={{ padding: '40px', textAlign: 'center' }}>Loading campus events...</div>;
@@ -87,7 +75,7 @@ const StudentEvents = () => {
                     </div>
                     <div className="events-grid">
                         {recommendedEvents.map(event => (
-                            <EventCard key={event._id} event={event} onRegister={handleRegister} formatDate={formatDate} />
+                            <EventCard key={event._id} event={event} formatDate={formatDate} />
                         ))}
                     </div>
                 </section>
@@ -101,7 +89,7 @@ const StudentEvents = () => {
                     </div>
                     <div className="events-grid">
                         {otherEvents.map(event => (
-                            <EventCard key={event._id} event={event} onRegister={handleRegister} formatDate={formatDate} />
+                            <EventCard key={event._id} event={event} formatDate={formatDate} />
                         ))}
                     </div>
                 </section>

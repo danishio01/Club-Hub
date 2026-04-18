@@ -30,6 +30,18 @@ export const getEvents = async (req, res) => {
     }
 };
 
+export const getEventById = async (req, res) => {
+    try {
+        const event = await Event.findById(req.params.id).populate('club', 'name isActive').lean();
+        if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+        
+        const currentRegistrations = await Registration.countDocuments({ event: event._id });
+        return res.status(200).json({ success: true, data: { ...event, currentRegistrations } });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to fetch event details' });
+    }
+};
+
 export const updateEvent = async (req, res) => {
     try {
         const { id } = req.params;
@@ -74,5 +86,30 @@ export const getStudentEvents = async (req, res) => {
         return res.status(200).json({ success: true, data: eventsWithDetails });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to fetch student events' });
+    }
+};
+
+export const getStudentEventById = async (req, res) => {
+    try {
+        const eventId = req.params.id;
+        const studentId = req.user._id;
+
+        const event = await Event.findById(eventId).populate('club', 'name isActive').lean();
+        if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+
+        const currentRegistrations = await Registration.countDocuments({ event: eventId });
+        const registration = await Registration.findOne({ event: eventId, student: studentId });
+
+        return res.status(200).json({ 
+            success: true, 
+            data: { 
+                ...event, 
+                currentRegistrations,
+                isRegistered: !!registration,
+                attendanceStatus: registration ? registration.status : null
+            } 
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to fetch event details' });
     }
 };

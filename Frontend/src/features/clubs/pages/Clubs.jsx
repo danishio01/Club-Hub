@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getClubsList, deleteClubService } from '../service/clubService';
 import AddClubModal from '../components/AddClubModal';
 import EditClubModal from '../components/EditClubModal';
-import '../style/Clubs.scss';
+import '../../students/style/Students.scss';
 
 const Clubs = () => {
     const dispatch = useDispatch();
@@ -12,13 +12,13 @@ const Clubs = () => {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingClub, setEditingClub] = useState(null);
 
-    const loadClubs = () => {
+    const loadClubs = useCallback(() => {
         dispatch(getClubsList());
-    };
+    }, [dispatch]);
 
     useEffect(() => {
         loadClubs();
-    }, [dispatch]);
+    }, [loadClubs]);
 
     const handleDelete = async (id) => {
         if(window.confirm('Are you sure you want to delete this club?')) {
@@ -38,45 +38,72 @@ const Clubs = () => {
         loadClubs();
     };
 
+    const formatDate = (dateString) => {
+        const options = { year: 'numeric', month: 'short', day: 'numeric' };
+        return new Date(dateString).toLocaleDateString(undefined, options);
+    };
+
     return (
-        <div className="clubs-page">
-            <div className="page-header-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="students-page">
+            <div className="page-header-actions">
                 <div className="title-section">
-                    <h1 style={{ margin: 0, fontSize: '1.75rem', color: '#0f172a' }}>Clubs Management</h1>
-                    <p style={{ color: '#64748b', marginTop: '4px' }}>Create and manage student activity clubs.</p>
+                    <h1>Club Management</h1>
+                    <p>Manage campus clubs, view active status, and edit details.</p>
                 </div>
-                <button className="btn-primary" onClick={() => setIsAddModalOpen(true)} style={{ padding: '10px 16px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>
-                    <i className="ri-add-line"></i> Add New Club
-                </button>
+                <div className="action-buttons">
+                    <button className="btn-primary" onClick={() => setIsAddModalOpen(true)}>
+                        <i className="ri-group-line"></i> Create Club
+                    </button>
+                </div>
             </div>
 
-            {isLoading ? (
-                <div>Loading clubs...</div>
-            ) : clubs.length === 0 ? (
-                <div>No clubs found. Create one to get started!</div>
-            ) : (
-                <div className="clubs-grid">
-                    {clubs.map(club => (
-                        <div key={club._id} className="club-card">
-                            <div className="club-header">
-                                <h3>{club.name}</h3>
-                                <span className={`status-badge ${club.isActive ? 'active' : 'inactive'}`}>
-                                    {club.isActive ? 'Active' : 'Inactive'}
-                                </span>
-                            </div>
-                            <p className="club-description">{club.description}</p>
-                            <div className="club-actions">
-                                <button className="icon-btn" onClick={() => setEditingClub(club)}>
-                                    <i className="ri-pencil-line"></i>
-                                </button>
-                                <button className="icon-btn delete" onClick={() => handleDelete(club._id)}>
-                                    <i className="ri-delete-bin-line"></i>
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+            <div className="table-container">
+                <table className="data-table">
+                    <thead>
+                        <tr>
+                            <th>Club Name</th>
+                            <th>Category</th>
+                            <th>President</th>
+                            <th>Status</th>
+                            <th>Created On</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {isLoading ? (
+                            <tr><td colSpan="6" style={{textAlign: 'center'}}>Loading data...</td></tr>
+                        ) : clubs.length === 0 ? (
+                            <tr><td colSpan="6" style={{textAlign: 'center'}}>No clubs found.</td></tr>
+                        ) : (
+                            clubs.map(club => (
+                                <tr key={club._id}>
+                                    <td style={{ fontWeight: 600, color: '#0f172a' }}>{club.name}</td>
+                                    <td>{club.category || 'General'}</td>
+                                    <td>{club.president || 'N/A'}</td>
+                                    <td>
+                                        <span style={{ 
+                                            padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600,
+                                            backgroundColor: club.isActive ? '#dcfce7' : '#fee2e2',
+                                            color: club.isActive ? '#166534' : '#991b1b'
+                                        }}>
+                                            {club.isActive ? 'Active' : 'Inactive'}
+                                        </span>
+                                    </td>
+                                    <td>{formatDate(club.createdAt)}</td>
+                                    <td>
+                                        <button className="action-icon edit" onClick={() => setEditingClub(club)} title="Edit Club">
+                                            <i className="ri-pencil-line"></i>
+                                        </button>
+                                        <button className="action-icon delete" onClick={() => handleDelete(club._id)} title="Delete Club">
+                                            <i className="ri-delete-bin-line"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
 
             {isAddModalOpen && <AddClubModal onClose={() => setIsAddModalOpen(false)} onSuccess={handleSuccess} />}
             {editingClub && <EditClubModal club={editingClub} onClose={() => setEditingClub(null)} onSuccess={handleSuccess} />}
