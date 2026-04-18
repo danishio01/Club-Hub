@@ -4,7 +4,7 @@ import { fetchStudentEventsStart, fetchStudentEventsSuccess, fetchStudentEventsF
 export const getStudentEventsList = () => async (dispatch) => {
     dispatch(fetchStudentEventsStart());
     try {
-        const response = await axiosInstance.get('/events');
+        const response = await axiosInstance.get('/events/student-events');
         dispatch(fetchStudentEventsSuccess(response.data.data));
     } catch (error) {
         console.error(error);

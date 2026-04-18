@@ -6,25 +6,21 @@ export const registerForEvent = async (req, res) => {
         const eventId = req.params.eventId;
         const studentId = req.user._id; 
 
-       
         const event = await Event.findById(eventId);
         if (!event) {
             return res.status(404).json({ success: false, message: 'Event not found' });
         }
 
-        
         const existingRegistration = await Registration.findOne({ student: studentId, event: eventId });
         if (existingRegistration) {
             return res.status(400).json({ success: false, message: 'You are already registered for this event.' });
         }
 
-        
         const currentRegistrations = await Registration.countDocuments({ event: eventId });
         if (currentRegistrations >= event.maxParticipants) {
             return res.status(400).json({ success: false, message: 'Sorry, this event is full!' });
         }
 
-        
         const registration = new Registration({ student: studentId, event: eventId });
         await registration.save();
 
@@ -33,5 +29,20 @@ export const registerForEvent = async (req, res) => {
     } catch (error) {
         console.error(error);
         return res.status(500).json({ success: false, message: 'Server error during registration.' });
+    }
+};
+
+export const getEventRegistrations = async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        
+        const registrations = await Registration.find({ event: eventId })
+            .populate('student', 'name usn email department semester section')
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({ success: true, data: registrations });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ success: false, message: 'Failed to fetch registrations' });
     }
 };

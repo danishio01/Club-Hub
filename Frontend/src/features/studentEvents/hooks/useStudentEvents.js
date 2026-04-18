@@ -31,10 +31,11 @@ export const useStudentEvents = () => {
     }, [events, user]);
 
     const handleRegister = async (eventId) => {
-        if (window.confirm('Do you want to register for this event?')) {
+        if(window.confirm('Do you want to register for this event?')) {
             try {
                 const data = await registerForEventApi(eventId);
                 alert(data.message);
+                dispatch(getStudentEventsList()); // Refresh the events list to update the button UI
             } catch (error) {
                 alert(error.response?.data?.message || 'Failed to register. Please try again.');
             }

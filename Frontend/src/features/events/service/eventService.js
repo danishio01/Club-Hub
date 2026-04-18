@@ -23,3 +23,8 @@ export const updateEventService = async (id, eventData) => {
 export const deleteEventService = async (id) => {
     return await axiosInstance.delete(`/events/${id}`);
 };
+
+export const getEventRegistrationsApi = async (eventId) => {
+    const response = await axiosInstance.get(`/events/${eventId}/registrations`);
+    return response.data.data;
+};

@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { getEventsList, deleteEventService } from '../service/eventService';
 import AddEventModal from '../components/AddEventModal';
 import EditEventModal from '../components/EditEventModal';
+import ViewRegistrationsModal from '../components/ViewRegistrationsModal';
 import '../../students/style/Students.scss';
 
 const Events = () => {
@@ -11,6 +12,7 @@ const Events = () => {
     
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingEvent, setEditingEvent] = useState(null);
+    const [viewingRegistrationsEvent, setViewingRegistrationsEvent] = useState(null);
 
     const loadEvents = () => {
         dispatch(getEventsList());
@@ -96,7 +98,7 @@ const Events = () => {
                                     </td>
                                     <td>{event.maxParticipants}</td>
                                     <td>
-                                        <button className="action-icon" title="View Registrations">
+                                        <button className="action-icon" onClick={() => setViewingRegistrationsEvent(event)} title="View Registrations">
                                             <i className="ri-group-line"></i>
                                         </button>
                                         <button className="action-icon edit" onClick={() => setEditingEvent(event)} title="Edit Event">
@@ -115,6 +117,7 @@ const Events = () => {
 
             {isAddModalOpen && <AddEventModal onClose={() => setIsAddModalOpen(false)} onSuccess={handleSuccess} />}
             {editingEvent && <EditEventModal event={editingEvent} onClose={() => setEditingEvent(null)} onSuccess={handleSuccess} />}
+            {viewingRegistrationsEvent && <ViewRegistrationsModal event={viewingRegistrationsEvent} onClose={() => setViewingRegistrationsEvent(null)} />}
         </div>
     );
 };
