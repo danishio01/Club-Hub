@@ -18,7 +18,8 @@ const AdminLayout = () => {
         { path: '/admin/students', icon: 'ri-group-line', label: 'Students' },
         { path: '/admin/clubs', icon: 'ri-team-line', label: 'Clubs' },
         { path: '/admin/events', icon: 'ri-calendar-event-line', label: 'Events' },
-        { path: '/admin/leaderboard', icon: 'ri-trophy-line', label: 'Leaderboard' } // New Item
+        { path: '/admin/leaderboard', icon: 'ri-trophy-line', label: 'Leaderboard' },
+        { path: '/admin/attendance', icon: 'ri-calendar-check-line', label: 'Attendance' }
     ];
 
     return (

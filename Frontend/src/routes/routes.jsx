@@ -14,6 +14,8 @@ import StudentEventDetails from "../features/studentEvents/pages/StudentEventDet
 import MarkAttendance from "../features/studentEvents/pages/MarkAttendance";
 import Leaderboard from "../features/leaderboard/pages/Leaderboard";
 import Certificates from "../features/certificates/pages/Certificates";
+import StudentAttendance from "../features/attendance/pages/StudentAttendance";
+import AdminAttendance from "../features/attendance/pages/AdminAttendance";
 
 export const routes = createBrowserRouter([
     {
@@ -51,6 +53,10 @@ export const routes = createBrowserRouter([
             {
                 path: "leaderboard",
                 element: <Leaderboard isAdmin={true} />
+            },
+            {
+                path: "attendance",
+                element: <AdminAttendance />
             }
         ]
     },
@@ -75,8 +81,12 @@ export const routes = createBrowserRouter([
                 element: <Leaderboard isAdmin={false} />
             },
             {
+                path: "attendance-report",
+                element: <StudentAttendance />
+            },
+            {
                 path: "certificates",
-                element: <Certificates/>
+                element: <Certificates />
             },
             {
                 path: "profile",

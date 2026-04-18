@@ -19,7 +19,7 @@ const AddStudentModal = ({ onClose, onSuccess }) => {
             await createStudentService(formData);
             onSuccess();
         } catch (error) {
-            console.error(error);
+            console.error(error)
             alert('Failed to add student. Ensure USN and Email are unique.');
         } finally {
             setIsLoading(false);

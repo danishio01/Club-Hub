@@ -50,6 +50,9 @@ const StudentLayout = () => {
                     <NavLink to="/student/leaderboard" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
                         <i className="ri-trophy-line"></i> Leaderboard
                     </NavLink>
+                    <NavLink to="/student/attendance-report" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
+                        <i className="ri-calendar-check-line"></i> Attendance
+                    </NavLink>
                     <NavLink to="/student/certificates" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
                         <i className="ri-medal-line"></i> Certificates
                     </NavLink>

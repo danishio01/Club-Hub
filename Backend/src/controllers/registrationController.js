@@ -116,3 +116,117 @@ export const getAttendedEvents = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Failed to fetch certificates' });
     }
 };
+
+export const getStudentAttendanceReport = async (req, res) => {
+    try {
+        const today = new Date();
+        const events = await Event.find({ date: { $lte: today } }).sort({ date: -1 }).lean();
+        const uniqueDates = [];
+        const eventDateMap = {};
+
+        events.forEach(e => {
+            const d = new Date(e.date);
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            const formattedDate = `${day}/${month}/${year}`;
+
+            if (!eventDateMap[formattedDate]) {
+                eventDateMap[formattedDate] = [];
+                uniqueDates.push(formattedDate);
+            }
+            eventDateMap[formattedDate].push(e);
+        });
+
+        const studentId = req.user._id;
+        const attendedRegs = await Registration.find({ student: studentId, status: 'Attended' }).populate('event').lean();
+
+        const attendedMap = {};
+        attendedRegs.forEach(reg => {
+            if(reg.event) {
+                const d = new Date(reg.event.date);
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const year = d.getFullYear();
+                const formattedDate = `${day}/${month}/${year}`;
+                attendedMap[formattedDate] = reg.event.title;
+            }
+        });
+
+        const report = uniqueDates.map(date => ({
+            date,
+            status: attendedMap[date] ? 'Present' : 'Absent',
+            eventName: attendedMap[date] || '-'
+        }));
+
+        return res.status(200).json({ success: true, data: report });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to fetch report' });
+    }
+};
+
+export const getAdminAttendanceReport = async (req, res) => {
+    try {
+        const today = new Date();
+        const events = await Event.find({ date: { $lte: today } }).sort({ date: -1 }).lean();
+        const uniqueDates = [];
+        const eventDateMap = {};
+
+        events.forEach(e => {
+            const d = new Date(e.date);
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            const formattedDate = `${day}/${month}/${year}`;
+
+            if (!eventDateMap[formattedDate]) {
+                eventDateMap[formattedDate] = [];
+                uniqueDates.push({ raw: d, formatted: formattedDate });
+            }
+            eventDateMap[formattedDate].push(e._id.toString());
+        });
+
+        const students = await Student.find().select('name usn department section semester').lean();
+        const allAttended = await Registration.find({ status: 'Attended' }).populate('event').lean();
+
+        const attendanceMap = {};
+        allAttended.forEach(reg => {
+            if(reg.event && reg.student) {
+                const sId = reg.student.toString();
+                const d = new Date(reg.event.date);
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const year = d.getFullYear();
+                const formattedDate = `${day}/${month}/${year}`;
+
+                if (!attendanceMap[sId]) attendanceMap[sId] = {};
+                attendanceMap[sId][formattedDate] = reg.event.title;
+            }
+        });
+
+        const report = [];
+        students.forEach(student => {
+            uniqueDates.forEach(dateObj => {
+                const sId = student._id.toString();
+                const isPresent = attendanceMap[sId]?.[dateObj.formatted];
+                report.push({
+                    studentName: student.name,
+                    usn: student.usn,
+                    department: student.department,
+                    semester: student.semester || '-',
+                    section: student.section || '-',
+                    date: dateObj.formatted,
+                    rawDate: dateObj.raw,
+                    status: isPresent ? 'Present' : 'Absent',
+                    eventName: isPresent || '-'
+                });
+            });
+        });
+
+        report.sort((a, b) => b.rawDate - a.rawDate);
+
+        return res.status(200).json({ success: true, data: report });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to fetch admin report' });
+    }
+};

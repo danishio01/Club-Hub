@@ -7,7 +7,8 @@ export const createStudent = async (req, res) => {
         await student.save();
         return res.status(201).json({ success: true, data: student });
     } catch (error) {
-        return res.status(500).json({ success: false, message: 'Failed to create student' });
+        console.error("Detailed Error:", error.message);
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 
