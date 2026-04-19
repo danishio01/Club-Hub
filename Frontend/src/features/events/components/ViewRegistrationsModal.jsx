@@ -25,18 +25,21 @@ const ViewRegistrationsModal = ({ event, onClose }) => {
 
     return (
         <div className="modal-overlay">
-            <div className="modal-container large" style={{ maxWidth: '800px' }}>
+            {/* FIX: Increased max-width to allow the table to breathe */}
+            <div className="modal-container large" style={{ maxWidth: '1000px', width: '95%' }}>
                 <div className="modal-header">
                     <h2>Registrations: {event.title}</h2>
                     <button className="close-button" onClick={onClose}><i className="ri-close-line"></i></button>
                 </div>
                 <div className="modal-body">
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                        <span style={{ fontWeight: 500 }}>Total Registered: {registrations.length} / {event.maxParticipants}</span>
+                        <span style={{ fontWeight: 500, color: '#0f172a' }}>
+                            Total Registered: {registrations.length} / {event.maxParticipants}
+                        </span>
                     </div>
 
                     {isLoading ? (
-                        <div style={{ textAlign: 'center', padding: '20px' }}>Loading registrations...</div>
+                        <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>Loading registrations...</div>
                     ) : registrations.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>No students have registered for this event yet.</div>
                     ) : (
@@ -55,20 +58,13 @@ const ViewRegistrationsModal = ({ event, onClose }) => {
                                 <tbody>
                                     {registrations.map((reg) => (
                                         <tr key={reg._id}>
-                                            <td style={{ fontWeight: 600 }}>{reg.student?.usn}</td>
-                                            <td>{reg.student?.name}</td>
+                                            <td style={{ fontWeight: 600, color: '#0f172a' }}>{reg.student?.usn}</td>
+                                            <td style={{ whiteSpace: 'nowrap' }}>{reg.student?.name}</td>
                                             <td>{reg.student?.email}</td>
                                             <td>{reg.student?.department}</td>
-                                            <td>{reg.student?.semester} - {reg.student?.section}</td>
+                                            <td style={{ whiteSpace: 'nowrap' }}>{reg.student?.semester} - {reg.student?.section}</td>
                                             <td>
-                                                <span style={{ 
-                                                    padding: '4px 8px', 
-                                                    borderRadius: '4px', 
-                                                    fontSize: '0.8rem', 
-                                                    fontWeight: 600,
-                                                    backgroundColor: '#dcfce7',
-                                                    color: '#166534'
-                                                }}>
+                                                <span className={`reg-status-badge ${reg.status.toLowerCase()}`}>
                                                     {reg.status}
                                                 </span>
                                             </td>
