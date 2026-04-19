@@ -1,8 +1,19 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Scanner } from '@yudiel/react-qr-scanner';
-import { getStudentEventByIdApi, registerForEventApi, markAttendanceApi } from '../service/studentEventsService';
+import { getStudentEventByIdApi, registerForEventApi, markAttendanceApi, createPaymentOrderApi, verifyPaymentApi } from '../service/studentEventsService';
 import '../style/StudentEventDetails.scss';
+
+// Dynamically loads the Razorpay checkout window
+const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.body.appendChild(script);
+    });
+};
 
 const StudentEventDetails = () => {
     const { eventId } = useParams();
@@ -18,7 +29,7 @@ const StudentEventDetails = () => {
             const data = await getStudentEventByIdApi(eventId);
             setEvent(data);
         } catch (error) {
-            console.error(error);
+            console.error(error)
             navigate('/student/dashboard');
         } finally {
             setIsLoading(false);
@@ -33,16 +44,71 @@ const StudentEventDetails = () => {
     }, [loadEvent]);
 
     const handleRegister = async () => {
-        if(window.confirm('Do you want to register for this event?')) {
-            setIsRegistering(true);
-            try {
+        if(!window.confirm('Do you want to register for this event?')) return;
+        
+        setIsRegistering(true);
+
+        try {
+            if (event.eventType === 'Free') {
                 await registerForEventApi(eventId);
-                await loadEvent(); 
-            } catch (error) {
-                alert(error.response?.data?.message || 'Failed to register.');
-            } finally {
+                alert('Registered successfully!');
+                await loadEvent();
                 setIsRegistering(false);
+            } else {
+                // Paid Event Flow
+                const res = await loadRazorpayScript();
+                if (!res) {
+                    alert('Razorpay SDK failed to load. Are you online?');
+                    setIsRegistering(false);
+                    return;
+                }
+
+                // 1. Get Order ID from backend
+                const orderData = await createPaymentOrderApi(eventId);
+
+                // 2. Configure Razorpay Popup
+                const options = {
+                    key: orderData.key_id, 
+                    amount: orderData.amount,
+                    currency: orderData.currency,
+                    name: "ClubHub",
+                    description: `Registration for ${event.title}`,
+                    order_id: orderData.id,
+                    handler: async function (response) {
+                        try {
+                            // 3. Verify payment signature on backend
+                            await verifyPaymentApi({
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature
+                            });
+                            
+                            // 4. Register the student in the database
+                            await registerForEventApi(eventId);
+                            alert('Payment successful and registered!');
+                            await loadEvent();
+                        } catch (err) {
+                            console.error(err)
+                            alert('Payment verification failed. Please contact admin.');
+                        }
+                    },
+                    theme: {
+                        color: "#2563eb"
+                    }
+                };
+
+                const paymentObject = new window.Razorpay(options);
+                paymentObject.on('payment.failed', function (response) {
+                    console.log(response)
+                    alert('Payment failed. Please try again.');
+                });
+                
+                paymentObject.open();
+                setIsRegistering(false); 
             }
+        } catch (error) {
+            alert(error.response?.data?.message || 'Failed to process registration.');
+            setIsRegistering(false);
         }
     };
 
@@ -55,16 +121,13 @@ const StudentEventDetails = () => {
                 const url = new URL(qrText);
                 const token = url.searchParams.get('token');
                 
-                if (!token) {
-                    alert('Invalid QR code format.');
-                    return;
-                }
+                if (!token) return alert('Invalid QR code format.');
 
                 await markAttendanceApi(eventId, token);
                 alert('Attendance recorded successfully!');
                 await loadEvent(); 
             } catch (error) {
-                alert(error.response?.data?.message || 'Failed to mark attendance. Invalid QR Code.');
+                alert(error.response?.data?.message || 'Failed to mark attendance.');
             }
         }
     };
@@ -106,7 +169,7 @@ const StudentEventDetails = () => {
                         </button>
                     ) : (
                         <button className="btn-primary" onClick={handleRegister} disabled={isRegistering}>
-                            {isRegistering ? 'Processing...' : 'Register Now'}
+                            {isRegistering ? 'Processing...' : (event.eventType === 'Free' ? 'Register Now' : `Pay ₹${event.price} & Register`)}
                         </button>
                     )}
                 </div>
@@ -165,10 +228,7 @@ const StudentEventDetails = () => {
                             </button>
                         </div>
                         <div style={{ borderRadius: '8px', overflow: 'hidden' }}>
-                            <Scanner 
-                                onScan={handleScan}
-                                onError={(error) => console.log(error?.message)} 
-                            />
+                            <Scanner onScan={handleScan} />
                         </div>
                         <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#64748b', marginTop: '16px' }}>
                             Point your camera at the QR code displayed by the event organizer.

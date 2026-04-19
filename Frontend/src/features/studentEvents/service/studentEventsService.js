@@ -31,3 +31,13 @@ export const getCertificatesApi = async () => {
     const response = await axiosInstance.get('/events/student/certificates');
     return response.data.data;
 };
+
+export const createPaymentOrderApi = async (eventId) => {
+    const response = await axiosInstance.post('/payments/order', { eventId });
+    return response.data.data;
+};
+
+export const verifyPaymentApi = async (paymentData) => {
+    const response = await axiosInstance.post('/payments/verify', paymentData);
+    return response.data;
+};
