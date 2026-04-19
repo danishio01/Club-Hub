@@ -7,6 +7,7 @@ import studentRoutes from './routes/studentRoutes.js';
 import clubRoutes from './routes/clubRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import emailRoutes from './routes/emailRoutes.js';
 
 const app = express();
 
@@ -24,5 +25,6 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/clubs', clubRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/email', emailRoutes);
 
 export default app;
