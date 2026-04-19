@@ -19,7 +19,8 @@ const AdminLayout = () => {
         { path: '/admin/clubs', icon: 'ri-team-line', label: 'Clubs' },
         { path: '/admin/events', icon: 'ri-calendar-event-line', label: 'Events' },
         { path: '/admin/leaderboard', icon: 'ri-trophy-line', label: 'Leaderboard' },
-        { path: '/admin/attendance', icon: 'ri-calendar-check-line', label: 'Attendance' }
+        { path: '/admin/attendance', icon: 'ri-calendar-check-line', label: 'Attendance' },
+        { path: '/admin/ai-agent', icon: 'ri-robot-2-line', label: 'AI Assistant' }
     ];
 
     return (

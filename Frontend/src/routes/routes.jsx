@@ -16,6 +16,7 @@ import Leaderboard from "../features/leaderboard/pages/Leaderboard";
 import Certificates from "../features/certificates/pages/Certificates";
 import StudentAttendance from "../features/attendance/pages/StudentAttendance";
 import AdminAttendance from "../features/attendance/pages/AdminAttendance";
+import AdminAiAgent from "../features/ai/pages/AdminAiAgent";
 
 export const routes = createBrowserRouter([
     {
@@ -57,6 +58,10 @@ export const routes = createBrowserRouter([
             {
                 path: "attendance",
                 element: <AdminAttendance />
+            },
+            {
+                path: "ai-agent",
+                element: <AdminAiAgent />
             }
         ]
     },
