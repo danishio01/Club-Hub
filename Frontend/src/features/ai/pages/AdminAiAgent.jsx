@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import axiosInstance from '../../../api/axiosInstance';
 import '../style/AdminAiAgent.scss';
 
@@ -27,7 +29,7 @@ const AdminAiAgent = () => {
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    }, [messages, isLoading]);
 
     const handleSend = async () => {
         if (!inputValue.trim() || isLoading) return;
@@ -39,7 +41,6 @@ const AdminAiAgent = () => {
         setInputValue('');
         setIsLoading(true);
 
-        // Strip the IDs out before sending to the backend so the AI doesn't get confused
         const historyForApi = newHistory.map(msg => ({
             role: msg.role,
             content: msg.content
@@ -85,10 +86,24 @@ const AdminAiAgent = () => {
             <div className="chat-window">
                 {messages.map((msg) => (
                     <div key={msg.id} className={`message ${msg.role}`}>
-                        {msg.content}
+                        {msg.role === 'ai' ? (
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {msg.content}
+                            </ReactMarkdown>
+                        ) : (
+                            msg.content
+                        )}
                     </div>
                 ))}
-                {isLoading && <div key="loading-indicator" className="message ai">Thinking...</div>}
+                
+                {isLoading && (
+                    <div key="loading-indicator" className="message ai typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                )}
+                
                 <div ref={chatEndRef} />
             </div>
 
