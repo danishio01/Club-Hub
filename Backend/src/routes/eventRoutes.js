@@ -16,7 +16,10 @@ import {
     markAttendance,
     getAttendedEvents,
     getStudentAttendanceReport,
-    getAdminAttendanceReport
+    getAdminAttendanceReport,
+    submitReview, 
+    getEventReviews, 
+    summarizeReviews
 } from '../controllers/registrationController.js';
 import { getLeaderboard, resetLeaderboard } from '../controllers/leaderboardController.js';
 import { protect } from '../middleware/authMiddleware.js';
@@ -39,6 +42,9 @@ router.get('/:eventId/registrations', getEventRegistrations);
 router.get('/:eventId/qr-token', generateAttendanceToken);
 router.post('/:eventId/register', protect, registerForEvent);
 router.post('/:eventId/attendance', protect, markAttendance);
+router.post('/:eventId/review', protect, submitReview);
+router.get('/:eventId/reviews', getEventReviews);
+router.post('/:eventId/reviews/summary', summarizeReviews);
 
 router.patch('/:id/complete', markEventCompleted);
 router.get('/:id', getEventById);

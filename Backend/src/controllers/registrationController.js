@@ -2,6 +2,8 @@ import Registration from '../models/registrationModel.js';
 import Event from '../models/eventModel.js';
 import Student from '../models/studentModel.js';
 import jwt from 'jsonwebtoken';
+import { ChatMistralAI } from "@langchain/mistralai";
+import { HumanMessage } from "@langchain/core/messages";
 
 export const registerForEvent = async (req, res) => {
     try {
@@ -228,5 +230,53 @@ export const getAdminAttendanceReport = async (req, res) => {
         return res.status(200).json({ success: true, data: report });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to fetch admin report' });
+    }
+};
+
+export const submitReview = async (req, res) => {
+    try {
+        const { rating, review } = req.body;
+        const registration = await Registration.findOneAndUpdate(
+            { event: req.params.eventId, student: req.user._id, status: 'Attended' },
+            { rating, review },
+            { new: true }
+        );
+        if (!registration) return res.status(400).json({ success: false, message: 'Must attend the event to review.' });
+        return res.status(200).json({ success: true, message: 'Review submitted successfully!' });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to submit review' });
+    }
+};
+
+export const getEventReviews = async (req, res) => {
+    try {
+        const reviews = await Registration.find({ event: req.params.eventId, rating: { $exists: true } })
+            .populate('student', 'name email')
+            .select('rating review student');
+            
+        const totalRating = reviews.reduce((sum, req) => sum + req.rating, 0);
+        const averageRating = reviews.length > 0 ? (totalRating / reviews.length).toFixed(1) : 0;
+
+        return res.status(200).json({ success: true, data: { reviews, averageRating, total: reviews.length } });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to fetch reviews' });
+    }
+};
+
+export const summarizeReviews = async (req, res) => {
+    try {
+        const reviews = await Registration.find({ event: req.params.eventId, review: { $exists: true, $ne: "" } });
+        if (reviews.length === 0) return res.status(400).json({ success: false, message: 'No written reviews to summarize.' });
+
+        const reviewTexts = reviews.map(r => r.review).join(' | ');
+        
+        const model = new ChatMistralAI({ model: "mistral-medium-latest", apiKey: process.env.MISTRAL_API_KEY });
+        const response = await model.invoke([
+            new HumanMessage(`Summarize these event reviews in a short, 3-sentence professional paragraph highlighting the main praises and complaints: ${reviewTexts}`)
+        ]);
+
+        return res.status(200).json({ success: true, data: response.content });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to generate summary' });
     }
 };

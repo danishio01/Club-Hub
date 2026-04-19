@@ -19,7 +19,6 @@ const AdminAiAgent = () => {
     const socketRef = useRef(null);
     const streamMessageIdRef = useRef('');
     
-    // NEW: We use a ref to accumulate text outside of React's batching cycle
     const currentStreamText = useRef(''); 
 
     useEffect(() => {
@@ -28,10 +27,8 @@ const AdminAiAgent = () => {
         const handleStream = (data) => {
             setIsLoading(false); 
             
-            // 1. Safely accumulate the text in the ref
             currentStreamText.current += data.token;
             
-            // 2. Replace the state content entirely, DO NOT append using msg.content + token
             setMessages(prev => prev.map(msg => {
                 if (msg.id === streamMessageIdRef.current) {
                     return { ...msg, content: currentStreamText.current };
@@ -72,7 +69,6 @@ const AdminAiAgent = () => {
         const aiMessageId = `ai-${Date.now()}`;
         streamMessageIdRef.current = aiMessageId;
         
-        // NEW: Clear the ref before starting a new stream
         currentStreamText.current = ''; 
         
         const newHistory = [...messages, userMsg];
@@ -119,7 +115,7 @@ const AdminAiAgent = () => {
                     {mode === 'Event Specific' && (
                         <select value={selectedEventId} onChange={(e) => setSelectedEventId(e.target.value)}>
                             <option value="">Select Event...</option>
-                            {events.map(ev => <option key={ev._id} value={ev._id}>{ev.title}</option>)}
+                            {events.filter(ev => ev.status !== 'Completed').map(ev => <option key={ev._id} value={ev._id}>{ev.title}</option>)}
                         </select>
                     )}
                 </div>

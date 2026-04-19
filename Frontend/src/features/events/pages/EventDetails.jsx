@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
-import { getEventByIdApi, deleteEventService, generateQrTokenApi, markEventCompletedApi } from '../service/eventService';
+import { getEventByIdApi, deleteEventService, generateQrTokenApi, markEventCompletedApi, getEventReviewsApi, summarizeReviewsApi } from '../service/eventService';
 import EditEventModal from '../components/EditEventModal';
 import ViewRegistrationsModal from '../components/ViewRegistrationsModal';
 import '../style/EventDetails.scss';
@@ -12,6 +12,9 @@ const EventDetails = () => {
     const [event, setEvent] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [qrUrl, setQrUrl] = useState(null);
+    const [reviewData, setReviewData] = useState({ reviews: [], averageRating: 0, total: 0 });
+    const [aiSummary, setAiSummary] = useState(null);
+    const [isSummarizing, setIsSummarizing] = useState(false);
     
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isRegistrationsModalOpen, setIsRegistrationsModalOpen] = useState(false);
@@ -20,6 +23,12 @@ const EventDetails = () => {
         try {
             const data = await getEventByIdApi(eventId);
             setEvent(data);
+            try {
+                const rData = await getEventReviewsApi(eventId);
+                if(rData) setReviewData(rData);
+            } catch (err) {
+                console.error(err);
+            }
         } catch (error) {
             console.error(error);
             alert('Failed to load event details.');
@@ -68,6 +77,19 @@ const EventDetails = () => {
         } catch (error) {
             console.error(error);
             alert('Failed to generate QR Code.');
+        }
+    };
+
+    const handleSummarize = async () => {
+        setIsSummarizing(true);
+        try {
+            const summary = await summarizeReviewsApi(eventId);
+            setAiSummary(summary);
+        } catch (error) {
+            console.error(error)
+            alert('Failed to generate summary.');
+        } finally {
+            setIsSummarizing(false);
         }
     };
 
@@ -166,6 +188,31 @@ const EventDetails = () => {
                         </button>
                     </div>
                 )}
+            </div>
+
+            <div className="reviews-panel" style={{ marginTop: '24px', padding: '24px', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h2 style={{ margin: 0 }}>Student Reviews ({reviewData.averageRating} ⭐)</h2>
+                    <button className="btn-secondary" onClick={handleSummarize} disabled={isSummarizing || reviewData.total === 0}>
+                        {isSummarizing ? 'Generating...' : '✨ Summarize with AI'}
+                    </button>
+                </div>
+                
+                {aiSummary && (
+                    <div style={{ marginTop: '16px', padding: '16px', background: '#f0f9ff', borderLeft: '4px solid #3b82f6', borderRadius: '4px' }}>
+                        <strong>AI Summary:</strong> {aiSummary}
+                    </div>
+                )}
+
+                <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {reviewData.reviews.map(r => (
+                        <div key={r._id} style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px' }}>
+                            <div style={{ fontWeight: 600, marginBottom: '4px' }}>{r.student.name} - {r.rating} ⭐</div>
+                            <div style={{ color: '#475569' }}>{r.review || 'No written feedback.'}</div>
+                        </div>
+                    ))}
+                    {reviewData.total === 0 && <p style={{ color: '#94a3b8' }}>No reviews yet.</p>}
+                </div>
             </div>
 
             {isEditModalOpen && <EditEventModal event={event} onClose={() => setIsEditModalOpen(false)} onSuccess={() => { setIsEditModalOpen(false); loadEvent(); }} />}

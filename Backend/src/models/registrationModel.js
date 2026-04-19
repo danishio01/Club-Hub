@@ -1,23 +1,12 @@
 import mongoose from 'mongoose';
 
 const registrationSchema = new mongoose.Schema({
-    student: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'Student', 
-        required: true 
-    },
-    event: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'Event', 
-        required: true 
-    },
-    status: { 
-        type: String, 
-        enum: ['Registered', 'Attended'], 
-        default: 'Registered' 
-    }
-}, { timestamps: true });
-
-registrationSchema.index({ student: 1, event: 1 }, { unique: true });
+    event: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', required: true },
+    student: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
+    status: { type: String, enum: ['Registered', 'Attended', 'Cancelled'], default: 'Registered' },
+    registeredAt: { type: Date, default: Date.now },
+    rating: { type: Number, min: 1, max: 5 },
+    review: { type: String }
+});
 
 export default mongoose.model('Registration', registrationSchema);

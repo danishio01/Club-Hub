@@ -113,7 +113,19 @@ export const processAiChat = async (history, mode, eventId, io, socketId) => {
     let systemInstruction = "You are a helpful administrative assistant for ClubHub. You can send emails and update events. CRITICAL RULE: Keep all responses concise, direct, and strictly under 300 words. Do not output long lists unless explicitly asked.";
     
     if (mode === 'Event Specific' && eventId) {
-        systemInstruction += ` You are currently managing the event with ID: ${eventId}. Use this ID when calling tools for this event.`;
+        const eventData = await Event.findById(eventId).populate('club');
+        const participantCount = await Registration.countDocuments({ event: eventId });
+        
+        systemInstruction += ` You are managing this specific event:
+        - ID: ${eventId}
+        - Title: ${eventData.title}
+        - Venue: ${eventData.venue}
+        - Date: ${new Date(eventData.date).toLocaleDateString()}
+        - Time: ${eventData.time}
+        - Club: ${eventData.club?.name || 'N/A'}
+        - Participants: ${participantCount}
+        
+        ALWAYS use these specific details if you need to email students about venue changes, dates, or timings.`;
     }
 
     const formattedMessages = [new SystemMessage(systemInstruction)];

@@ -41,3 +41,8 @@ export const verifyPaymentApi = async (paymentData) => {
     const response = await axiosInstance.post('/payments/verify', paymentData);
     return response.data;
 };
+
+export const submitReviewApi = async (eventId, reviewData) => {
+    const response = await axiosInstance.post(`/events/${eventId}/review`, reviewData);
+    return response.data;
+};

@@ -43,3 +43,13 @@ export const generateQrTokenApi = async (eventId) => {
     const response = await axiosInstance.get(`/events/${eventId}/qr-token`);
     return response.data.data;
 };
+
+export const getEventReviewsApi = async (eventId) => {
+    const response = await axiosInstance.get(`/events/${eventId}/reviews`);
+    return response.data.data;
+};
+
+export const summarizeReviewsApi = async (eventId) => {
+    const response = await axiosInstance.post(`/events/${eventId}/reviews/summary`);
+    return response.data.data;
+};

@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Scanner } from '@yudiel/react-qr-scanner';
-import { getStudentEventByIdApi, registerForEventApi, markAttendanceApi, createPaymentOrderApi, verifyPaymentApi } from '../service/studentEventsService';
+import { getStudentEventByIdApi, registerForEventApi, markAttendanceApi, createPaymentOrderApi, verifyPaymentApi, submitReviewApi } from '../service/studentEventsService';
 import '../style/StudentEventDetails.scss';
 
-// Dynamically loads the Razorpay checkout window
 const loadRazorpayScript = () => {
     return new Promise((resolve) => {
         const script = document.createElement('script');
@@ -23,6 +22,9 @@ const StudentEventDetails = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isRegistering, setIsRegistering] = useState(false);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
+    const [rating, setRating] = useState(5);
+    const [reviewText, setReviewText] = useState('');
+    const [isReviewSubmitted, setIsReviewSubmitted] = useState(false);
 
     const loadEvent = useCallback(async () => {
         try {
@@ -55,7 +57,6 @@ const StudentEventDetails = () => {
                 await loadEvent();
                 setIsRegistering(false);
             } else {
-                // Paid Event Flow
                 const res = await loadRazorpayScript();
                 if (!res) {
                     alert('Razorpay SDK failed to load. Are you online?');
@@ -63,10 +64,8 @@ const StudentEventDetails = () => {
                     return;
                 }
 
-                // 1. Get Order ID from backend
                 const orderData = await createPaymentOrderApi(eventId);
 
-                // 2. Configure Razorpay Popup
                 const options = {
                     key: orderData.key_id, 
                     amount: orderData.amount,
@@ -76,14 +75,12 @@ const StudentEventDetails = () => {
                     order_id: orderData.id,
                     handler: async function (response) {
                         try {
-                            // 3. Verify payment signature on backend
                             await verifyPaymentApi({
                                 razorpay_order_id: response.razorpay_order_id,
                                 razorpay_payment_id: response.razorpay_payment_id,
                                 razorpay_signature: response.razorpay_signature
                             });
                             
-                            // 4. Register the student in the database
                             await registerForEventApi(eventId);
                             alert('Payment successful and registered!');
                             await loadEvent();
@@ -129,6 +126,17 @@ const StudentEventDetails = () => {
             } catch (error) {
                 alert(error.response?.data?.message || 'Failed to mark attendance.');
             }
+        }
+    };
+
+    const handleReviewSubmit = async () => {
+        try {
+            await submitReviewApi(eventId, { rating, review: reviewText });
+            setIsReviewSubmitted(true);
+            alert('Thank you for your feedback!');
+        } catch (error) {
+        console.error(error)
+            alert('Failed to submit review.');
         }
     };
 
@@ -217,6 +225,26 @@ const StudentEventDetails = () => {
                     )}
                 </div>
             </div>
+
+            {event.attendanceStatus === 'Attended' && !isReviewSubmitted && (
+                <div className="review-section" style={{ marginTop: '30px', padding: '20px', background: '#f8fafc', borderRadius: '12px' }}>
+                    <h3>Rate this Event</h3>
+                    <select value={rating} onChange={(e) => setRating(Number(e.target.value))} style={{ padding: '8px', marginBottom: '10px' }}>
+                        <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
+                        <option value="4">⭐⭐⭐⭐ Good</option>
+                        <option value="3">⭐⭐⭐ Average</option>
+                        <option value="2">⭐⭐ Poor</option>
+                        <option value="1">⭐ Terrible</option>
+                    </select>
+                    <textarea 
+                        placeholder="Write a short review..." 
+                        value={reviewText} 
+                        onChange={(e) => setReviewText(e.target.value)}
+                        style={{ width: '100%', height: '80px', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '10px' }}
+                    />
+                    <button className="btn-primary" onClick={handleReviewSubmit}>Submit Review</button>
+                </div>
+            )}
 
             {isScannerOpen && (
                 <div className="scanner-modal-overlay">
