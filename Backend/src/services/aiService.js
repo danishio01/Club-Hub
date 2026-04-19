@@ -1,4 +1,4 @@
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { ChatMistralAI } from "@langchain/mistralai";
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import Event from '../models/eventModel.js';
@@ -12,14 +12,18 @@ dotenv.config();
 
 const updateEventDetailsTool = tool(
     async ({ eventId, venue, time, date }) => {
-        const updateData = {};
-        if (venue) updateData.venue = venue;
-        if (time) updateData.time = time;
-        if (date) updateData.date = date;
+        try {
+            const updateData = {};
+            if (venue) updateData.venue = venue;
+            if (time) updateData.time = time;
+            if (date) updateData.date = date;
 
-        const updatedEvent = await Event.findByIdAndUpdate(eventId, updateData, { new: true });
-        if (!updatedEvent) return "Event not found.";
-        return `Successfully updated event. New details: Venue: ${updatedEvent.venue}, Time: ${updatedEvent.time}, Date: ${updatedEvent.date}`;
+            const updatedEvent = await Event.findByIdAndUpdate(eventId, updateData, { new: true });
+            if (!updatedEvent) return "ERROR: Event not found.";
+            return `SUCCESS: Updated event. New details: Venue: ${updatedEvent.venue}, Time: ${updatedEvent.time}, Date: ${updatedEvent.date}`;
+        } catch (err) {
+            return `ERROR: Failed to update event. ${err.message}`;
+        }
     },
     {
         name: "updateEventDetailsTool",
@@ -35,21 +39,25 @@ const updateEventDetailsTool = tool(
 
 const sendEmailToEventParticipantsTool = tool(
     async ({ eventId, subject, html }) => {
-        const registrations = await Registration.find({ event: eventId }).populate('student');
-        if (!registrations || registrations.length === 0) return "No students registered for this event.";
+        try {
+            const registrations = await Registration.find({ event: eventId }).populate('student');
+            if (!registrations || registrations.length === 0) return "WARNING: No students registered for this event.";
 
-        let successCount = 0;
-        for (const reg of registrations) {
-            if (reg.student && reg.student.email) {
-                try {
-                    await sendEmailService({ to: reg.student.email, subject, html, text: html });
-                    successCount++;
-                } catch (e) {
-                    console.error(e);
+            let successCount = 0;
+            for (const reg of registrations) {
+                if (reg.student && reg.student.email) {
+                    try {
+                        await sendEmailService({ to: reg.student.email, subject, html, text: html });
+                        successCount++;
+                    } catch (e) {
+                        console.error(e);
+                    }
                 }
             }
+            return `SUCCESS: Sent email to ${successCount} registered students.`;
+        } catch (err) {
+            return `ERROR: Failed to send emails. ${err.message}`;
         }
-        return `Successfully sent email to ${successCount} registered students.`;
     },
     {
         name: "sendEmailToEventParticipantsTool",
@@ -64,21 +72,25 @@ const sendEmailToEventParticipantsTool = tool(
 
 const sendEmailToAllStudentsTool = tool(
     async ({ subject, html }) => {
-        const students = await Student.find({});
-        if (!students || students.length === 0) return "No students found in the database.";
+        try {
+            const students = await Student.find({});
+            if (!students || students.length === 0) return "WARNING: No students found in the database.";
 
-        let successCount = 0;
-        for (const student of students) {
-            if (student.email) {
-                try {
-                    await sendEmailService({ to: student.email, subject, html, text: html });
-                    successCount++;
-                } catch (e) {
-                    console.error(e);
+            let successCount = 0;
+            for (const student of students) {
+                if (student.email) {
+                    try {
+                        await sendEmailService({ to: student.email, subject, html, text: html });
+                        successCount++;
+                    } catch (e) {
+                        console.error(e);
+                    }
                 }
             }
+            return `SUCCESS: Sent email to all ${successCount} onboarded students.`;
+        } catch (err) {
+            return `ERROR: Failed to send mass email. ${err.message}`;
         }
-        return `Successfully sent email to all ${successCount} onboarded students.`;
     },
     {
         name: "sendEmailToAllStudentsTool",
@@ -92,9 +104,10 @@ const sendEmailToAllStudentsTool = tool(
 
 const tools = [updateEventDetailsTool, sendEmailToEventParticipantsTool, sendEmailToAllStudentsTool];
 
-const model = new ChatGoogleGenerativeAI({
-    model: "gemini-3.1-flash-lite-preview",
-    apiKey: process.env.GEMINI_API_KEY,
+// Configured for Mistral Medium
+const model = new ChatMistralAI({
+    model: "mistral-medium-latest",
+    apiKey: process.env.MISTRAL_API_KEY,
     temperature: 0.2
 });
 
