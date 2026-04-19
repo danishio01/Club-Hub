@@ -271,8 +271,16 @@ export const summarizeReviews = async (req, res) => {
         const reviewTexts = reviews.map(r => r.review).join(' | ');
         
         const model = new ChatMistralAI({ model: "mistral-medium-latest", apiKey: process.env.MISTRAL_API_KEY });
+        
+        // NEW: Strict prompt to prevent hallucinations and scaling the length
+        const promptText = `Here are the student reviews for an event: "${reviewTexts}". 
+        Please provide a professional summary of these reviews. 
+        CRITICAL RULES: 
+        1. Strictly use ONLY the information provided. Do NOT invent, hallucinate, or assume any praises, complaints, or technical difficulties. 
+        2. If the reviews are very short or there is only one review, a single accurate sentence is perfect.`;
+
         const response = await model.invoke([
-            new HumanMessage(`Summarize these event reviews in a short, 3-sentence professional paragraph highlighting the main praises and complaints: ${reviewTexts}`)
+            new HumanMessage(promptText)
         ]);
 
         return res.status(200).json({ success: true, data: response.content });
