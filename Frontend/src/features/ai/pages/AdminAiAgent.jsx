@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import io from 'socket.io-client';
 import axiosInstance from '../../../api/axiosInstance';
 import '../style/AdminAiAgent.scss';
 
@@ -13,18 +14,50 @@ const AdminAiAgent = () => {
     ]);
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    
     const chatEndRef = useRef(null);
+    const socketRef = useRef(null);
+    const streamMessageIdRef = useRef('');
+    
+    // NEW: We use a ref to accumulate text outside of React's batching cycle
+    const currentStreamText = useRef(''); 
 
     useEffect(() => {
+        socketRef.current = io('http://localhost:5000');
+        
+        const handleStream = (data) => {
+            setIsLoading(false); 
+            
+            // 1. Safely accumulate the text in the ref
+            currentStreamText.current += data.token;
+            
+            // 2. Replace the state content entirely, DO NOT append using msg.content + token
+            setMessages(prev => prev.map(msg => {
+                if (msg.id === streamMessageIdRef.current) {
+                    return { ...msg, content: currentStreamText.current };
+                }
+                return msg;
+            }));
+        };
+
+        socketRef.current.on('chat_stream', handleStream);
+
         const fetchEvents = async () => {
             try {
                 const response = await axiosInstance.get('/events');
                 setEvents(response.data.data);
             } catch (error) {
-                console.error(error);
+                console.error(error)
             }
         };
         fetchEvents();
+
+        return () => {
+            if (socketRef.current) {
+                socketRef.current.off('chat_stream', handleStream); 
+                socketRef.current.disconnect();
+            }
+        };
     }, []);
 
     useEffect(() => {
@@ -35,9 +68,15 @@ const AdminAiAgent = () => {
         if (!inputValue.trim() || isLoading) return;
 
         const userMsg = { id: `user-${Date.now()}`, role: 'user', content: inputValue.trim() };
-        const newHistory = [...messages, userMsg];
         
-        setMessages(newHistory);
+        const aiMessageId = `ai-${Date.now()}`;
+        streamMessageIdRef.current = aiMessageId;
+        
+        // NEW: Clear the ref before starting a new stream
+        currentStreamText.current = ''; 
+        
+        const newHistory = [...messages, userMsg];
+        setMessages([...newHistory, { id: aiMessageId, role: 'ai', content: '' }]);
         setInputValue('');
         setIsLoading(true);
 
@@ -47,16 +86,19 @@ const AdminAiAgent = () => {
         }));
 
         try {
-            const response = await axiosInstance.post('/ai/chat', {
+            await axiosInstance.post('/ai/chat', {
                 history: historyForApi,
                 mode,
-                eventId: mode === 'Event Specific' ? selectedEventId : null
+                eventId: mode === 'Event Specific' ? selectedEventId : null,
+                socketId: socketRef.current?.id 
             });
-
-            setMessages([...newHistory, { id: `ai-${Date.now()}`, role: 'ai', content: response.data.data }]);
         } catch (error) {
             console.error(error)
-            setMessages([...newHistory, { id: `error-${Date.now()}`, role: 'ai', content: 'Error: Failed to process request.' }]);
+            setMessages(prev => {
+                const updated = [...prev];
+                updated[updated.length - 1].content = 'Error: Failed to process request.';
+                return updated;
+            });
         } finally {
             setIsLoading(false);
         }
@@ -67,7 +109,7 @@ const AdminAiAgent = () => {
             <div className="agent-header">
                 <div className="header-info">
                     <h2><i className="ri-robot-2-line" style={{ color: '#2563eb' }}></i> AI Assistant</h2>
-                    <p>Automate emails and event updates using Gemini.</p>
+                    <p>Automate emails and event updates using Mistral.</p>
                 </div>
                 <div className="agent-controls">
                     <select value={mode} onChange={(e) => setMode(e.target.value)}>
@@ -85,7 +127,7 @@ const AdminAiAgent = () => {
 
             <div className="chat-window">
                 {messages.map((msg) => (
-                    <div key={msg.id} className={`message ${msg.role}`}>
+                    <div key={msg.id} className={`message ${msg.role} ${msg.content === '' ? 'hidden' : ''}`}>
                         {msg.role === 'ai' ? (
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                 {msg.content}

@@ -49,9 +49,7 @@ const sendEmailToEventParticipantsTool = tool(
                     try {
                         await sendEmailService({ to: reg.student.email, subject, html, text: html });
                         successCount++;
-                    } catch (e) {
-                        console.error(e);
-                    }
+                    } catch (e) {}
                 }
             }
             return `SUCCESS: Sent email to ${successCount} registered students.`;
@@ -82,9 +80,7 @@ const sendEmailToAllStudentsTool = tool(
                     try {
                         await sendEmailService({ to: student.email, subject, html, text: html });
                         successCount++;
-                    } catch (e) {
-                        console.error(e);
-                    }
+                    } catch (e) {}
                 }
             }
             return `SUCCESS: Sent email to all ${successCount} onboarded students.`;
@@ -104,17 +100,18 @@ const sendEmailToAllStudentsTool = tool(
 
 const tools = [updateEventDetailsTool, sendEmailToEventParticipantsTool, sendEmailToAllStudentsTool];
 
-// Configured for Mistral Medium
 const model = new ChatMistralAI({
     model: "mistral-medium-latest",
     apiKey: process.env.MISTRAL_API_KEY,
-    temperature: 0.2
+    temperature: 0.2,
+    maxTokens: 600
 });
 
 const llmWithTools = model.bindTools(tools);
 
-export const processAiChat = async (history, mode, eventId) => {
-    let systemInstruction = "You are a helpful administrative assistant for ClubHub. You can send emails and update events.";
+export const processAiChat = async (history, mode, eventId, io, socketId) => {
+    let systemInstruction = "You are a helpful administrative assistant for ClubHub. You can send emails and update events. CRITICAL RULE: Keep all responses concise, direct, and strictly under 300 words. Do not output long lists unless explicitly asked.";
+    
     if (mode === 'Event Specific' && eventId) {
         systemInstruction += ` You are currently managing the event with ID: ${eventId}. Use this ID when calling tools for this event.`;
     }
@@ -126,21 +123,48 @@ export const processAiChat = async (history, mode, eventId) => {
         if (msg.role === 'ai') formattedMessages.push(new AIMessage(msg.content));
     });
 
-    let aiMsg = await llmWithTools.invoke(formattedMessages);
-    formattedMessages.push(aiMsg);
+    let isDone = false;
+    let finalResponse = "";
 
-    while (aiMsg.tool_calls && aiMsg.tool_calls.length > 0) {
-        for (const toolCall of aiMsg.tool_calls) {
-            const selectedTool = tools.find(t => t.name === toolCall.name);
-            const toolResult = await selectedTool.invoke(toolCall.args);
-            formattedMessages.push(new ToolMessage({
-                tool_call_id: toolCall.id,
-                content: String(toolResult)
-            }));
+    while (!isDone) {
+        const stream = await llmWithTools.stream(formattedMessages);
+        let aiMsgChunk = null;
+
+        for await (const chunk of stream) {
+            if (!aiMsgChunk) {
+                aiMsgChunk = chunk;
+            } else {
+                aiMsgChunk = aiMsgChunk.concat(chunk);
+            }
+
+            if (chunk.content && (!chunk.tool_call_chunks || chunk.tool_call_chunks.length === 0)) {
+                if (io && socketId) {
+                    io.to(socketId).emit('chat_stream', { token: chunk.content });
+                }
+            }
         }
-        aiMsg = await llmWithTools.invoke(formattedMessages);
-        formattedMessages.push(aiMsg);
+
+        formattedMessages.push(aiMsgChunk);
+
+        if (aiMsgChunk.tool_calls && aiMsgChunk.tool_calls.length > 0) {
+            for (const toolCall of aiMsgChunk.tool_calls) {
+                const selectedTool = tools.find(t => t.name === toolCall.name);
+                let toolResult;
+                try {
+                    toolResult = await selectedTool.invoke(toolCall.args);
+                } catch (err) {
+                    toolResult = `ERROR: Failed to execute tool. ${err.message}`;
+                }
+                formattedMessages.push(new ToolMessage({
+                    tool_call_id: toolCall.id,
+                    content: String(toolResult)
+                }));
+            }
+        } else {
+            finalResponse = aiMsgChunk.content;
+            isDone = true;
+        }
     }
 
-    return aiMsg.content;
+    return finalResponse;
 };
