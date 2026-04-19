@@ -32,57 +32,83 @@ const AdminAttendance = () => {
         fetchData();
     }, [loadRecords]);
 
-    const filteredRecords = useMemo(() => {
-        let result = records;
+    const processedData = useMemo(() => {
+        if (!records || records.length === 0) return { columns: [], rows: [] };
 
-        if (searchTerm) {
-            const lowerSearch = searchTerm.toLowerCase();
-            result = result.filter(r => 
-                r.studentName.toLowerCase().includes(lowerSearch) || 
-                r.usn.toLowerCase().includes(lowerSearch)
-            );
-        }
+        const dateMap = new Map();
+        records.forEach(r => {
+            if (!dateMap.has(r.date)) {
+                dateMap.set(r.date, new Date(r.rawDate));
+            }
+        });
+
+        let columns = Array.from(dateMap.entries())
+            .sort((a, b) => a[1] - b[1])
+            .map(entry => ({ label: entry[0], raw: entry[1] }));
 
         if (startDate) {
             const start = new Date(startDate);
             start.setHours(0, 0, 0, 0);
-            result = result.filter(r => new Date(r.rawDate) >= start);
+            columns = columns.filter(c => c.raw >= start);
         }
-
         if (endDate) {
             const end = new Date(endDate);
             end.setHours(23, 59, 59, 999);
-            result = result.filter(r => new Date(r.rawDate) <= end);
+            columns = columns.filter(c => c.raw <= end);
         }
+
+        const studentMap = new Map();
+        records.forEach(r => {
+            if (!studentMap.has(r.usn)) {
+                studentMap.set(r.usn, {
+                    studentName: r.studentName,
+                    usn: r.usn,
+                    department: r.department,
+                    semester: r.semester,
+                    section: r.section,
+                    attendance: {}
+                });
+            }
+            studentMap.get(r.usn).attendance[r.date] = r.eventName !== '-' ? r.eventName : 'Absent';
+        });
+
+        let rows = Array.from(studentMap.values());
+
+        if (searchTerm) {
+            const lowerSearch = searchTerm.toLowerCase();
+            rows = rows.filter(r => 
+                r.studentName.toLowerCase().includes(lowerSearch) || 
+                r.usn.toLowerCase().includes(lowerSearch)
+            );
+        }
+        if (filterDepartment) rows = rows.filter(r => r.department === filterDepartment);
+        if (filterSemester) rows = rows.filter(r => r.semester === filterSemester);
+        if (filterSection) rows = rows.filter(r => r.section === filterSection);
 
         if (filterStatus) {
-            result = result.filter(r => r.status === filterStatus);
+            rows = rows.filter(r => {
+                return columns.some(col => {
+                    const val = r.attendance[col.label];
+                    if (filterStatus === 'Present') return val !== 'Absent';
+                    return val === 'Absent';
+                });
+            });
         }
 
-        if (filterDepartment) {
-            result = result.filter(r => r.department === filterDepartment);
-        }
-
-        if (filterSemester) {
-            result = result.filter(r => r.semester === filterSemester);
-        }
-
-        if (filterSection) {
-            result = result.filter(r => r.section === filterSection);
-        }
-
-        return result;
-    }, [searchTerm, startDate, endDate, filterStatus, filterDepartment, filterSemester, filterSection, records]);
+        return { columns, rows };
+    }, [records, searchTerm, startDate, endDate, filterStatus, filterDepartment, filterSemester, filterSection]);
 
     const stats = useMemo(() => {
         let present = 0;
         let absent = 0;
-        filteredRecords.forEach(r => {
-            if (r.status === 'Present') present++;
-            else absent++;
+        processedData.rows.forEach(r => {
+            processedData.columns.forEach(c => {
+                if (r.attendance[c.label] !== 'Absent') present++;
+                else absent++;
+            });
         });
-        return { total: filteredRecords.length, present, absent };
-    }, [filteredRecords]);
+        return { totalStudents: processedData.rows.length, present, absent };
+    }, [processedData]);
 
     const clearFilters = () => {
         setSearchTerm('');
@@ -95,19 +121,24 @@ const AdminAttendance = () => {
     };
 
     const exportToExcel = () => {
-        const worksheet = XLSX.utils.json_to_sheet(filteredRecords.map(r => ({
-            'Student Name': r.studentName,
-            'USN': r.usn,
-            'Department': r.department,
-            'Semester': r.semester,
-            'Section': r.section,
-            'Date': r.date,
-            'Status': r.status,
-            'Event Attended': r.eventName
-        })));
+        const exportData = processedData.rows.map(row => {
+            const obj = {
+                'Student Name': row.studentName,
+                'USN': row.usn,
+                'Department': row.department,
+                'Semester': row.semester,
+                'Section': row.section,
+            };
+            processedData.columns.forEach(col => {
+                obj[col.label] = row.attendance[col.label] || 'Absent';
+            });
+            return obj;
+        });
+
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Range Report");
-        XLSX.writeFile(workbook, "Campus_Attendance_Range_Report.xlsx");
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Grid");
+        XLSX.writeFile(workbook, "Campus_Attendance_Grid_Report.xlsx");
     };
 
     const uniqueDepartments = [...new Set(records.map(r => r.department))].filter(Boolean).sort();
@@ -118,22 +149,22 @@ const AdminAttendance = () => {
         <div className="attendance-page">
             <div className="attendance-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                    <h1>Master Attendance Report</h1>
-                    <p>Track student participation with advanced range filtering and analytics.</p>
+                    <h1>Master Attendance Grid</h1>
+                    <p>Track student participation across all events dynamically.</p>
                 </div>
             </div>
 
             <div className="summary-stats">
                 <div className="stat-card total">
-                    <span className="stat-label">Total Records Found</span>
-                    <span className="stat-value">{stats.total}</span>
+                    <span className="stat-label">Students in Grid</span>
+                    <span className="stat-value">{stats.totalStudents}</span>
                 </div>
                 <div className="stat-card present">
-                    <span className="stat-label">Total Present</span>
+                    <span className="stat-label">Total Participations</span>
                     <span className="stat-value">{stats.present}</span>
                 </div>
                 <div className="stat-card absent">
-                    <span className="stat-label">Total Absent</span>
+                    <span className="stat-label">Total Absences</span>
                     <span className="stat-value">{stats.absent}</span>
                 </div>
             </div>
@@ -207,51 +238,58 @@ const AdminAttendance = () => {
 
                     <div className="filter-group">
                         <label>Status</label>
-                        <select className="filter-input" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-                            <option value="">All Statuses</option>
-                            <option value="Present">Present</option>
-                            <option value="Absent">Absent</option>
+                        <select className="filter-input" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} title="Filters students who were Present/Absent on ANY of the visible dates">
+                            <option value="">Any Status</option>
+                            <option value="Present">Has Attended</option>
+                            <option value="Absent">Has Absences</option>
                         </select>
                     </div>
                 </div>
             </div>
 
-            <div className="table-container">
-                <table>
+            <div className="table-container" style={{ overflowX: 'auto' }}>
+                <table style={{ whiteSpace: 'nowrap' }}>
                     <thead>
                         <tr>
-                            <th>Student Details</th>
-                            <th>Dept, Sem & Section</th>
-                            <th>Date</th>
-                            <th>Status</th>
-                            <th>Event Attended</th>
+                            <th style={{ minWidth: '200px', position: 'sticky', left: 0, background: '#f8fafc', zIndex: 1 }}>Student Details</th>
+                            <th style={{ minWidth: '150px' }}>Dept, Sem & Sec</th>
+                            {processedData.columns.map(col => (
+                                <th key={col.label} style={{ minWidth: '150px' }}>{col.label}</th>
+                            ))}
                         </tr>
                     </thead>
                     <tbody>
                         {isLoading ? (
-                            <tr><td colSpan="5" style={{ textAlign: 'center' }}>Loading reports...</td></tr>
-                        ) : filteredRecords.length === 0 ? (
-                            <tr><td colSpan="5" style={{ textAlign: 'center' }}>No records match your filters.</td></tr>
+                            <tr><td colSpan={processedData.columns.length + 2} style={{ textAlign: 'center' }}>Loading reports...</td></tr>
+                        ) : processedData.rows.length === 0 ? (
+                            <tr><td colSpan={processedData.columns.length + 2} style={{ textAlign: 'center' }}>No records match your filters.</td></tr>
                         ) : (
-                            filteredRecords.map((record, index) => (
+                            processedData.rows.map((row, index) => (
                                 <tr key={index}>
-                                    <td>
-                                        <div style={{ fontWeight: 600, color: '#0f172a' }}>{record.studentName}</div>
-                                        <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{record.usn}</div>
+                                    <td style={{ position: 'sticky', left: 0, background: '#ffffff', zIndex: 1, borderRight: '1px solid #e2e8f0' }}>
+                                        <div style={{ fontWeight: 600, color: '#0f172a' }}>{row.studentName}</div>
+                                        <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{row.usn}</div>
                                     </td>
                                     <td>
-                                        <div style={{ fontWeight: 500 }}>{record.department}</div>
+                                        <div style={{ fontWeight: 500 }}>{row.department}</div>
                                         <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                                            Sem: {record.semester} | Sec: {record.section}
+                                            Sem: {row.semester} | Sec: {row.section}
                                         </div>
                                     </td>
-                                    <td style={{ fontWeight: 500 }}>{record.date}</td>
-                                    <td>
-                                        <span className={`status-badge ${record.status.toLowerCase()}`}>
-                                            {record.status}
-                                        </span>
-                                    </td>
-                                    <td style={{ color: '#475569' }}>{record.eventName}</td>
+                                    {processedData.columns.map(col => {
+                                        const status = row.attendance[col.label] || 'Absent';
+                                        return (
+                                            <td key={col.label}>
+                                                {status === 'Absent' ? (
+                                                    <span className="status-badge absent">Absent</span>
+                                                ) : (
+                                                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#16a34a' }}>
+                                                        <i className="ri-check-line"></i> {status}
+                                                    </div>
+                                                )}
+                                            </td>
+                                        );
+                                    })}
                                 </tr>
                             ))
                         )}
