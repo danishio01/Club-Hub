@@ -14,7 +14,9 @@ import paymentRoutes from './routes/paymentRoutes.js'
 const app = express();
 
 app.use(cors({
-    origin: 'http://localhost:5173',
+    origin: ['http://localhost:5173',
+        'https://club-hub-theta.vercel.app'
+    ],
     credentials: true
 }));
 
