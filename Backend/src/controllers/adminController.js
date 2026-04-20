@@ -29,8 +29,8 @@ export const loginAdmin = async (req, res) => {
 
         res.cookie('jwt', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV !== 'development',
-            sameSite: 'strict',
+            secure: true,
+            sameSite: 'none',
             maxAge: 30 * 24 * 60 * 60 * 1000,
         });
 
@@ -71,6 +71,8 @@ export const checkAdminAuth = async (req, res) => {
 export const logoutAdmin = (req, res) => {
     res.cookie('jwt', '', {
         httpOnly: true,
+        secure: true,
+        sameSite: 'none',
         expires: new Date(0),
     });
     res.status(200).json({ success: true, message: 'Logged out successfully' });
