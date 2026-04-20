@@ -110,7 +110,9 @@ const model = new ChatMistralAI({
 const llmWithTools = model.bindTools(tools);
 
 export const processAiChat = async (history, mode, eventId, io, socketId) => {
-    let systemInstruction = "You are a helpful administrative assistant for ClubHub. You can send emails and update events. CRITICAL RULE: Keep all responses concise, direct, and strictly under 300 words. Do not output long lists unless explicitly asked.";
+    const currentTime = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'long' });
+
+    let systemInstruction = `You are a helpful administrative assistant for ClubHub. You can send emails and update events. CRITICAL RULE: Keep all responses concise, direct, and strictly under 300 words. Do not output long lists unless explicitly asked. The current system date and time is ${currentTime}.`;
     
     if (mode === 'Event Specific' && eventId) {
         const eventData = await Event.findById(eventId).populate('club');
@@ -141,6 +143,7 @@ export const processAiChat = async (history, mode, eventId, io, socketId) => {
     while (!isDone) {
         const stream = await llmWithTools.stream(formattedMessages);
         let aiMsgChunk = null;
+        let accumulatedText = "";
 
         for await (const chunk of stream) {
             if (!aiMsgChunk) {
@@ -149,9 +152,10 @@ export const processAiChat = async (history, mode, eventId, io, socketId) => {
                 aiMsgChunk = aiMsgChunk.concat(chunk);
             }
 
-            if (chunk.content && (!chunk.tool_call_chunks || chunk.tool_call_chunks.length === 0)) {
+            if (chunk.content) {
+                accumulatedText += chunk.content;
                 if (io && socketId) {
-                    io.to(socketId).emit('chat_stream', { token: chunk.content });
+                    io.to(socketId).emit('chat_stream', { text: accumulatedText });
                 }
             }
         }

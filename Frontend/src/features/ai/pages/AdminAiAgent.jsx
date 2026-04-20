@@ -18,42 +18,35 @@ const AdminAiAgent = () => {
     const chatEndRef = useRef(null);
     const socketRef = useRef(null);
     const streamMessageIdRef = useRef('');
-    
-    const currentStreamText = useRef(''); 
 
     useEffect(() => {
-        socketRef.current = io('http://localhost:5000');
+        const socket = io('http://localhost:5000');
+        socketRef.current = socket;
         
-        const handleStream = (data) => {
+        socket.on('chat_stream', (data) => {
             setIsLoading(false); 
-            
-            currentStreamText.current += data.token;
-            
-            setMessages(prev => prev.map(msg => {
-                if (msg.id === streamMessageIdRef.current) {
-                    return { ...msg, content: currentStreamText.current };
-                }
-                return msg;
-            }));
-        };
-
-        socketRef.current.on('chat_stream', handleStream);
+            if (data && data.text) {
+                setMessages(prev => prev.map(msg => {
+                    if (msg.id === streamMessageIdRef.current) {
+                        return { ...msg, content: data.text };
+                    }
+                    return msg;
+                }));
+            }
+        });
 
         const fetchEvents = async () => {
             try {
                 const response = await axiosInstance.get('/events');
                 setEvents(response.data.data);
             } catch (error) {
-                console.error(error)
+                console.error(error);
             }
         };
         fetchEvents();
 
         return () => {
-            if (socketRef.current) {
-                socketRef.current.off('chat_stream', handleStream); 
-                socketRef.current.disconnect();
-            }
+            socket.disconnect();
         };
     }, []);
 
@@ -69,8 +62,6 @@ const AdminAiAgent = () => {
         const aiMessageId = `ai-${Date.now()}`;
         streamMessageIdRef.current = aiMessageId;
         
-        currentStreamText.current = ''; 
-        
         const newHistory = [...messages, userMsg];
         setMessages([...newHistory, { id: aiMessageId, role: 'ai', content: '' }]);
         setInputValue('');
@@ -82,14 +73,23 @@ const AdminAiAgent = () => {
         }));
 
         try {
-            await axiosInstance.post('/ai/chat', {
+            const response = await axiosInstance.post('/ai/chat', {
                 history: historyForApi,
                 mode,
                 eventId: mode === 'Event Specific' ? selectedEventId : null,
                 socketId: socketRef.current?.id 
             });
+
+            if (response.data && response.data.data) {
+                setMessages(prev => prev.map(msg => {
+                    if (msg.id === aiMessageId) {
+                        return { ...msg, content: response.data.data };
+                    }
+                    return msg;
+                }));
+            }
         } catch (error) {
-            console.error(error)
+            console.error(error);
             setMessages(prev => {
                 const updated = [...prev];
                 updated[updated.length - 1].content = 'Error: Failed to process request.';

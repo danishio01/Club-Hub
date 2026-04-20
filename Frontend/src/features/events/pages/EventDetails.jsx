@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { getEventByIdApi, deleteEventService, generateQrTokenApi, markEventCompletedApi, getEventReviewsApi, summarizeReviewsApi } from '../service/eventService';
 import EditEventModal from '../components/EditEventModal';
 import ViewRegistrationsModal from '../components/ViewRegistrationsModal';
@@ -199,8 +201,11 @@ const EventDetails = () => {
                 </div>
                 
                 {aiSummary && (
-                    <div style={{ marginTop: '16px', padding: '16px', background: '#f0f9ff', borderLeft: '4px solid #3b82f6', borderRadius: '4px' }}>
-                        <strong>AI Summary:</strong> {aiSummary}
+                    <div style={{ marginTop: '16px', padding: '16px', background: '#f0f9ff', borderLeft: '4px solid #3b82f6', borderRadius: '4px', lineHeight: 1.6 }}>
+                        <strong>AI Summary:</strong> 
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {aiSummary}
+                        </ReactMarkdown>
                     </div>
                 )}
 
