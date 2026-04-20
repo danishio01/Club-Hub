@@ -20,7 +20,7 @@ const AdminAiAgent = () => {
     const streamMessageIdRef = useRef('');
 
     useEffect(() => {
-        const socket = io('http://localhost:5000');
+        const socket = io('https://clubhub-4bla.onrender.com');
         socketRef.current = socket;
         
         socket.on('chat_stream', (data) => {
