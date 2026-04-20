@@ -1,12 +1,14 @@
 import Student from '../models/studentModel.js';
 import Club from '../models/clubModel.js';
 import Event from '../models/eventModel.js';
+import Registration from '../models/registrationModel.js';
 
 export const getDashboardStats = async (req, res) => {
     try {
         const totalStudents = await Student.countDocuments();
         const totalClubs = await Club.countDocuments();
         const totalEvents = await Event.countDocuments();
+        const totalParticipation = await Registration.countDocuments();
 
         const activeClubAggregation = await Event.aggregate([
             {
@@ -37,8 +39,6 @@ export const getDashboardStats = async (req, res) => {
         const mostActiveClub = activeClubAggregation.length > 0 
             ? activeClubAggregation[0].clubDetails.name 
             : "No active clubs";
-
-        const totalParticipation = 0;
 
         const stats = {
             totalStudents,

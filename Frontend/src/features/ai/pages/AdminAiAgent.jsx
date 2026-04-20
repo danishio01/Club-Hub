@@ -105,7 +105,7 @@ const AdminAiAgent = () => {
             <div className="agent-header">
                 <div className="header-info">
                     <h2><i className="ri-robot-2-line" style={{ color: '#2563eb' }}></i> AI Assistant</h2>
-                    <p>Automate emails and event updates using Mistral.</p>
+                    <p>Automate emails and event updates using AI.</p>
                 </div>
                 <div className="agent-controls">
                     <select value={mode} onChange={(e) => setMode(e.target.value)}>
