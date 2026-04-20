@@ -16,6 +16,12 @@ const StudentLayout = () => {
         }
     }, [dispatch, user]);
 
+    useEffect(() => {
+        if (!isCheckingAuth && (!user || user.role !== 'student')) {
+            navigate('/');
+        }
+    }, [user, isCheckingAuth, navigate]);
+
     const handleLogout = async () => {
         await dispatch(logoutStudent());
         navigate('/');
@@ -24,12 +30,8 @@ const StudentLayout = () => {
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
     const closeSidebar = () => setIsSidebarOpen(false);
 
-    if (isCheckingAuth) {
+    if (isCheckingAuth || !user) {
         return <div style={{ padding: '40px', textAlign: 'center' }}>Loading Profile...</div>;
-    }
-
-    if (!user || user.role !== 'student') {
-        return <div style={{ padding: '40px', textAlign: 'center' }}>Unauthorized Access. Please login as a student.</div>;
     }
 
     return (
