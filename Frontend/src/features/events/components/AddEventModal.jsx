@@ -63,6 +63,7 @@ const AddEventModal = ({ onClose, onSuccess }) => {
                 time: generatedData.time || prev.time,
                 venue: generatedData.venue || prev.venue,
                 eventType: generatedData.eventType || prev.eventType,
+                price: generatedData.price !== undefined && generatedData.price !== null ? Number(generatedData.price) : prev.price,
                 maxParticipants: generatedData.maxParticipants ? String(generatedData.maxParticipants) : prev.maxParticipants
             }));
             
@@ -104,7 +105,6 @@ const AddEventModal = ({ onClose, onSuccess }) => {
                 </div>
                 
                 <div className="modal-body-scrollable">
-                    
                     {user?.role === 'president' && (
                         <div className="ai-assistant-card">
                             <div className="ai-header">
@@ -114,7 +114,7 @@ const AddEventModal = ({ onClose, onSuccess }) => {
                             <div className="ai-input-group">
                                 <textarea 
                                     className="ai-textarea"
-                                    placeholder="Describe your event... e.g. 'Conduct a 2 hour AI workshop on March 25 in the Main Seminar Hall for 200 students'"
+                                    placeholder="Describe your event... e.g. 'Conduct a singing competition on May 17 at GCEM Ground with ₹200 entry fee and max 150 participants.'"
                                     value={aiPrompt}
                                     onChange={(e) => setAiPrompt(e.target.value)}
                                     disabled={isGeneratingAI}

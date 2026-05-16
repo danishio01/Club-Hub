@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getReportByEventApi, saveReportDraftApi, submitReportApi } from '../service/reportService';
 import '../style/ReportEditor.scss';
@@ -20,31 +20,41 @@ const ReportEditor = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
-    const loadReport = useCallback(async () => {
-        try {
-            setIsLoading(true);
-            const data = await getReportByEventApi(eventId);
-            setReport(data);
-            if (data.content) {
-                setContent(prev => ({
-                    ...prev,
-                    ...data.content,
-                    socialMedia: data.content.socialMedia || { instagram: '', facebook: '', twitter: '' },
-                    resourcePersons: data.content.resourcePersons || []
-                }));
-            }
-        } catch (error) {
-            console.error(error);
-            alert("Failed to load report platform.");
-            navigate('/president/events');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [eventId, navigate]);
-
     useEffect(() => {
-        loadReport();
-    }, [loadReport]);
+        let isMounted = true;
+        
+        const initializeReportData = async () => {
+            try {
+                setIsLoading(true);
+                const data = await getReportByEventApi(eventId);
+                if (isMounted) {
+                    setReport(data);
+                    if (data.content) {
+                        setContent(prev => ({
+                            ...prev,
+                            ...data.content,
+                            socialMedia: data.content.socialMedia || { instagram: '', facebook: '', twitter: '' },
+                            resourcePersons: data.content.resourcePersons || []
+                        }));
+                    }
+                }
+            } catch (error) {
+                console.error(error);
+                if (isMounted) {
+                    alert("Failed to load report platform.");
+                    navigate('/president/events');
+                }
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
+
+        initializeReportData();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [eventId, navigate]);
 
     const handleInputChange = (field, value) => {
         setContent(prev => ({ ...prev, [field]: value }));
