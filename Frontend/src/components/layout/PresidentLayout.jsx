@@ -42,13 +42,15 @@ const PresidentLayout = () => {
 
     if (isCheckingAuth || !user) return <div style={{ padding: '40px', textAlign: 'center' }}>Authenticating President...</div>;
 
+    const clubLabel = user.clubName ? user.clubName : 'Unassigned';
+
     return (
         <div className="president-layout">
             <div className={`sidebar-overlay ${isSidebarOpen ? 'active' : ''}`} onClick={closeSidebar}></div>
             
             <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
                 <div className="sidebar-header">
-                    <h2>President Portal</h2>
+                    <h2>{clubLabel}</h2>
                     <button className="mobile-close-btn" onClick={closeSidebar}><i className="ri-close-line"></i></button>
                 </div>
                 <nav className="sidebar-nav">
@@ -73,7 +75,8 @@ const PresidentLayout = () => {
                 <header className="topbar">
                     <button className="menu-toggle" onClick={toggleSidebar}><i className="ri-menu-line"></i></button>
                     <div className="user-info">
-                        <span>{user.name} (President)</span>
+                        <span className="club-chip">{clubLabel} President</span>
+                        <span>{user.name}</span>
                         <div className="avatar">{user.name.charAt(0)}</div>
                     </div>
                 </header>

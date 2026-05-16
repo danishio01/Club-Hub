@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { getEventByIdApi, generateQrTokenApi, getEventRegistrationsApi } from '../../events/service/eventService';
@@ -13,23 +13,39 @@ const PrEventManagement = () => {
     const [qrUrl, setQrUrl] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    const loadData = useCallback(async () => {
+    useEffect(() => {
+        let isMounted = true;
+        
+        const fetchInitialData = async () => {
+            try {
+                setIsLoading(true);
+                const evData = await getEventByIdApi(eventId);
+                const regData = await getEventRegistrationsApi(eventId);
+                
+                if (isMounted) {
+                    setEvent(evData);
+                    setRegistrations(regData);
+                }
+            } catch (error) {
+                console.error("Failed loading event management data", error);
+                if (isMounted) navigate('/pr/dashboard');
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
+
+        fetchInitialData();
+        return () => { isMounted = false; };
+    }, [eventId, navigate]);
+
+    const handleRefreshRegistrations = async () => {
         try {
-            const evData = await getEventByIdApi(eventId);
-            setEvent(evData);
             const regData = await getEventRegistrationsApi(eventId);
             setRegistrations(regData);
         } catch (error) {
-            console.error("Failed loading event management data", error);
-            navigate('/pr/dashboard');
-        } finally {
-            setIsLoading(false);
+            console.error("Failed to refresh registrations", error);
         }
-    }, [eventId, navigate]);
-
-    useEffect(() => {
-        loadData();
-    }, [loadData]);
+    };
 
     const handleGenerateQR = async () => {
         try {
@@ -82,7 +98,7 @@ const PrEventManagement = () => {
                 <div className="registrations-panel">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                         <h2 style={{ margin: 0 }}>Registered Students</h2>
-                        <button className="btn-refresh" onClick={loadData}>
+                        <button className="btn-refresh" onClick={handleRefreshRegistrations}>
                             <i className="ri-refresh-line"></i> Refresh
                         </button>
                     </div>

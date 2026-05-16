@@ -1,4 +1,5 @@
 import Student from '../models/studentModel.js';
+import Club from '../models/clubModel.js';
 import jwt from 'jsonwebtoken';
 
 export const studentLogin = async (req, res) => {
@@ -17,6 +18,12 @@ export const studentLogin = async (req, res) => {
         
         if (!isMatch) {
             return res.status(401).json({ success: false, message: 'Invalid password.' });
+        }
+
+        let clubName = null;
+        if (student.role === 'president') {
+            const club = await Club.findOne({ president: student._id });
+            if (club) clubName = club.name;
         }
 
         const token = jwt.sign(
@@ -41,7 +48,8 @@ export const studentLogin = async (req, res) => {
                 email: student.email,
                 department: student.department,
                 interests: student.interests,
-                role: student.role
+                role: student.role,
+                clubName
             }
         });
     } catch (error) {
@@ -60,9 +68,19 @@ export const studentLogout = (req, res) => {
 };
 
 export const getMe = async (req, res) => {
-    const student = await Student.findById(req.user._id).select('-password');
-    if (student) {
-        res.status(200).json({
+    try {
+        const student = await Student.findById(req.user._id).select('-password');
+        if (!student) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        let clubName = null;
+        if (student.role === 'president') {
+            const club = await Club.findOne({ president: student._id });
+            if (club) clubName = club.name;
+        }
+
+        return res.status(200).json({
             success: true,
             data: {
                 _id: student._id,
@@ -71,10 +89,11 @@ export const getMe = async (req, res) => {
                 email: student.email,
                 department: student.department,
                 interests: student.interests,
-                role: student.role
+                role: student.role,
+                clubName
             }
         });
-    } else {
-        res.status(404).json({ success: false, message: 'User not found' });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Server error retrieving user data.' });
     }
 };
