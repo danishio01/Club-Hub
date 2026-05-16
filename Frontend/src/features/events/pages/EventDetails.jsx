@@ -23,31 +23,33 @@ const EventDetails = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
 
+    // Initial Load - Isolated from state toggles to satisfy React Hooks ESLint Rules
     useEffect(() => {
         let isMounted = true;
 
         const initializeEventData = async () => {
             try {
-                setIsLoading(true);
                 const evData = await getEventByIdApi(eventId);
                 
-                if (isMounted) {
-                    setEvent(evData);
-                }
+                if (isMounted) setEvent(evData);
                 
                 if (evData.status === 'approved' || evData.status === 'completed' || evData.status === 'Completed') {
                     const regData = await getEventRegistrationsApi(eventId);
                     if (isMounted) setRegistrations(regData);
-                    try {
-                        const rData = await getEventReviewsApi(eventId);
-                        if (isMounted && rData) setReviewData(rData);
-                    } catch (error) {
-                        console.error(error);
+                    
+                    if (evData.status === 'completed' || evData.status === 'Completed') {
+                        try {
+                            const rData = await getEventReviewsApi(eventId);
+                            if (isMounted && rData) setReviewData(rData);
+                        } catch (error) {
+                            console.error("Reviews load failed:", error);
+                        }
                     }
                 }
             } catch (error) {
-                console.error(error);
+                console.error("Failed to load event:", error);
                 if (isMounted) {
+                    alert('Failed to load event details. Redirecting.');
                     navigate(user?.role === 'admin' ? '/admin/event-approvals' : '/president/events');
                 }
             } finally {
@@ -62,53 +64,79 @@ const EventDetails = () => {
         };
     }, [eventId, navigate, user?.role]);
 
+    // Manual Refresh - Safely triggers state updates via user action
     const handleManualRefresh = async () => {
+        setIsLoading(true);
         try {
             const evData = await getEventByIdApi(eventId);
             setEvent(evData);
+            
             if (evData.status === 'approved' || evData.status === 'completed' || evData.status === 'Completed') {
                 const regData = await getEventRegistrationsApi(eventId);
                 setRegistrations(regData);
+                
+                if (evData.status === 'completed' || evData.status === 'Completed') {
+                    try {
+                        const rData = await getEventReviewsApi(eventId);
+                        if (rData) setReviewData(rData);
+                    } catch (error) {
+                        console.error("Reviews refresh failed:", error);
+                    }
+                }
             }
         } catch (error) {
-            console.error(error);
+            console.error("Refresh Error:", error);
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const handleApprove = async () => {
-        try {
-            await approveEventApi(eventId);
-            navigate('/admin/event-approvals');
-        } catch (error) {
-            console.error(error);
+        if(window.confirm('Approve this event? It will instantly become visible to the student portal.')) {
+            try {
+                await approveEventApi(eventId);
+                alert('Event Approved Successfully!');
+                navigate('/admin/event-approvals');
+            } catch (error) {
+                console.error("Approval Error:", error);
+                alert('Failed to approve event.');
+            }
         }
     };
 
     const handleReject = async (reason) => {
         try {
             await rejectEventApi(eventId, reason);
+            alert('Event successfully rejected.');
             setIsRejectModalOpen(false);
             navigate('/admin/event-approvals');
         } catch (error) {
-            console.error(error);
+            console.error("Rejection Error:", error);
+            alert('Failed to reject event. Please try again.');
         }
     };
 
     const handleDelete = async () => {
-        try {
-            await deleteEventService(eventId);
-            navigate('/president/events');
-        } catch (error) {
-            console.error(error);
+        if(window.confirm('Are you sure you want to completely delete this event?')) {
+            try {
+                await deleteEventService(eventId);
+                navigate('/president/events');
+            } catch (error) {
+                console.error("Delete Error:", error);
+                alert('Failed to delete event.');
+            }
         }
     };
 
     const handleMarkCompleted = async () => {
-        try {
-            await markEventCompletedApi(eventId);
-            handleManualRefresh();
-        } catch (error) {
-            console.error(error);
+        if(window.confirm('Mark this event as completed? It will be archived and removed from active registrations.')) {
+            try {
+                await markEventCompletedApi(eventId);
+                handleManualRefresh();
+            } catch (error) {
+                console.error("Mark Complete Error:", error);
+                alert('Failed to mark event as completed.');
+            }
         }
     };
 
@@ -118,14 +146,15 @@ const EventDetails = () => {
             const summary = await summarizeReviewsApi(eventId);
             setAiSummary(summary);
         } catch (error) {
-            console.error(error);
+            console.error("Summary Gen Error:", error);
+            alert('Failed to generate AI summary.');
         } finally {
             setIsSummarizing(false);
         }
     };
 
-    if (isLoading) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading infrastructure...</div>;
-    if (!event) return <div style={{ padding: '40px', textAlign: 'center' }}>Event not found.</div>;
+    if (isLoading) return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading event framework...</div>;
+    if (!event) return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Event not found or has been deleted.</div>;
 
     const formattedDate = new Date(event.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
     const isCompleted = event.status === 'completed' || event.status === 'Completed';
@@ -169,7 +198,7 @@ const EventDetails = () => {
 
             <div className="details-header">
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                    <div className="title-row">
                         <h1 style={{ margin: 0 }}>{event.title}</h1>
                         <span className={`status-badge ${event.status.toLowerCase()}`}>
                             {event.status}
@@ -240,7 +269,7 @@ const EventDetails = () => {
                 </div>
             </div>
 
-            {(isApproved || isCompleted) && user?.role === 'president' && (
+            {(isApproved || isCompleted) && (user?.role === 'president' || user?.role === 'admin') && (
                 <>
                     <div className="registrations-panel">
                         <div className="panel-header">
@@ -253,8 +282,8 @@ const EventDetails = () => {
                         {registrations.length === 0 ? (
                             <div className="empty-state">No students are registered for this event yet.</div>
                         ) : (
-                            <div className="responsive-table-wrapper">
-                                <table className="registrations-table">
+                            <div className="table-container">
+                                <table className="data-table">
                                     <thead>
                                         <tr>
                                             <th>Student Name</th>
@@ -266,10 +295,10 @@ const EventDetails = () => {
                                     <tbody>
                                         {registrations.map(reg => (
                                             <tr key={reg._id}>
-                                                <td data-label="Name" style={{ fontWeight: 600, color: '#0f172a' }}>{reg.student?.name || 'Unknown User'}</td>
-                                                <td data-label="USN" style={{ fontFamily: 'monospace', color: '#475569' }}>{reg.student?.usn || 'N/A'}</td>
-                                                <td data-label="Department">{reg.student?.department || 'N/A'}</td>
-                                                <td data-label="Sem & Sec">
+                                                <td style={{ fontWeight: 600, color: '#0f172a' }}>{reg.student?.name || 'Unknown User'}</td>
+                                                <td style={{ fontFamily: 'monospace', color: '#475569' }}>{reg.student?.usn || 'N/A'}</td>
+                                                <td>{reg.student?.department || 'N/A'}</td>
+                                                <td>
                                                     {reg.student ? `${reg.student.semester} - ${reg.student.section}` : 'N/A'}
                                                 </td>
                                             </tr>
@@ -281,8 +310,8 @@ const EventDetails = () => {
                     </div>
 
                     {isCompleted && (
-                        <div className="reviews-panel" style={{ marginTop: '24px', padding: '24px', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                        <div className="reviews-panel">
+                            <div className="panel-header">
                                 <h2 style={{ margin: 0 }}>Student Reviews ({reviewData.averageRating} ⭐)</h2>
                                 <button className="btn-secondary" onClick={handleSummarize} disabled={isSummarizing || reviewData.total === 0}>
                                     {isSummarizing ? 'Generating...' : '✨ Summarize with AI'}
@@ -290,7 +319,7 @@ const EventDetails = () => {
                             </div>
                             
                             {aiSummary && (
-                                <div style={{ marginTop: '16px', padding: '16px', background: '#f0f9ff', borderLeft: '4px solid #3b82f6', borderRadius: '4px', lineHeight: 1.6 }}>
+                                <div className="ai-summary-box">
                                     <strong>AI Summary:</strong> 
                                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                         {aiSummary}
@@ -298,14 +327,15 @@ const EventDetails = () => {
                                 </div>
                             )}
 
-                            <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div className="review-cards-container">
                                 {reviewData?.reviews?.map(r => (
-                                    <div key={r._id} style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px' }}>
-                                        <div style={{ fontWeight: 600, marginBottom: '4px' }}>{r?.student?.name || 'Unknown Student'} - {r.rating} ⭐</div>
-                                        <div style={{ color: '#475569' }}>{r.review || 'No written feedback provided.'}</div>
+                                    <div key={r._id} className="review-card">
+                                        <div className="review-author">{r?.student?.name || 'Unknown Student'}</div>
+                                        <div className="review-rating">{r.rating} ⭐</div>
+                                        <div className="review-text">{r.review || 'No written feedback provided.'}</div>
                                     </div>
                                 ))}
-                                {reviewData.total === 0 && <p style={{ color: '#94a3b8' }}>No reviews yet.</p>}
+                                {reviewData.total === 0 && <p style={{ color: '#94a3b8', margin: 0 }}>No reviews yet.</p>}
                             </div>
                         </div>
                     )}

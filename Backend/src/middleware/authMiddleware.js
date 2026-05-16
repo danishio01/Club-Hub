@@ -49,3 +49,11 @@ export const prOnly = (req, res, next) => {
         res.status(403).json({ success: false, message: 'Not authorized as PR' });
     }
 };
+
+export const presidentOrAdmin = (req, res, next) => {
+    if (req.user && (req.user.role === 'president' || req.user.role === 'admin')) {
+        next();
+    } else {
+        res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+};

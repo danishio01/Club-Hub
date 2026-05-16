@@ -25,7 +25,7 @@ import {
     summarizeReviews
 } from '../controllers/registrationController.js';
 import { getLeaderboard, resetLeaderboard } from '../controllers/leaderboardController.js';
-import { protect, presidentOnly, prOnly, adminOnly } from '../middleware/authMiddleware.js';
+import { protect, presidentOnly, prOnly, adminOnly, presidentOrAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -44,9 +44,11 @@ router.post('/', protect, presidentOnly, createEvent);
 router.patch('/:id/complete', protect, presidentOnly, markEventCompleted);
 router.put('/:id', protect, presidentOnly, updateEvent);
 router.delete('/:id', protect, presidentOnly, deleteEvent);
-router.post('/:eventId/reviews/summary', protect, presidentOnly, summarizeReviews);
 
-// Admin Event Approvals (Ordered before getEventById to prevent matching collisions)
+// AI Features mapped for both President & Admin
+router.post('/:eventId/reviews/summary', protect, presidentOrAdmin, summarizeReviews);
+
+// Admin Event Approvals
 router.patch('/:id/approve', protect, adminOnly, approveEvent);
 router.patch('/:id/reject', protect, adminOnly, rejectEvent);
 

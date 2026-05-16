@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { getAdminAttendanceReportApi } from '../service/attendanceService';
 import '../style/Attendance.scss';
@@ -15,21 +15,27 @@ const AdminAttendance = () => {
     const [filterSemester, setFilterSemester] = useState('');
     const [filterSection, setFilterSection] = useState('');
 
-    const loadRecords = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const data = await getAdminAttendanceReportApi();
-            setRecords(data);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
     useEffect(() => {
-        loadRecords();
-    }, [loadRecords]);
+        let isMounted = true;
+        
+        const fetchAttendanceRecords = async () => {
+            setIsLoading(true);
+            try {
+                const data = await getAdminAttendanceReportApi();
+                if (isMounted) setRecords(data);
+            } catch (error) {
+                console.error("Failed to load attendance records:", error);
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
+
+        fetchAttendanceRecords();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     const processedData = useMemo(() => {
         if (!records || records.length === 0) return { columns: [], rows: [] };
@@ -181,7 +187,7 @@ const AdminAttendance = () => {
             <div className="filters-panel">
                 <div className="filters-header">
                     <h3>Filter Records</h3>
-                    <div style={{ display: 'flex', gap: '12px' }}>
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                         <button className="btn-clear" onClick={clearFilters}>Clear Filters</button>
                         <button className="btn-export" onClick={exportToExcel}>
                             <i className="ri-file-excel-2-line"></i> Export XLSX

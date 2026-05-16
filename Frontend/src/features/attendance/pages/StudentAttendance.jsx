@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { getStudentAttendanceReportApi } from '../service/attendanceService';
 import '../style/Attendance.scss';
 
@@ -6,21 +6,27 @@ const StudentAttendance = () => {
     const [records, setRecords] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const loadRecords = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const data = await getStudentAttendanceReportApi();
-            setRecords(data);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
     useEffect(() => {
-        loadRecords();
-    }, [loadRecords]);
+        let isMounted = true;
+        
+        const fetchStudentRecords = async () => {
+            setIsLoading(true);
+            try {
+                const data = await getStudentAttendanceReportApi();
+                if (isMounted) setRecords(data);
+            } catch (error) {
+                console.error("Failed to load student attendance:", error);
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
+
+        fetchStudentRecords();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     return (
         <div className="attendance-page">
