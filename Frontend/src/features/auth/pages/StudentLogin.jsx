@@ -17,8 +17,14 @@ const StudentLogin = () => {
         if (!identifier || !password) return;
         
         try {
-            await dispatch(loginStudent({ identifier, password }));
-            navigate('/student/dashboard');
+            const userData = await dispatch(loginStudent({ identifier, password }));
+            if (userData.role === 'president') {
+                navigate('/student/president-dashboard');
+            } else if (userData.role === 'pr') {
+                navigate('/student/pr-dashboard');
+            } else {
+                navigate('/student/dashboard');
+            }
         } catch (err) {
             console.error(err);
         }
@@ -74,7 +80,7 @@ const StudentLogin = () => {
                         {isLoading ? 'Signing In...' : 'Student Login'}
                     </button>
                     
-                    <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '0.85rem', color: '#64748b' }}>
+                    <p style={{ textAlign: 'center', margin: '20px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
                         If you don't have an account, please contact your department admin.
                     </p>
                 </form>

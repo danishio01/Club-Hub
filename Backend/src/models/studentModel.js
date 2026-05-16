@@ -10,6 +10,7 @@ const studentSchema = new mongoose.Schema({
     semester: { type: String, required: true },
     section: { type: String, required: true },
     interests: [{ type: String }],
+    role: { type: String, enum: ['student', 'president', 'pr'], default: 'student' },
     points: { type: Number, default: 0 }
 }, { timestamps: true });
 

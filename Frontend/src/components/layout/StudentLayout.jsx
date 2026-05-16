@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutStudent, checkAuthStatus } from '../../features/auth/service/authService';
 import './StudentLayout.scss';
@@ -7,6 +7,7 @@ import './StudentLayout.scss';
 const StudentLayout = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const location = useLocation();
     const { user, isCheckingAuth } = useSelector((state) => state.auth);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -17,7 +18,7 @@ const StudentLayout = () => {
     }, [dispatch, user]);
 
     useEffect(() => {
-        if (!isCheckingAuth && (!user || user.role !== 'student')) {
+        if (!isCheckingAuth && !user) {
             navigate('/');
         }
     }, [user, isCheckingAuth, navigate]);
@@ -46,8 +47,18 @@ const StudentLayout = () => {
                     </button>
                 </div>
                 <nav className="sidebar-nav">
-                    <NavLink to="/student/dashboard" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
-                        <i className="ri-calendar-event-line"></i> Dashboard (Events)
+                    {user.role === 'president' && (
+                        <NavLink to="/student/president-dashboard" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
+                            <i className="ri-vip-crown-2-line"></i> President Dashboard
+                        </NavLink>
+                    )}
+                    {user.role === 'pr' && (
+                        <NavLink to="/student/pr-dashboard" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
+                            <i className="ri-megaphone-line"></i> PR Dashboard
+                        </NavLink>
+                    )}
+                    <NavLink to="/student/dashboard" className={({ isActive }) => isActive && location.pathname === '/student/dashboard' ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
+                        <i className="ri-calendar-event-line"></i> Events Directory
                     </NavLink>
                     <NavLink to="/student/leaderboard" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
                         <i className="ri-trophy-line"></i> Leaderboard

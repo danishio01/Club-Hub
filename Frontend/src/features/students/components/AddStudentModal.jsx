@@ -4,7 +4,7 @@ import '../style/StudentModals.scss';
 
 const AddStudentModal = ({ onClose, onSuccess }) => {
     const [formData, setFormData] = useState({
-        name: '', usn: '', email: '', department: '', semester: '', section: '', password: ''
+        name: '', usn: '', email: '', department: '', semester: '', section: '', role: 'student', password: ''
     });
     const [isLoading, setIsLoading] = useState(false);
 
@@ -19,7 +19,7 @@ const AddStudentModal = ({ onClose, onSuccess }) => {
             await createStudentService(formData);
             onSuccess();
         } catch (error) {
-            console.error(error)
+            console.error(error);
             alert('Failed to add student. Ensure USN and Email are unique.');
         } finally {
             setIsLoading(false);
@@ -49,13 +49,23 @@ const AddStudentModal = ({ onClose, onSuccess }) => {
                                 <input type="email" name="email" required value={formData.email} onChange={handleChange} />
                             </div>
                         </div>
-                        <div className="form-group">
-                            <label>Department</label>
-                            <select name="department" required value={formData.department} onChange={handleChange}>
-                                <option value="">Select Department</option>
-                                <option value="CSE">CSE</option>
-                                <option value="CSE-AIML">CSE-AIML</option>
-                            </select>
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label>Department</label>
+                                <select name="department" required value={formData.department} onChange={handleChange}>
+                                    <option value="">Select Department</option>
+                                    <option value="CSE">CSE</option>
+                                    <option value="CSE-AIML">CSE-AIML</option>
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Role</label>
+                                <select name="role" required value={formData.role} onChange={handleChange}>
+                                    <option value="student">Student</option>
+                                    <option value="president">President</option>
+                                    <option value="pr">PR</option>
+                                </select>
+                            </div>
                         </div>
                         <div className="form-row">
                             <div className="form-group">

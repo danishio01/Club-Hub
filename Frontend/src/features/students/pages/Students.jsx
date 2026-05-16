@@ -53,7 +53,7 @@ const Students = () => {
             <div className="page-header-actions">
                 <div className="title-section">
                     <h1>Student Management</h1>
-                    <p>Manage student accounts, departments, sections, and semesters.</p>
+                    <p>Manage student accounts, roles, departments, sections, and semesters.</p>
                 </div>
                 <div className="action-buttons">
                     <button className="btn-secondary" onClick={() => setIsBulkEditOpen(true)}>
@@ -110,6 +110,7 @@ const Students = () => {
                             <th>USN</th>
                             <th>Name</th>
                             <th>Email</th>
+                            <th>Role</th>
                             <th>Dept</th>
                             <th>Sem</th>
                             <th>Sec</th>
@@ -118,15 +119,24 @@ const Students = () => {
                     </thead>
                     <tbody>
                         {isLoading ? (
-                            <tr><td colSpan="7" style={{textAlign: 'center'}}>Loading data...</td></tr>
+                            <tr><td colSpan="8" style={{textAlign: 'center'}}>Loading data...</td></tr>
                         ) : students.length === 0 ? (
-                            <tr><td colSpan="7" style={{textAlign: 'center'}}>No students found.</td></tr>
+                            <tr><td colSpan="8" style={{textAlign: 'center'}}>No students found.</td></tr>
                         ) : (
                             students.map(student => (
                                 <tr key={student._id}>
                                     <td>{student.usn}</td>
                                     <td>{student.name}</td>
                                     <td>{student.email}</td>
+                                    <td>
+                                        <span style={{ 
+                                            padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, textTransform: 'capitalize',
+                                            backgroundColor: student.role === 'president' ? '#fef08a' : student.role === 'pr' ? '#e9d5ff' : '#f1f5f9',
+                                            color: student.role === 'president' ? '#854d0e' : student.role === 'pr' ? '#6b21a8' : '#475569'
+                                        }}>
+                                            {student.role}
+                                        </span>
+                                    </td>
                                     <td>{student.department}</td>
                                     <td>{student.semester}</td>
                                     <td>{student.section}</td>

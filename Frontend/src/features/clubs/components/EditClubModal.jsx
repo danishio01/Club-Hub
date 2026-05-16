@@ -1,14 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { updateClubService } from '../service/clubService';
+import axiosInstance from '../../../api/axiosInstance';
 import '../style/ClubModals.scss';
 
 const EditClubModal = ({ club, onClose, onSuccess }) => {
     const [formData, setFormData] = useState({
         name: club?.name || '',
         description: club?.description || '',
+        president: club?.president?._id || '',
         isActive: club?.isActive ?? true
     });
+    const [presidents, setPresidents] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        const fetchPresidents = async () => {
+            try {
+                const res = await axiosInstance.get('/students?role=president');
+                const loadedPresidents = res.data.data;
+                
+                // If current president is not in the list (e.g. role changed), we still want to show them if they exist in club
+                if (club?.president && !loadedPresidents.find(p => p._id === club.president._id)) {
+                    loadedPresidents.push(club.president);
+                }
+                
+                setPresidents(loadedPresidents);
+            } catch (error) {
+                console.error("Failed to load presidents", error);
+            }
+        };
+        fetchPresidents();
+    }, [club]);
 
     const handleChange = (e) => {
         const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -19,7 +41,10 @@ const EditClubModal = ({ club, onClose, onSuccess }) => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            await updateClubService(club._id, formData);
+            const dataToSubmit = { ...formData };
+            if (!dataToSubmit.president) dataToSubmit.president = null; 
+            
+            await updateClubService(club._id, dataToSubmit);
             onSuccess();
         } catch (error) {
             console.error(error);
@@ -46,7 +71,14 @@ const EditClubModal = ({ club, onClose, onSuccess }) => {
                             <label>Description</label>
                             <textarea name="description" rows="4" required value={formData.description} onChange={handleChange}></textarea>
                         </div>
-                        <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+                        <div className="form-group">
+                            <label>Assign President (Optional)</label>
+                            <select name="president" value={formData.president} onChange={handleChange}>
+                                <option value="">None</option>
+                                {presidents.map(p => <option key={p._id} value={p._id}>{p.name} ({p.usn || p.email})</option>)}
+                            </select>
+                        </div>
+                        <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
                             <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} style={{ width: 'auto' }} />
                             <label style={{ margin: 0 }}>Active Club</label>
                         </div>

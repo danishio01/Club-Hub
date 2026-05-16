@@ -8,6 +8,7 @@ const EditStudentModal = ({ student, onClose, onSuccess }) => {
         usn: student?.usn || '',
         email: student?.email || '',
         department: student?.department || '',
+        role: student?.role || 'student',
         semester: student?.semester || '',
         section: student?.section || '',
         password: '' 
@@ -55,13 +56,23 @@ const EditStudentModal = ({ student, onClose, onSuccess }) => {
                                 <input type="email" name="email" required value={formData.email} onChange={handleChange} />
                             </div>
                         </div>
-                        <div className="form-group">
-                            <label>Department</label>
-                            <select name="department" required value={formData.department} onChange={handleChange}>
-                                <option value="">Select Department</option>
-                                <option value="CSE">CSE</option>
-                                <option value="CSE-AIML">CSE-AIML</option>
-                            </select>
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label>Department</label>
+                                <select name="department" required value={formData.department} onChange={handleChange}>
+                                    <option value="">Select Department</option>
+                                    <option value="CSE">CSE</option>
+                                    <option value="CSE-AIML">CSE-AIML</option>
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label>Role</label>
+                                <select name="role" required value={formData.role} onChange={handleChange}>
+                                    <option value="student">Student</option>
+                                    <option value="president">President</option>
+                                    <option value="pr">PR</option>
+                                </select>
+                            </div>
                         </div>
                         <div className="form-row">
                             <div className="form-group">

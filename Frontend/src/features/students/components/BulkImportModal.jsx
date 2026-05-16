@@ -41,7 +41,7 @@ const BulkImportModal = ({ onClose, onSuccess }) => {
                     return;
                 }
 
-                const requiredColumns = ['name', 'usn', 'email', 'department', 'semester', 'section', 'password'];
+                const requiredColumns = ['name', 'usn', 'email', 'department', 'semester', 'section', 'role', 'password'];
                 const importedHeaders = Object.keys(json[0]).map(header => header.toLowerCase());
                 
                 const missingColumns = requiredColumns.filter(col => !importedHeaders.includes(col));
@@ -59,6 +59,7 @@ const BulkImportModal = ({ onClose, onSuccess }) => {
                     department: String(student.department || ''),
                     semester: Number(student.semester),
                     section: String(student.section || '').trim(),
+                    role: String(student.role || 'student').toLowerCase().trim(),
                     password: String(student.password || '')
                 }));
 
@@ -67,7 +68,7 @@ const BulkImportModal = ({ onClose, onSuccess }) => {
                 
             } catch (error) {
                 console.error(error);
-                alert('Import failed. Please check your data formatting or ensure there are no duplicate USNs/Emails.');
+                alert('Import failed. Please check your data formatting or ensure there are no duplicate USNs/Emails. Ensure role is one of: student, president, pr.');
             } finally {
                 setIsLoading(false);
             }
@@ -87,7 +88,8 @@ const BulkImportModal = ({ onClose, onSuccess }) => {
                     <div className="modal-body">
                         <p style={{ fontSize: '0.875rem', color: '#64748b', lineHeight: '1.5' }}>
                             Upload an Excel file (.xlsx or .xls). Ensure the first row of your sheet contains these exact headers (lowercase): <br/><br/>
-                            <strong>name, usn, email, department, semester, section, password</strong>
+                            <strong>name, usn, email, department, semester, section, role, password</strong><br/><br/>
+                            <em>Note: 'role' must be exactly 'student', 'president', or 'pr'.</em>
                         </p>
                         
                         <div className="form-group" style={{ marginTop: '16px' }}>

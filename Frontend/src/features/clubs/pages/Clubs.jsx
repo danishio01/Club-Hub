@@ -43,7 +43,7 @@ const Clubs = () => {
             <div className="page-header-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div className="title-section">
                     <h1 style={{ margin: 0, fontSize: '1.75rem', color: '#0f172a' }}>Clubs Management</h1>
-                    <p style={{ color: '#64748b', marginTop: '4px' }}>Create and manage student activity clubs.</p>
+                    <p style={{ color: '#64748b', marginTop: '4px' }}>Create and manage student activity clubs and presidents.</p>
                 </div>
                 <button className="btn-primary" onClick={() => setIsAddModalOpen(true)} style={{ padding: '10px 16px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>
                     <i className="ri-add-line"></i> Add New Club
@@ -51,9 +51,9 @@ const Clubs = () => {
             </div>
 
             {isLoading ? (
-                <div>Loading clubs...</div>
+                <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>Loading clubs...</div>
             ) : clubs.length === 0 ? (
-                <div>No clubs found. Create one to get started!</div>
+                <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>No clubs found. Create one to get started!</div>
             ) : (
                 <div className="clubs-grid">
                     {clubs.map(club => (
@@ -63,6 +63,10 @@ const Clubs = () => {
                                 <span className={`status-badge ${club.isActive ? 'active' : 'inactive'}`}>
                                     {club.isActive ? 'Active' : 'Inactive'}
                                 </span>
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '8px', fontWeight: 500 }}>
+                                <i className="ri-user-star-line" style={{ color: '#2563eb', marginRight: '4px' }}></i> 
+                                President: <span style={{ color: '#0f172a' }}>{club.president?.name || 'Not Assigned'}</span>
                             </div>
                             <p className="club-description">{club.description}</p>
                             <div className="club-actions">

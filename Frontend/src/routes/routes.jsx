@@ -17,6 +17,8 @@ import Certificates from "../features/certificates/pages/Certificates";
 import StudentAttendance from "../features/attendance/pages/StudentAttendance";
 import AdminAttendance from "../features/attendance/pages/AdminAttendance";
 import AdminAiAgent from "../features/ai/pages/AdminAiAgent";
+import PresidentDashboard from "../features/president/pages/PresidentDashboard";
+import PrDashboard from "../features/pr/pages/PrDashboard";
 
 export const routes = createBrowserRouter([
     {
@@ -72,6 +74,14 @@ export const routes = createBrowserRouter([
             {
                 path: "dashboard",
                 element: <StudentEvents />
+            },
+            {
+                path: "president-dashboard",
+                element: <PresidentDashboard />
+            },
+            {
+                path: "pr-dashboard",
+                element: <PrDashboard />
             },
             {
                 path: "events/:eventId",

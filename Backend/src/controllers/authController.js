@@ -20,7 +20,7 @@ export const studentLogin = async (req, res) => {
         }
 
         const token = jwt.sign(
-            { id: student._id, role: 'student' }, 
+            { id: student._id, role: student.role }, 
             'clubhub_super_secret_key_123', 
             { expiresIn: '1d' }
         );
@@ -40,7 +40,8 @@ export const studentLogin = async (req, res) => {
                 usn: student.usn,
                 email: student.email,
                 department: student.department,
-                interests: student.interests
+                interests: student.interests,
+                role: student.role
             }
         });
     } catch (error) {
@@ -70,7 +71,7 @@ export const getMe = async (req, res) => {
                 email: student.email,
                 department: student.department,
                 interests: student.interests,
-                role: 'student'
+                role: student.role
             }
         });
     } else {

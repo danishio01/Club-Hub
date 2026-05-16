@@ -14,7 +14,7 @@ export const protect = async (req, res, next) => {
                 if(req.user) req.user.role = 'admin'; 
             } else {
                 req.user = await Student.findById(decoded.id).select('-password');
-                if(req.user) req.user.role = 'student';
+                if(req.user) req.user.role = req.user.role;
             }
             
             next();

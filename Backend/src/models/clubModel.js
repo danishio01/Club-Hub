@@ -13,6 +13,10 @@ const clubSchema = new mongoose.Schema({
     isActive: {
         type: Boolean,
         default: true
+    },
+    president: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'Student' 
     }
 }, { timestamps: true });
 

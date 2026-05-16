@@ -1,5 +1,5 @@
 import Student from '../models/studentModel.js';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 export const createStudent = async (req, res) => {
     try {
@@ -31,12 +31,13 @@ export const createManyStudents = async (req, res) => {
 
 export const getStudents = async (req, res) => {
     try {
-        const { semester, section, department, search } = req.query;
+        const { semester, section, department, role, search } = req.query;
         const filter = {};
         
         if (semester) filter.semester = semester;
         if (section) filter.section = section;
         if (department) filter.department = department;
+        if (role) filter.role = role;
         
         if (search) {
             filter.$or = [
@@ -95,6 +96,7 @@ export const deleteStudent = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Failed to delete student' });
     }
 };
+
 export const updateStudentInterests = async (req, res) => {
     try {
         const { id } = req.params;

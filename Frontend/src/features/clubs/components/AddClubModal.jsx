@@ -1,10 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createClubService } from '../service/clubService';
+import axiosInstance from '../../../api/axiosInstance';
 import '../style/ClubModals.scss';
 
 const AddClubModal = ({ onClose, onSuccess }) => {
-    const [formData, setFormData] = useState({ name: '', description: '', isActive: true });
+    const [formData, setFormData] = useState({ name: '', description: '', president: '', isActive: true });
+    const [presidents, setPresidents] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        const fetchPresidents = async () => {
+            try {
+                const res = await axiosInstance.get('/students?role=president');
+                setPresidents(res.data.data);
+            } catch (error) {
+                console.error("Failed to load presidents", error);
+            }
+        };
+        fetchPresidents();
+    }, []);
 
     const handleChange = (e) => {
         const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -15,7 +29,10 @@ const AddClubModal = ({ onClose, onSuccess }) => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            await createClubService(formData);
+            const dataToSubmit = { ...formData };
+            if (!dataToSubmit.president) delete dataToSubmit.president; // Optional
+            
+            await createClubService(dataToSubmit);
             onSuccess();
         } catch (error) {
             console.error(error);
@@ -42,7 +59,14 @@ const AddClubModal = ({ onClose, onSuccess }) => {
                             <label>Description</label>
                             <textarea name="description" rows="4" required value={formData.description} onChange={handleChange}></textarea>
                         </div>
-                        <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+                        <div className="form-group">
+                            <label>Assign President (Optional)</label>
+                            <select name="president" value={formData.president} onChange={handleChange}>
+                                <option value="">None</option>
+                                {presidents.map(p => <option key={p._id} value={p._id}>{p.name} ({p.usn})</option>)}
+                            </select>
+                        </div>
+                        <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
                             <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} style={{ width: 'auto' }} />
                             <label style={{ margin: 0 }}>Active Club</label>
                         </div>
