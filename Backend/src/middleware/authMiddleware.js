@@ -33,3 +33,19 @@ export const adminOnly = (req, res, next) => {
         res.status(403).json({ success: false, message: 'Not authorized as an admin' });
     }
 };
+
+export const presidentOnly = (req, res, next) => {
+    if (req.user && req.user.role === 'president') {
+        next();
+    } else {
+        res.status(403).json({ success: false, message: 'Not authorized as a President' });
+    }
+};
+
+export const prOnly = (req, res, next) => {
+    if (req.user && req.user.role === 'pr') {
+        next();
+    } else {
+        res.status(403).json({ success: false, message: 'Not authorized as PR' });
+    }
+};

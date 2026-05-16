@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { loginStudent } from '../service/authService';
+import { loginStudent, checkAuthStatus } from '../service/authService';
 import '../style/AdminLogin.scss';
 
 const StudentLogin = () => {
@@ -10,23 +10,39 @@ const StudentLogin = () => {
     
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const { isLoading, error } = useSelector((state) => state.auth);
+    const { user, isLoading, error, isCheckingAuth } = useSelector((state) => state.auth);
+
+    useEffect(() => {
+        if (isCheckingAuth) {
+            dispatch(checkAuthStatus());
+        }
+    }, [dispatch, isCheckingAuth]);
+
+    useEffect(() => {
+        if (!isCheckingAuth && user) {
+            const role = user.role?.toLowerCase() || 'student';
+            
+            if (role === 'president') {
+                navigate('/president/dashboard', { replace: true });
+            } else if (role === 'pr') {
+                navigate('/pr/dashboard', { replace: true });
+            } else if (role === 'admin') {
+                navigate('/admin/dashboard', { replace: true });
+            } else {
+                navigate('/student/dashboard', { replace: true });
+            }
+        }
+    }, [user, isCheckingAuth, navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!identifier || !password) return;
         
         try {
-            const userData = await dispatch(loginStudent({ identifier, password }));
-            if (userData.role === 'president') {
-                navigate('/student/president-dashboard');
-            } else if (userData.role === 'pr') {
-                navigate('/student/pr-dashboard');
-            } else {
-                navigate('/student/dashboard');
-            }
+            await dispatch(loginStudent({ identifier, password }));
+            // Navigation relies on the useEffect state listener above
         } catch (err) {
-            console.error(err);
+            console.error("Login Process Error:", err);
         }
     };
 
@@ -34,11 +50,7 @@ const StudentLogin = () => {
         <div className="login-container">
             <div className="login-card">
                 <div className="college-header">
-                    <img 
-                        src="https://ik.imagekit.io/p4nbkerbz/ClubHub/image.png?updatedAt=1776478146181" 
-                        alt="ClubHub Logo" 
-                        className="logo" 
-                    />
+                    <img src="https://ik.imagekit.io/p4nbkerbz/ClubHub/image.png?updatedAt=1776478146181" alt="ClubHub Logo" className="logo" />
                     <h1 className="college-name">Gopalan College of Engineering and Management</h1>
                     <h2 className="portal-title">Student Activity Portal</h2>
                 </div>
@@ -49,35 +61,23 @@ const StudentLogin = () => {
                     <div className="input-group">
                         <label htmlFor="identifier" className="input-label">Email ID or USN</label>
                         <input
-                            id="identifier"
-                            type="text"
-                            className="input-field"
-                            value={identifier}
-                            onChange={(e) => setIdentifier(e.target.value)}
-                            placeholder="Enter your USN or Email"
-                            required
+                            id="identifier" type="text" className="input-field"
+                            value={identifier} onChange={(e) => setIdentifier(e.target.value)}
+                            placeholder="Enter your USN or Email" required
                         />
                     </div>
                     
                     <div className="input-group">
                         <label htmlFor="password" className="input-label">Password</label>
                         <input
-                            id="password"
-                            type="password"
-                            className="input-field"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Enter your password"
-                            required
+                            id="password" type="password" className="input-field"
+                            value={password} onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Enter your password" required
                         />
                     </div>
 
-                    <button 
-                        type="submit" 
-                        className="submit-button"
-                        disabled={isLoading || !identifier || !password}
-                    >
-                        {isLoading ? 'Signing In...' : 'Student Login'}
+                    <button type="submit" className="submit-button" disabled={isLoading || !identifier || !password || isCheckingAuth}>
+                        {isLoading || isCheckingAuth ? 'Authenticating...' : 'Secure Login'}
                     </button>
                     
                     <p style={{ textAlign: 'center', margin: '20px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>

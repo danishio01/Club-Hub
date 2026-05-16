@@ -1,0 +1,83 @@
+.error-boundary-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8fafc;
+  padding: 24px;
+}
+
+.error-card {
+  background: #ffffff;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  max-width: 500px;
+  width: 100%;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+
+  .error-icon {
+    font-size: 4rem;
+    color: #ef4444;
+    margin-bottom: 16px;
+    display: inline-block;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    color: #0f172a;
+    margin: 0 0 12px 0;
+  }
+
+  p {
+    color: #64748b;
+    margin: 0 0 24px 0;
+    line-height: 1.5;
+  }
+
+  .error-details {
+    background: #fef2f2;
+    color: #991b1b;
+    padding: 16px;
+    border-radius: 8px;
+    font-family: monospace;
+    font-size: 0.85rem;
+    text-align: left;
+    margin-bottom: 24px;
+    border-left: 4px solid #ef4444;
+    word-break: break-word;
+  }
+
+  .error-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+
+    button {
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background-color: #2563eb;
+      color: white;
+      &:hover { background-color: #1d4ed8; }
+    }
+
+    .btn-secondary {
+      background-color: #f1f5f9;
+      color: #0f172a;
+      border: 1px solid #cbd5e1;
+      &:hover { background-color: #e2e8f0; }
+    }
+  }
+}

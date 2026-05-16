@@ -22,7 +22,7 @@ import {
     summarizeReviews
 } from '../controllers/registrationController.js';
 import { getLeaderboard, resetLeaderboard } from '../controllers/leaderboardController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, presidentOnly, prOnly } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -35,20 +35,24 @@ router.get('/student/certificates', protect, getAttendedEvents);
 router.get('/student/attendance-report', protect, getStudentAttendanceReport);
 router.get('/admin/attendance-report', getAdminAttendanceReport);
 
-router.post('/', createEvent);
-router.get('/', getEvents);
+// Event Management (President Only)
+router.post('/', protect, presidentOnly, createEvent);
+router.patch('/:id/complete', protect, presidentOnly, markEventCompleted);
+router.put('/:id', protect, presidentOnly, updateEvent);
+router.delete('/:id', protect, presidentOnly, deleteEvent);
+router.post('/:eventId/reviews/summary', protect, presidentOnly, summarizeReviews);
 
-router.get('/:eventId/registrations', getEventRegistrations);
-router.get('/:eventId/qr-token', generateAttendanceToken);
+router.get('/', getEvents);
+router.get('/:id', getEventById);
+
+// Attendance Management (PR Only)
+router.get('/:eventId/registrations', protect, prOnly, getEventRegistrations);
+router.get('/:eventId/qr-token', protect, prOnly, generateAttendanceToken);
+
+// Student Actions
 router.post('/:eventId/register', protect, registerForEvent);
 router.post('/:eventId/attendance', protect, markAttendance);
 router.post('/:eventId/review', protect, submitReview);
 router.get('/:eventId/reviews', getEventReviews);
-router.post('/:eventId/reviews/summary', summarizeReviews);
-
-router.patch('/:id/complete', markEventCompleted);
-router.get('/:id', getEventById);
-router.put('/:id', updateEvent);
-router.delete('/:id', deleteEvent);
 
 export default router;

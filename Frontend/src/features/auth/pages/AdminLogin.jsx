@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { loginAdmin } from '../service/authService';
+import axiosInstance from '../../../api/axiosInstance';
 import '../style/AdminLogin.scss';
 
 const AdminLogin = () => {
@@ -12,6 +13,20 @@ const AdminLogin = () => {
     const navigate = useNavigate();
     const { isLoading, error } = useSelector((state) => state.auth);
 
+    useEffect(() => {
+        const verifyAdminStatus = async () => {
+            try {
+                await axiosInstance.get('/admin/me');
+                navigate('/admin/dashboard', { replace: true });
+            } catch (error) {
+                // Not authenticated as admin, safe to remain on login screen
+                console.log("Awaiting Admin Login...");
+                console.error(error)
+            }
+        };
+        verifyAdminStatus();
+    }, [navigate]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         
@@ -19,9 +34,9 @@ const AdminLogin = () => {
         
         try {
             await dispatch(loginAdmin({ adminId, password }));
-            navigate('/admin/dashboard');
+            navigate('/admin/dashboard', { replace: true });
         } catch (err) {
-            console.error("Login Error:", err);
+            console.error("Admin Login Failed:", err);
         }
     };
 

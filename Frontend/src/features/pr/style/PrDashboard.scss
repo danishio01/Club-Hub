@@ -1,0 +1,38 @@
+.pr-dashboard-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+
+  .header-section {
+    h1 { margin: 0 0 8px 0; font-size: 1.75rem; color: #0f172a; }
+    p { margin: 0; color: #64748b; }
+  }
+
+  .loading-state, .empty-state {
+    padding: 40px; text-align: center; color: #64748b; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 8px;
+  }
+
+  .events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+  }
+
+  .pr-event-card {
+    background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; gap: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: transform 0.2s;
+    
+    &:hover { transform: translateY(-3px); }
+
+    .card-info {
+      h3 { margin: 0 0 12px 0; font-size: 1.25rem; color: #0f172a; }
+      p { margin: 0 0 6px 0; color: #475569; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
+    }
+
+    .btn-manage-trigger {
+      background: #9333ea; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: background 0.2s;
+      &:hover { background: #7e22ce; }
+    }
+  }
+}

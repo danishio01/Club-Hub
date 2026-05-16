@@ -9,10 +9,10 @@ const EventCard = ({ event, formatDate }) => {
     return (
         <div className="event-card">
             <div className="event-card-header">
-                <div className="event-club">{event.club?.name || 'Campus Club'}</div>
-                <h3 className="event-title">{event.title}</h3>
+                <div className="event-club">{event?.club?.name || 'Campus Club'}</div>
+                <h3 className="event-title">{event?.title}</h3>
                 <div className="event-tags">
-                    {event.tags.map(tag => (
+                    {event?.tags?.map(tag => (
                         <span key={tag} className="tag">{tag}</span>
                     ))}
                 </div>

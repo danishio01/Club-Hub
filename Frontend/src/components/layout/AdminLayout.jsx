@@ -14,8 +14,8 @@ const AdminLayout = () => {
                 await axiosInstance.get('/admin/me');
                 setIsCheckingAuth(false);
             } catch (error) {
-                console.error(error)
-                navigate('/admin/login');
+                console.error("Admin verification failed", error);
+                navigate('/admin/login', { replace: true });
             }
         };
         verifyAdmin();
@@ -24,34 +24,24 @@ const AdminLayout = () => {
     const handleLogout = async () => {
         try {
             await axiosInstance.post('/admin/logout');
-            navigate('/admin/login');
+            navigate('/admin/login', { replace: true });
         } catch (error) {
-            console.error(error)
-            console.error('Logout failed');
+            console.error('Logout failed:', error);
         }
     };
 
-    const toggleMenu = () => {
-        setIsMobileMenuOpen(!isMobileMenuOpen);
-    };
-
-    const closeMenu = () => {
-        setIsMobileMenuOpen(false);
-    };
+    const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+    const closeMenu = () => setIsMobileMenuOpen(false);
 
     const navItems = [
         { path: '/admin/dashboard', icon: 'ri-dashboard-line', label: 'Dashboard' },
         { path: '/admin/students', icon: 'ri-group-line', label: 'Students' },
         { path: '/admin/clubs', icon: 'ri-team-line', label: 'Clubs' },
-        { path: '/admin/events', icon: 'ri-calendar-event-line', label: 'Events' },
         { path: '/admin/leaderboard', icon: 'ri-trophy-line', label: 'Leaderboard' },
-        { path: '/admin/attendance', icon: 'ri-calendar-check-line', label: 'Attendance' },
-        { path: '/admin/ai-agent', icon: 'ri-robot-2-line', label: 'AI Assistant' }
+        { path: '/admin/attendance', icon: 'ri-calendar-check-line', label: 'Attendance' }
     ];
 
-    if (isCheckingAuth) {
-        return <div style={{ padding: '40px', textAlign: 'center' }}>Verifying Admin Access...</div>;
-    }
+    if (isCheckingAuth) return <div style={{ padding: '40px', textAlign: 'center' }}>Verifying Admin Access...</div>;
 
     return (
         <div className="admin-layout">
@@ -83,9 +73,7 @@ const AdminLayout = () => {
             <aside className={`mobile-sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
                 <div className="sidebar-header">
                     <div className="nav-brand">Menu</div>
-                    <button className="close-btn" onClick={closeMenu}>
-                        <i className="ri-close-line"></i>
-                    </button>
+                    <button className="close-btn" onClick={closeMenu}><i className="ri-close-line"></i></button>
                 </div>
                 {navItems.map((item) => (
                     <NavLink key={item.path} to={item.path} onClick={closeMenu} className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>

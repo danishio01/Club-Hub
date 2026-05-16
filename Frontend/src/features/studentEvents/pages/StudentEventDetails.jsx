@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Scanner } from '@yudiel/react-qr-scanner';
-import { getStudentEventByIdApi, registerForEventApi, markAttendanceApi, createPaymentOrderApi, verifyPaymentApi, submitReviewApi } from '../service/studentEventsService';
+import { getStudentEventByIdApi, registerForEventApi, createPaymentOrderApi, verifyPaymentApi, submitReviewApi, markAttendanceApi } from '../service/studentEventsService';
 import '../style/StudentEventDetails.scss';
 
 const loadRazorpayScript = () => {
@@ -31,7 +31,7 @@ const StudentEventDetails = () => {
             const data = await getStudentEventByIdApi(eventId);
             setEvent(data);
         } catch (error) {
-            console.error(error)
+            console.error("Load Event Details Failed:", error);
             navigate('/student/dashboard');
         } finally {
             setIsLoading(false);
@@ -47,7 +47,6 @@ const StudentEventDetails = () => {
 
     const handleRegister = async () => {
         if(!window.confirm('Do you want to register for this event?')) return;
-        
         setIsRegistering(true);
 
         try {
@@ -71,7 +70,7 @@ const StudentEventDetails = () => {
                     amount: orderData.amount,
                     currency: orderData.currency,
                     name: "ClubHub",
-                    description: `Registration for ${event.title}`,
+                    description: `Registration for ${event?.title}`,
                     order_id: orderData.id,
                     handler: async function (response) {
                         try {
@@ -85,18 +84,16 @@ const StudentEventDetails = () => {
                             alert('Payment successful and registered!');
                             await loadEvent();
                         } catch (err) {
-                            console.error(err)
+                            console.error("Payment Verification Event Error:", err);
                             alert('Payment verification failed. Please contact admin.');
                         }
                     },
-                    theme: {
-                        color: "#2563eb"
-                    }
+                    theme: { color: "#2563eb" }
                 };
 
                 const paymentObject = new window.Razorpay(options);
                 paymentObject.on('payment.failed', function (response) {
-                    console.log(response)
+                    console.error("Payment Failed Payload:", response);
                     alert('Payment failed. Please try again.');
                 });
                 
@@ -104,6 +101,7 @@ const StudentEventDetails = () => {
                 setIsRegistering(false); 
             }
         } catch (error) {
+            console.error("Registration Setup Error:", error);
             alert(error.response?.data?.message || 'Failed to process registration.');
             setIsRegistering(false);
         }
@@ -121,7 +119,7 @@ const StudentEventDetails = () => {
                 if (!token) return alert('Invalid QR code format.');
 
                 await markAttendanceApi(eventId, token);
-                alert('Attendance recorded successfully!');
+                alert('Attendance recorded successfully! Points awarded.');
                 await loadEvent(); 
             } catch (error) {
                 alert(error.response?.data?.message || 'Failed to mark attendance.');
@@ -135,7 +133,7 @@ const StudentEventDetails = () => {
             setIsReviewSubmitted(true);
             alert('Thank you for your feedback!');
         } catch (error) {
-        console.error(error)
+            console.error("Review Upload Error:", error);
             alert('Failed to submit review.');
         }
     };
@@ -154,8 +152,8 @@ const StudentEventDetails = () => {
 
             <div className="event-banner">
                 <div className="event-banner-info">
-                    <div className="club-name">{event.club?.name || 'Campus Club'}</div>
-                    <h1>{event.title}</h1>
+                    <div className="club-name">{event?.club?.name || 'Campus Club'}</div>
+                    <h1>{event?.title}</h1>
                     <div style={{ display: 'flex', gap: '16px', color: '#64748b', fontSize: '0.95rem', marginTop: '12px' }}>
                         <span><i className="ri-calendar-line"></i> {formattedDate}</span>
                         <span><i className="ri-time-line"></i> {event.time}</span>
@@ -190,7 +188,7 @@ const StudentEventDetails = () => {
                     
                     <h3 style={{ marginTop: '24px', fontSize: '1rem', color: '#0f172a' }}>Event Tags</h3>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
-                        {event.tags.map(tag => (
+                        {event?.tags?.map(tag => (
                             <span key={tag} style={{ background: '#f1f5f9', padding: '6px 12px', borderRadius: '4px', fontSize: '0.85rem', color: '#475569' }}>
                                 {tag}
                             </span>
@@ -213,10 +211,11 @@ const StudentEventDetails = () => {
                         </span>
                     </div>
 
+                    {/* RESTORED SCANNER TRIGGER UI */}
                     {event.isRegistered && event.attendanceStatus !== 'Attended' && (
                         <div style={{ marginTop: '16px', paddingTop: '20px', borderTop: '1px solid #f1f5f9' }}>
                             <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '12px', textAlign: 'center' }}>
-                                At the venue? Scan the QR code to mark your attendance.
+                                At the venue? Scan the QR code displayed by the PR officer.
                             </p>
                             <button className="btn-scan" onClick={() => setIsScannerOpen(true)}>
                                 <i className="ri-qr-scan-2-line"></i> Scan Attendance QR
@@ -246,6 +245,7 @@ const StudentEventDetails = () => {
                 </div>
             )}
 
+            {/* RESTORED SCANNER OVERLAY */}
             {isScannerOpen && (
                 <div className="scanner-modal-overlay">
                     <div className="scanner-container">
@@ -259,7 +259,7 @@ const StudentEventDetails = () => {
                             <Scanner onScan={handleScan} />
                         </div>
                         <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#64748b', marginTop: '16px' }}>
-                            Point your camera at the QR code displayed by the event organizer.
+                            Point your camera at the QR code displayed by the PR officer.
                         </p>
                     </div>
                 </div>

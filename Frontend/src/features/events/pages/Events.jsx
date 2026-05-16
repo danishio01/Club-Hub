@@ -30,8 +30,8 @@ const EventTable = ({ data, emptyMessage, isLoading, formatDate, navigate }) => 
                                 <div style={{ fontWeight: 500 }}>{formatDate(event.date)}</div>
                                 <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{event.time}</div>
                             </td>
-                            <td style={{ fontWeight: 600, color: '#0f172a' }}>{event.title}</td>
-                            <td>{event.club?.name || 'Deleted Club'}</td>
+                            <td style={{ fontWeight: 600, color: '#0f172a' }}>{event?.title}</td>
+                            <td>{event?.club?.name || 'Deleted Club'}</td>
                             <td>{event.venue}</td>
                             <td>
                                 <span style={{ 
@@ -46,7 +46,7 @@ const EventTable = ({ data, emptyMessage, isLoading, formatDate, navigate }) => 
                                 <button 
                                     className="btn-primary" 
                                     style={{ padding: '6px 12px', fontSize: '0.85rem' }}
-                                    onClick={() => navigate(`/admin/events/${event._id}`)}
+                                    onClick={() => navigate(`/president/events/${event._id}`)}
                                 >
                                     View Event
                                 </button>
@@ -92,7 +92,7 @@ const Events = () => {
             <div className="page-header-actions">
                 <div className="title-section">
                     <h1>Event Management</h1>
-                    <p>Create and manage club events, venues, and scheduling.</p>
+                    <p>Create and manage club events, venues, and scheduling natively within the President dashboard.</p>
                 </div>
                 <div className="action-buttons">
                     <button className="btn-primary" onClick={() => setIsAddModalOpen(true)}>

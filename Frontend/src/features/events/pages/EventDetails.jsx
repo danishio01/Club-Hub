@@ -1,11 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { QRCodeSVG } from 'qrcode.react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { getEventByIdApi, deleteEventService, generateQrTokenApi, markEventCompletedApi, getEventReviewsApi, summarizeReviewsApi } from '../service/eventService';
+import { getEventByIdApi, deleteEventService, markEventCompletedApi, getEventReviewsApi, summarizeReviewsApi } from '../service/eventService';
 import EditEventModal from '../components/EditEventModal';
-import ViewRegistrationsModal from '../components/ViewRegistrationsModal';
 import '../style/EventDetails.scss';
 
 const EventDetails = () => {
@@ -13,13 +11,10 @@ const EventDetails = () => {
     const navigate = useNavigate();
     const [event, setEvent] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [qrUrl, setQrUrl] = useState(null);
     const [reviewData, setReviewData] = useState({ reviews: [], averageRating: 0, total: 0 });
     const [aiSummary, setAiSummary] = useState(null);
     const [isSummarizing, setIsSummarizing] = useState(false);
-    
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [isRegistrationsModalOpen, setIsRegistrationsModalOpen] = useState(false);
 
     const loadEvent = useCallback(async () => {
         try {
@@ -29,12 +24,12 @@ const EventDetails = () => {
                 const rData = await getEventReviewsApi(eventId);
                 if(rData) setReviewData(rData);
             } catch (err) {
-                console.error(err);
+                console.error("Failed to load reviews:", err);
             }
         } catch (error) {
-            console.error(error);
-            alert('Failed to load event details.');
-            navigate('/admin/events');
+            console.error("Failed to load event:", error);
+            alert('Failed to load event details. Redirecting.');
+            navigate('/president/events');
         } finally {
             setIsLoading(false);
         }
@@ -51,9 +46,9 @@ const EventDetails = () => {
         if(window.confirm('Are you sure you want to completely delete this event?')) {
             try {
                 await deleteEventService(eventId);
-                navigate('/admin/events');
+                navigate('/president/events');
             } catch (error) {
-                console.error(error);
+                console.error("Delete Error:", error);
                 alert('Failed to delete event.');
             }
         }
@@ -65,20 +60,9 @@ const EventDetails = () => {
                 await markEventCompletedApi(eventId);
                 loadEvent();
             } catch (error) {
-                console.error(error);
+                console.error("Mark Complete Error:", error);
                 alert('Failed to mark event as completed.');
             }
-        }
-    };
-
-    const handleGenerateQR = async () => {
-        try {
-            const token = await generateQrTokenApi(eventId);
-            const url = `${window.location.origin}/student/attendance/${eventId}?token=${token}`;
-            setQrUrl(url);
-        } catch (error) {
-            console.error(error);
-            alert('Failed to generate QR Code.');
         }
     };
 
@@ -88,7 +72,7 @@ const EventDetails = () => {
             const summary = await summarizeReviewsApi(eventId);
             setAiSummary(summary);
         } catch (error) {
-            console.error(error)
+            console.error("Summary Generation Error:", error);
             alert('Failed to generate summary.');
         } finally {
             setIsSummarizing(false);
@@ -113,13 +97,10 @@ const EventDetails = () => {
                             </span>
                         )}
                     </div>
-                    <p>Organized by {event.club?.name || 'Unknown Club'}</p>
+                    <p>Organized by {event?.club?.name || 'Unknown/Deleted Club'}</p>
                 </div>
                 <div className="details-actions">
-                    <button className="btn-secondary" onClick={() => navigate('/admin/events')}>Back</button>
-                    <button className="btn-primary" style={{ backgroundColor: '#10b981' }} onClick={() => setIsRegistrationsModalOpen(true)}>
-                        <i className="ri-group-line"></i> View Registrations ({event.currentRegistrations})
-                    </button>
+                    <button className="btn-secondary" onClick={() => navigate('/president/events')}>Back</button>
                     {!isCompleted && (
                         <button className="btn-primary" style={{ backgroundColor: '#3b82f6' }} onClick={handleMarkCompleted}>
                             <i className="ri-flag-2-line"></i> Mark Completed
@@ -165,31 +146,10 @@ const EventDetails = () => {
                     <div style={{ marginTop: '24px' }}>
                         <span className="label" style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Tags</span>
                         <div className="tag-list">
-                            {event.tags.map(tag => <span key={tag} className="tag">{tag}</span>)}
+                            {event?.tags?.map(tag => <span key={tag} className="tag">{tag}</span>)}
                         </div>
                     </div>
                 </div>
-
-                {!isCompleted && (
-                    <div className="qr-panel">
-                        <h2 style={{ marginTop: 0, fontSize: '1.25rem' }}>Attendance QR Code</h2>
-                        <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>
-                            Generate and display this QR code at the venue. Students can scan it to automatically mark their attendance.
-                        </p>
-                        
-                        <div className="qr-container">
-                            {qrUrl ? (
-                                <QRCodeSVG value={qrUrl} size={200} level="H" />
-                            ) : (
-                                <span style={{ color: '#94a3b8' }}>QR Code not generated yet.</span>
-                            )}
-                        </div>
-                        
-                        <button className="btn-primary" style={{ width: '100%' }} onClick={handleGenerateQR}>
-                            {qrUrl ? 'Regenerate QR Code' : 'Generate QR Code'}
-                        </button>
-                    </div>
-                )}
             </div>
 
             <div className="reviews-panel" style={{ marginTop: '24px', padding: '24px', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
@@ -210,10 +170,10 @@ const EventDetails = () => {
                 )}
 
                 <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {reviewData.reviews.map(r => (
+                    {reviewData?.reviews?.map(r => (
                         <div key={r._id} style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px' }}>
-                            <div style={{ fontWeight: 600, marginBottom: '4px' }}>{r.student.name} - {r.rating} ⭐</div>
-                            <div style={{ color: '#475569' }}>{r.review || 'No written feedback.'}</div>
+                            <div style={{ fontWeight: 600, marginBottom: '4px' }}>{r?.student?.name || 'Unknown Student'} - {r.rating} ⭐</div>
+                            <div style={{ color: '#475569' }}>{r.review || 'No written feedback provided.'}</div>
                         </div>
                     ))}
                     {reviewData.total === 0 && <p style={{ color: '#94a3b8' }}>No reviews yet.</p>}
@@ -221,7 +181,6 @@ const EventDetails = () => {
             </div>
 
             {isEditModalOpen && <EditEventModal event={event} onClose={() => setIsEditModalOpen(false)} onSuccess={() => { setIsEditModalOpen(false); loadEvent(); }} />}
-            {isRegistrationsModalOpen && <ViewRegistrationsModal event={event} onClose={() => setIsRegistrationsModalOpen(false)} />}
         </div>
     );
 };

@@ -25,7 +25,6 @@ const ViewRegistrationsModal = ({ event, onClose }) => {
 
     return (
         <div className="modal-overlay">
-            {/* FIX: Increased max-width to allow the table to breathe */}
             <div className="modal-container large" style={{ maxWidth: '1000px', width: '95%' }}>
                 <div className="modal-header">
                     <h2>Registrations: {event.title}</h2>
@@ -58,11 +57,11 @@ const ViewRegistrationsModal = ({ event, onClose }) => {
                                 <tbody>
                                     {registrations.map((reg) => (
                                         <tr key={reg._id}>
-                                            <td style={{ fontWeight: 600, color: '#0f172a' }}>{reg.student?.usn}</td>
-                                            <td style={{ whiteSpace: 'nowrap' }}>{reg.student?.name}</td>
-                                            <td>{reg.student?.email}</td>
-                                            <td>{reg.student?.department}</td>
-                                            <td style={{ whiteSpace: 'nowrap' }}>{reg.student?.semester} - {reg.student?.section}</td>
+                                            <td style={{ fontWeight: 600, color: '#0f172a' }}>{reg.student?.usn || 'N/A'}</td>
+                                            <td style={{ whiteSpace: 'nowrap' }}>{reg.student?.name || 'Unknown Student'}</td>
+                                            <td>{reg.student?.email || 'N/A'}</td>
+                                            <td>{reg.student?.department || 'N/A'}</td>
+                                            <td style={{ whiteSpace: 'nowrap' }}>{reg.student ? `${reg.student.semester} - ${reg.student.section}` : 'N/A'}</td>
                                             <td>
                                                 <span className={`reg-status-badge ${reg.status.toLowerCase()}`}>
                                                     {reg.status}

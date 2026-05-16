@@ -61,8 +61,8 @@ const AdminAttendance = () => {
         records.forEach(r => {
             if (!studentMap.has(r.usn)) {
                 studentMap.set(r.usn, {
-                    studentName: r.studentName,
-                    usn: r.usn,
+                    studentName: r.studentName || 'Unknown Student',
+                    usn: r.usn || 'N/A',
                     department: r.department,
                     semester: r.semester,
                     section: r.section,

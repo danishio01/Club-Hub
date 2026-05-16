@@ -12,28 +12,36 @@ const StudentLayout = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
-        if (!user) {
-            dispatch(checkAuthStatus());
-        }
+        if (!user) dispatch(checkAuthStatus());
     }, [dispatch, user]);
 
     useEffect(() => {
-        if (!isCheckingAuth && !user) {
-            navigate('/');
+        if (!isCheckingAuth) {
+            if (!user) {
+                navigate('/', { replace: true });
+            } else if (user.role?.toLowerCase() !== 'student') {
+                const role = user.role?.toLowerCase();
+                if (role === 'president') navigate('/president/dashboard', { replace: true });
+                else if (role === 'pr') navigate('/pr/dashboard', { replace: true });
+                else if (role === 'admin') navigate('/admin/dashboard', { replace: true });
+                else navigate('/', { replace: true });
+            }
         }
     }, [user, isCheckingAuth, navigate]);
 
     const handleLogout = async () => {
-        await dispatch(logoutStudent());
-        navigate('/');
+        try {
+            await dispatch(logoutStudent());
+            navigate('/', { replace: true });
+        } catch (error) {
+            console.error("Student Logout Error:", error);
+        }
     };
 
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
     const closeSidebar = () => setIsSidebarOpen(false);
 
-    if (isCheckingAuth || !user) {
-        return <div style={{ padding: '40px', textAlign: 'center' }}>Loading Profile...</div>;
-    }
+    if (isCheckingAuth || !user) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading Profile...</div>;
 
     return (
         <div className="student-layout">
@@ -42,21 +50,9 @@ const StudentLayout = () => {
             <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
                 <div className="sidebar-header">
                     <h2>Student Portal</h2>
-                    <button className="mobile-close-btn" onClick={closeSidebar}>
-                        <i className="ri-close-line"></i>
-                    </button>
+                    <button className="mobile-close-btn" onClick={closeSidebar}><i className="ri-close-line"></i></button>
                 </div>
                 <nav className="sidebar-nav">
-                    {user.role === 'president' && (
-                        <NavLink to="/student/president-dashboard" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
-                            <i className="ri-vip-crown-2-line"></i> President Dashboard
-                        </NavLink>
-                    )}
-                    {user.role === 'pr' && (
-                        <NavLink to="/student/pr-dashboard" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
-                            <i className="ri-megaphone-line"></i> PR Dashboard
-                        </NavLink>
-                    )}
                     <NavLink to="/student/dashboard" className={({ isActive }) => isActive && location.pathname === '/student/dashboard' ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
                         <i className="ri-calendar-event-line"></i> Events Directory
                     </NavLink>
@@ -82,9 +78,7 @@ const StudentLayout = () => {
             
             <main className="main-content">
                 <header className="topbar">
-                    <button className="menu-toggle" onClick={toggleSidebar}>
-                        <i className="ri-menu-line"></i>
-                    </button>
+                    <button className="menu-toggle" onClick={toggleSidebar}><i className="ri-menu-line"></i></button>
                     <div className="user-info">
                         <span>Welcome, {user.name}</span>
                         <div className="avatar">{user.name.charAt(0)}</div>
