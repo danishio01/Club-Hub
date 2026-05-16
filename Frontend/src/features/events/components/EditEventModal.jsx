@@ -14,6 +14,7 @@ const AVAILABLE_TAGS = [
 const EditEventModal = ({ event, onClose, onSuccess }) => {
     const dispatch = useDispatch();
     const { clubs } = useSelector((state) => state.clubs);
+    const { user } = useSelector((state) => state.auth);
     
     const [formData, setFormData] = useState({
         title: event?.title || '',
@@ -30,8 +31,10 @@ const EditEventModal = ({ event, onClose, onSuccess }) => {
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        dispatch(getClubsList());
-    }, [dispatch]);
+        if (user?.role === 'admin') {
+            dispatch(getClubsList());
+        }
+    }, [dispatch, user]);
 
     const activeClubs = clubs.filter(c => c.isActive || c._id === formData.club);
 
@@ -54,7 +57,11 @@ const EditEventModal = ({ event, onClose, onSuccess }) => {
         
         setIsLoading(true);
         try {
-            await updateEventService(event._id, formData);
+            const dataToSubmit = { ...formData };
+            if (user?.role === 'president') {
+                delete dataToSubmit.club;
+            }
+            await updateEventService(event._id, dataToSubmit);
             onSuccess();
         } catch (error) {
             console.error(error);
@@ -78,13 +85,15 @@ const EditEventModal = ({ event, onClose, onSuccess }) => {
                                 <label>Event Name</label>
                                 <input type="text" name="title" required value={formData.title} onChange={handleChange} />
                             </div>
-                            <div className="form-group">
-                                <label>Organizing Club</label>
-                                <select name="club" required value={formData.club} onChange={handleChange}>
-                                    <option value="">Select Club</option>
-                                    {activeClubs.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-                                </select>
-                            </div>
+                            {user?.role === 'admin' && (
+                                <div className="form-group">
+                                    <label>Organizing Club</label>
+                                    <select name="club" required value={formData.club} onChange={handleChange}>
+                                        <option value="">Select Club</option>
+                                        {activeClubs.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                                    </select>
+                                </div>
+                            )}
                         </div>
 
                         <div className="form-group">

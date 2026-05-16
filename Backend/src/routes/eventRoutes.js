@@ -7,7 +7,8 @@ import {
     deleteEvent, 
     getStudentEvents, 
     getStudentEventById, 
-    markEventCompleted 
+    markEventCompleted,
+    getPresidentEvents
 } from '../controllers/eventController.js';
 import { 
     registerForEvent, 
@@ -35,7 +36,8 @@ router.get('/student/certificates', protect, getAttendedEvents);
 router.get('/student/attendance-report', protect, getStudentAttendanceReport);
 router.get('/admin/attendance-report', getAdminAttendanceReport);
 
-// Event Management (President Only)
+// Event Management
+router.get('/president/all', protect, presidentOnly, getPresidentEvents);
 router.post('/', protect, presidentOnly, createEvent);
 router.patch('/:id/complete', protect, presidentOnly, markEventCompleted);
 router.put('/:id', protect, presidentOnly, updateEvent);
@@ -46,7 +48,7 @@ router.get('/', getEvents);
 router.get('/:id', getEventById);
 
 // Attendance Management (PR Only)
-router.get('/:eventId/registrations', protect, prOnly, getEventRegistrations);
+router.get('/:eventId/registrations', protect, getEventRegistrations); 
 router.get('/:eventId/qr-token', protect, prOnly, generateAttendanceToken);
 
 // Student Actions

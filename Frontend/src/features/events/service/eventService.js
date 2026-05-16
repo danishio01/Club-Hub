@@ -1,10 +1,14 @@
 import axiosInstance from '../../../api/axiosInstance';
 import { fetchEventsStart, fetchEventsSuccess, fetchEventsFailure } from '../state/eventSlice';
 
-export const getEventsList = () => async (dispatch) => {
+export const getEventsList = () => async (dispatch, getState) => {
     dispatch(fetchEventsStart());
     try {
-        const response = await axiosInstance.get('/events');
+        const { auth } = getState();
+        const role = auth.user?.role;
+        const endpoint = role === 'president' ? '/events/president/all' : '/events';
+        
+        const response = await axiosInstance.get(endpoint);
         dispatch(fetchEventsSuccess(response.data.data));
     } catch (error) {
         console.error(error);
