@@ -40,7 +40,7 @@ const PrLayout = () => {
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
     const closeSidebar = () => setIsSidebarOpen(false);
 
-    if (isCheckingAuth || !user) return <div style={{ padding: '40px', textAlign: 'center' }}>Authenticating PR...</div>;
+    if (isCheckingAuth || !user) return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Authenticating PR...</div>;
 
     return (
         <div className="pr-layout">
@@ -49,7 +49,9 @@ const PrLayout = () => {
             <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
                 <div className="sidebar-header">
                     <h2>PR Portal</h2>
-                    <button className="mobile-close-btn" onClick={closeSidebar}><i className="ri-close-line"></i></button>
+                    <button className="mobile-close-btn" onClick={closeSidebar}>
+                        <i className="ri-close-line"></i>
+                    </button>
                 </div>
                 <nav className="sidebar-nav">
                     <NavLink to="/pr/dashboard" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
@@ -65,7 +67,11 @@ const PrLayout = () => {
             
             <main className="main-content">
                 <header className="topbar">
-                    <button className="menu-toggle" onClick={toggleSidebar}><i className="ri-menu-line"></i></button>
+                    <div className="topbar-left">
+                        <button className="menu-toggle" onClick={toggleSidebar}>
+                            <i className="ri-menu-line"></i>
+                        </button>
+                    </div>
                     <div className="user-info">
                         <span>{user.name} (PR)</span>
                         <div className="avatar">{user.name.charAt(0)}</div>

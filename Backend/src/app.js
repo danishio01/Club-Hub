@@ -35,4 +35,8 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/reports', reportRoutes); 
 
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ message: 'API is healthy' });
+});
+
 export default app;

@@ -41,7 +41,7 @@ const StudentLayout = () => {
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
     const closeSidebar = () => setIsSidebarOpen(false);
 
-    if (isCheckingAuth || !user) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading Profile...</div>;
+    if (isCheckingAuth || !user) return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading Profile...</div>;
 
     return (
         <div className="student-layout">
@@ -50,7 +50,9 @@ const StudentLayout = () => {
             <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
                 <div className="sidebar-header">
                     <h2>Student Portal</h2>
-                    <button className="mobile-close-btn" onClick={closeSidebar}><i className="ri-close-line"></i></button>
+                    <button className="mobile-close-btn" onClick={closeSidebar}>
+                        <i className="ri-close-line"></i>
+                    </button>
                 </div>
                 <nav className="sidebar-nav">
                     <NavLink to="/student/dashboard" className={({ isActive }) => isActive && location.pathname === '/student/dashboard' ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
@@ -78,7 +80,11 @@ const StudentLayout = () => {
             
             <main className="main-content">
                 <header className="topbar">
-                    <button className="menu-toggle" onClick={toggleSidebar}><i className="ri-menu-line"></i></button>
+                    <div className="topbar-left">
+                        <button className="menu-toggle" onClick={toggleSidebar}>
+                            <i className="ri-menu-line"></i>
+                        </button>
+                    </div>
                     <div className="user-info">
                         <span>Welcome, {user.name}</span>
                         <div className="avatar">{user.name.charAt(0)}</div>
