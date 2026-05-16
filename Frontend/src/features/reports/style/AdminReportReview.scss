@@ -1,0 +1,46 @@
+.admin-report-review-page {
+  display: flex; flex-direction: column; gap: 24px; max-width: 1200px; margin: 0 auto;
+
+  .page-header { background: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; h1 { margin: 0 0 8px 0; font-size: 1.75rem; color: #0f172a; } p { margin: 0; color: #64748b; } }
+  .empty-state { padding: 60px 24px; text-align: center; background: #ffffff; border-radius: 12px; border: 1px dashed #cbd5e1; color: #64748b; h3 { color: #0f172a; margin: 0 0 8px 0; font-size: 1.25rem; } }
+
+  .reports-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
+  
+  .report-card {
+    background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 12px; transition: transform 0.2s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    &:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; &.submitted { background: #fef08a; color: #854d0e; } &.reviewed { background: #dcfce7; color: #166534; } }
+    .date-text { font-size: 0.85rem; color: #94a3b8; font-weight: 500; }
+    h3 { margin: 0; font-size: 1.25rem; color: #0f172a; line-height: 1.4; }
+    .meta-text { font-size: 0.95rem; color: #475569; display: flex; align-items: center; gap: 8px; i { color: #94a3b8; } }
+    .btn-primary.outline { background: transparent; border: 1px solid #2563eb; color: #2563eb; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 10px; transition: all 0.2s; &:hover { background: #2563eb; color: white; } }
+  }
+
+  .report-modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px;
+    
+    .report-modal-container {
+      background: white; border-radius: 12px; width: 100%; max-width: 800px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;
+      
+      .modal-header { padding: 20px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start; h2 { margin: 0 0 4px 0; font-size: 1.4rem; color: #0f172a; } .close-btn { background: none; border: none; font-size: 1.5rem; color: #64748b; cursor: pointer; } }
+      
+      .modal-body {
+        padding: 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 20px;
+        
+        .report-block { h4 { margin: 0 0 6px 0; font-size: 1.05rem; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; } p { margin: 0; font-size: 0.95rem; color: #475569; line-height: 1.6; white-space: pre-wrap; } }
+        
+        .pdf-download-section { background: #fef2f2; border: 1px solid #fca5a5; padding: 16px; border-radius: 8px; display: flex; align-items: center; gap: 16px; i { font-size: 2rem; color: #ef4444; } div { display: flex; flex-direction: column; gap: 4px; strong { color: #991b1b; font-size: 1rem; } a { color: #dc2626; font-weight: 600; text-decoration: none; &:hover { text-decoration: underline; } } } }
+        
+        .admin-remarks-input { display: flex; flex-direction: column; gap: 8px; label { font-weight: 600; color: #0f172a; } textarea { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-family: inherit; font-size: 0.95rem; resize: vertical; &:focus { outline: none; border-color: #3b82f6; } &:disabled { background: #f8fafc; color: #475569; } } }
+      }
+      
+      .modal-footer { padding: 16px 24px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 12px; background: #f8fafc; }
+    }
+  }
+
+  @media (max-width: 768px) {
+    .report-modal-overlay { padding: 0; .report-modal-container { height: 100vh; max-height: 100vh; border-radius: 0; } }
+  }
+}

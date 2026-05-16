@@ -27,7 +27,7 @@ const PrEventManagement = () => {
                     setRegistrations(regData);
                 }
             } catch (error) {
-                console.error("Failed loading event management data", error);
+                console.error(error);
                 if (isMounted) navigate('/pr/dashboard');
             } finally {
                 if (isMounted) setIsLoading(false);
@@ -41,12 +41,12 @@ const PrEventManagement = () => {
         };
     }, [eventId, navigate]);
 
-    const handleRefresh = async () => {
+    const handleManualRefresh = async () => {
         try {
             const regData = await getEventRegistrationsApi(eventId);
             setRegistrations(regData);
         } catch (error) {
-            console.error("Failed to refresh registrations", error);
+            console.error(error);
         }
     };
 
@@ -56,8 +56,7 @@ const PrEventManagement = () => {
             const url = `${window.location.origin}/student/attendance/${eventId}?token=${token}`;
             setQrUrl(url);
         } catch (error) {
-            console.error("QR Generation Error:", error);
-            alert('Failed to generate QR Code. Make sure you have PR permissions.');
+            console.error(error);
         }
     };
 
@@ -101,7 +100,7 @@ const PrEventManagement = () => {
                 <div className="registrations-panel">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                         <h2 style={{ margin: 0 }}>Registered Students</h2>
-                        <button className="btn-refresh" onClick={handleRefresh}>
+                        <button className="btn-refresh" onClick={handleManualRefresh}>
                             <i className="ri-refresh-line"></i> Refresh
                         </button>
                     </div>

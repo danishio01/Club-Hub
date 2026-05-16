@@ -46,6 +46,7 @@ const AdminLayout = () => {
         { path: '/admin/students', icon: 'ri-group-line', label: 'Students' },
         { path: '/admin/clubs', icon: 'ri-team-line', label: 'Clubs' },
         { path: '/admin/event-approvals', icon: 'ri-calendar-check-fill', label: 'Event Approvals' },
+        { path: '/admin/reports', icon: 'ri-file-list-3-fill', label: 'Report Reviews' }, // NEW REPORT REVIEWS
         { path: '/admin/leaderboard', icon: 'ri-trophy-line', label: 'Leaderboard' },
         { path: '/admin/attendance', icon: 'ri-calendar-check-line', label: 'Master Grid' }
     ];

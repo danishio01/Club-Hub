@@ -11,21 +11,21 @@ const PrDashboard = () => {
     useEffect(() => {
         let isMounted = true;
 
-        const fetchEvents = async () => {
+        const initializeEvents = async () => {
             try {
+                setIsLoading(true);
                 const res = await axiosInstance.get('/events');
                 if (isMounted) {
-                    // PR strictly operates ONLY on approved events
                     setEvents(res.data.data.filter(e => e.status === 'approved'));
                 }
             } catch (error) {
-                console.error("Failed fetching PR events", error);
+                console.error(error);
             } finally {
                 if (isMounted) setIsLoading(false);
             }
         };
 
-        fetchEvents();
+        initializeEvents();
 
         return () => {
             isMounted = false;

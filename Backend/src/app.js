@@ -9,16 +9,15 @@ import eventRoutes from './routes/eventRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import emailRoutes from './routes/emailRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
-import paymentRoutes from './routes/paymentRoutes.js'
+import paymentRoutes from './routes/paymentRoutes.js';
+import reportRoutes from './routes/reportRoutes.js'; // NEW
 
 const app = express();
 
 app.set('trust proxy', 1);
 
 app.use(cors({
-    origin: ['http://localhost:5173',
-        'https://club-hub-theta.vercel.app'
-    ],
+    origin: ['http://localhost:5173', 'https://club-hub-theta.vercel.app'],
     credentials: true
 }));
 
@@ -34,6 +33,6 @@ app.use('/api/events', eventRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/payments', paymentRoutes);
-
+app.use('/api/reports', reportRoutes); 
 
 export default app;

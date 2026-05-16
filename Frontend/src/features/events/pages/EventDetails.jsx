@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import ReactMarkdown from 'react-markdown';
@@ -23,81 +23,92 @@ const EventDetails = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
 
-    const loadData = useCallback(async () => {
+    useEffect(() => {
+        let isMounted = true;
+
+        const initializeEventData = async () => {
+            try {
+                setIsLoading(true);
+                const evData = await getEventByIdApi(eventId);
+                
+                if (isMounted) {
+                    setEvent(evData);
+                }
+                
+                if (evData.status === 'approved' || evData.status === 'completed' || evData.status === 'Completed') {
+                    const regData = await getEventRegistrationsApi(eventId);
+                    if (isMounted) setRegistrations(regData);
+                    try {
+                        const rData = await getEventReviewsApi(eventId);
+                        if (isMounted && rData) setReviewData(rData);
+                    } catch (error) {
+                        console.error(error);
+                    }
+                }
+            } catch (error) {
+                console.error(error);
+                if (isMounted) {
+                    navigate(user?.role === 'admin' ? '/admin/event-approvals' : '/president/events');
+                }
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
+
+        initializeEventData();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [eventId, navigate, user?.role]);
+
+    const handleManualRefresh = async () => {
         try {
-            setIsLoading(true);
             const evData = await getEventByIdApi(eventId);
             setEvent(evData);
-            
             if (evData.status === 'approved' || evData.status === 'completed' || evData.status === 'Completed') {
                 const regData = await getEventRegistrationsApi(eventId);
                 setRegistrations(regData);
-                try {
-                    const rData = await getEventReviewsApi(eventId);
-                    if (rData) setReviewData(rData);
-                } catch (error) {
-                    console.error("Reviews load failed:", error);
-                }
             }
         } catch (error) {
-            console.error("Failed to load event details:", error);
-            alert('Failed to load event details.');
-            navigate(user?.role === 'admin' ? '/admin/event-approvals' : '/president/events');
-        } finally {
-            setIsLoading(false);
+            console.error(error);
         }
-    }, [eventId, navigate, user]);
-
-    useEffect(() => {
-        loadData();
-    }, [loadData]);
+    };
 
     const handleApprove = async () => {
-        if(window.confirm('Approve this event? It will instantly become visible to the student portal.')) {
-            try {
-                await approveEventApi(eventId);
-                alert('Event Approved Successfully!');
-                navigate('/admin/event-approvals');
-            } catch (error) {
-                console.error("Approval Error:", error);
-                alert('Failed to approve event.');
-            }
+        try {
+            await approveEventApi(eventId);
+            navigate('/admin/event-approvals');
+        } catch (error) {
+            console.error(error);
         }
     };
 
     const handleReject = async (reason) => {
         try {
             await rejectEventApi(eventId, reason);
-            alert('Event successfully rejected.');
             setIsRejectModalOpen(false);
             navigate('/admin/event-approvals');
         } catch (error) {
-            console.error("Rejection Error:", error);
-            alert('Failed to reject event. Please try again.');
+            console.error(error);
         }
     };
 
     const handleDelete = async () => {
-        if(window.confirm('Are you sure you want to completely delete this event?')) {
-            try {
-                await deleteEventService(eventId);
-                navigate('/president/events');
-            } catch (error) {
-                console.error("Delete Error:", error);
-                alert('Failed to delete event.');
-            }
+        try {
+            await deleteEventService(eventId);
+            navigate('/president/events');
+        } catch (error) {
+            console.error(error);
         }
     };
 
     const handleMarkCompleted = async () => {
-        if(window.confirm('Mark this event as completed? It will be archived and removed from active registrations.')) {
-            try {
-                await markEventCompletedApi(eventId);
-                loadData();
-            } catch (error) {
-                console.error("Mark Complete Error:", error);
-                alert('Failed to mark event as completed.');
-            }
+        try {
+            await markEventCompletedApi(eventId);
+            handleManualRefresh();
+        } catch (error) {
+            console.error(error);
         }
     };
 
@@ -107,15 +118,14 @@ const EventDetails = () => {
             const summary = await summarizeReviewsApi(eventId);
             setAiSummary(summary);
         } catch (error) {
-            console.error("Summary Gen Error:", error);
-            alert('Failed to generate AI summary.');
+            console.error(error);
         } finally {
             setIsSummarizing(false);
         }
     };
 
-    if (isLoading) return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading event framework...</div>;
-    if (!event) return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Event not found or has been deleted.</div>;
+    if (isLoading) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading infrastructure...</div>;
+    if (!event) return <div style={{ padding: '40px', textAlign: 'center' }}>Event not found.</div>;
 
     const formattedDate = new Date(event.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
     const isCompleted = event.status === 'completed' || event.status === 'Completed';
@@ -126,7 +136,6 @@ const EventDetails = () => {
 
     return (
         <div className="event-details-page">
-            {/* ADMIN DEDICATED REVIEW BAR */}
             {user?.role === 'admin' && isReview && (
                 <div className="admin-review-bar">
                     <div className="review-info">
@@ -147,7 +156,6 @@ const EventDetails = () => {
                 </div>
             )}
 
-            {/* PRESIDENT REJECTION BANNER */}
             {isRejected && user?.role === 'president' && (
                 <div className="rejection-banner">
                     <i className="ri-error-warning-fill banner-icon"></i>
@@ -172,6 +180,12 @@ const EventDetails = () => {
                 
                 <div className="details-actions">
                     <button className="btn-secondary" onClick={() => navigate(-1)}>Back</button>
+
+                    {user?.role === 'president' && isCompleted && (
+                        <button className="btn-primary" style={{ backgroundColor: '#9333ea' }} onClick={() => navigate(`/president/reports/write/${event._id}`)}>
+                            <i className="ri-file-text-line"></i> Manage Event Report
+                        </button>
+                    )}
 
                     {user?.role === 'president' && canManage && (
                         <>
@@ -231,7 +245,7 @@ const EventDetails = () => {
                     <div className="registrations-panel">
                         <div className="panel-header">
                             <h2>Registrations Roll ({registrations.length})</h2>
-                            <button className="btn-secondary" onClick={loadData}>
+                            <button className="btn-secondary" onClick={handleManualRefresh}>
                                 <i className="ri-refresh-line"></i> Refresh
                             </button>
                         </div>
@@ -298,7 +312,7 @@ const EventDetails = () => {
                 </>
             )}
 
-            {isEditModalOpen && <EditEventModal event={event} onClose={() => setIsEditModalOpen(false)} onSuccess={() => { setIsEditModalOpen(false); loadData(); }} />}
+            {isEditModalOpen && <EditEventModal event={event} onClose={() => setIsEditModalOpen(false)} onSuccess={() => { setIsEditModalOpen(false); handleManualRefresh(); }} />}
             {isRejectModalOpen && <RejectEventModal onClose={() => setIsRejectModalOpen(false)} onConfirm={handleReject} />}
         </div>
     );

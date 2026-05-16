@@ -26,6 +26,10 @@ import PresidentDashboard from "../features/president/pages/PresidentDashboard";
 import PrDashboard from "../features/pr/pages/PrDashboard";
 import PrEventManagement from "../features/pr/pages/PrEventManagement";
 
+// New Report Imports
+import ReportEditor from "../features/reports/pages/ReportEditor";
+import AdminReportReview from "../features/reports/pages/AdminReportReview";
+
 export const routes = createBrowserRouter([
     {
         path: "/",
@@ -48,7 +52,8 @@ export const routes = createBrowserRouter([
             { path: "event-approvals", element: <AdminEventReviews /> },
             { path: "events/:eventId", element: <EventDetails /> },
             { path: "leaderboard", element: <Leaderboard isAdmin={true} /> },
-            { path: "attendance", element: <AdminAttendance /> }
+            { path: "attendance", element: <AdminAttendance /> },
+            { path: "reports", element: <AdminReportReview /> } // NEW
         ]
     },
     {
@@ -59,7 +64,8 @@ export const routes = createBrowserRouter([
             { path: "dashboard", element: <PresidentDashboard /> },
             { path: "events", element: <Events /> },
             { path: "events/:eventId", element: <EventDetails /> },
-            { path: "ai-agent", element: <AdminAiAgent /> }
+            { path: "ai-agent", element: <AdminAiAgent /> },
+            { path: "reports/write/:eventId", element: <ReportEditor /> } // NEW
         ]
     },
     {
