@@ -22,14 +22,21 @@
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px;
     
     .report-modal-container {
-      background: white; border-radius: 12px; width: 100%; max-width: 800px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;
+      background: white; border-radius: 12px; width: 100%; max-width: 900px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;
       
       .modal-header { padding: 20px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start; h2 { margin: 0 0 4px 0; font-size: 1.4rem; color: #0f172a; } .close-btn { background: none; border: none; font-size: 1.5rem; color: #64748b; cursor: pointer; } }
       
       .modal-body {
-        padding: 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 20px;
+        padding: 30px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 20px;
         
-        .report-block { h4 { margin: 0 0 6px 0; font-size: 1.05rem; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; } p { margin: 0; font-size: 0.95rem; color: #475569; line-height: 1.6; white-space: pre-wrap; } }
+        .report-content-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+        .divider { border: none; border-top: 2px dashed #e2e8f0; margin: 10px 0; }
+        
+        .report-block { 
+            h4 { margin: 0 0 6px 0; font-size: 0.95rem; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; } 
+            p { margin: 0; font-size: 0.95rem; color: #475569; line-height: 1.6; white-space: pre-wrap; } 
+            .no-data { color: #94a3b8; font-style: italic; }
+        }
         
         .pdf-download-section { background: #fef2f2; border: 1px solid #fca5a5; padding: 16px; border-radius: 8px; display: flex; align-items: center; gap: 16px; i { font-size: 2rem; color: #ef4444; } div { display: flex; flex-direction: column; gap: 4px; strong { color: #991b1b; font-size: 1rem; } a { color: #dc2626; font-weight: 600; text-decoration: none; &:hover { text-decoration: underline; } } } }
         

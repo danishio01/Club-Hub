@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getAllAdminReportsList, reviewReportApi } from '../service/reportService';
 import '../style/AdminReportReview.scss';
@@ -11,23 +11,36 @@ const AdminReportReview = () => {
     const [remarks, setRemarks] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    useEffect(() => {
+    const loadReports = useCallback(() => {
         dispatch(getAllAdminReportsList());
     }, [dispatch]);
+
+    useEffect(() => {
+        loadReports();
+    }, [loadReports]);
 
     const handleReviewSubmit = async () => {
         setIsSubmitting(true);
         try {
             await reviewReportApi(selectedReport._id, remarks);
+            alert("Report successfully marked as reviewed.");
             setSelectedReport(null);
             setRemarks('');
-            dispatch(getAllAdminReportsList());
+            loadReports();
         } catch (error) {
             console.error(error);
+            alert("Failed to submit review.");
         } finally {
             setIsSubmitting(false);
         }
     };
+
+    const renderTextSection = (title, content) => (
+        <div className="report-block">
+            <h4>{title}</h4>
+            <p>{content || <span className="no-data">Not provided</span>}</p>
+        </div>
+    );
 
     const renderReportDetails = () => (
         <div className="report-modal-overlay">
@@ -40,15 +53,68 @@ const AdminReportReview = () => {
                     <button className="close-btn" onClick={() => setSelectedReport(null)}><i className="ri-close-line"></i></button>
                 </div>
                 <div className="modal-body">
-                    {Object.entries(selectedReport.content).map(([key, value]) => (
-                        <div key={key} className="report-block">
-                            <h4>{key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}</h4>
-                            <p>{value || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No data provided.</span>}</p>
-                        </div>
-                    ))}
+                    <div className="report-content-grid">
+                        {renderTextSection('1. Activity/Event Name', selectedReport.content.activityName)}
+                        {renderTextSection('2. Thrust Area', selectedReport.content.thrustArea)}
+                        {renderTextSection('3. Level of Activity', selectedReport.content.level)}
+                        {renderTextSection('4. Semester', selectedReport.content.semester)}
+                        {renderTextSection('5. Quarter', selectedReport.content.quarter)}
+                        {renderTextSection('6. Date', selectedReport.content.date)}
+                        {renderTextSection('7. Duration', selectedReport.content.duration)}
+                        {renderTextSection('8. Faculty Participations', selectedReport.content.facultyCount)}
+                        {renderTextSection('9. Student Participations', selectedReport.content.studentCount)}
+                        {renderTextSection('10. Funds Utilized', selectedReport.content.fundsUtilized)}
+                        {renderTextSection('11. Department', selectedReport.content.department)}
+                    </div>
                     
+                    <hr className="divider" />
+                    {renderTextSection('12. Objective', selectedReport.content.objective)}
+                    {renderTextSection('13. Summary', selectedReport.content.summary)}
+                    {renderTextSection('14. Benefits', selectedReport.content.benefits)}
+
+                    <hr className="divider" />
+                    <div className="report-content-grid">
+                        {renderTextSection('15. Registration Details', selectedReport.content.registrationDetails)}
+                        {renderTextSection('16. Feedback Form Links', selectedReport.content.feedbackDetails)}
+                        {renderTextSection('17. Flyers', selectedReport.content.flyers)}
+                        {renderTextSection('18. Photo Collage', selectedReport.content.photoCollage)}
+                    </div>
+
+                    <hr className="divider" />
+                    <div className="report-block">
+                        <h4>19. Social Media Handles</h4>
+                        <ul style={{ margin: 0, paddingLeft: '20px', color: '#475569', fontSize: '0.95rem' }}>
+                            <li>Instagram: {selectedReport.content.socialMedia?.instagram || 'N/A'}</li>
+                            <li>Facebook: {selectedReport.content.socialMedia?.facebook || 'N/A'}</li>
+                            <li>Twitter: {selectedReport.content.socialMedia?.twitter || 'N/A'}</li>
+                        </ul>
+                    </div>
+
+                    <hr className="divider" />
+                    <div className="report-block">
+                        <h4>20. Resource Persons</h4>
+                        {selectedReport.content.resourcePersons && selectedReport.content.resourcePersons.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {selectedReport.content.resourcePersons.map((rp, i) => (
+                                    <div key={i} style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.9rem', color: '#475569' }}>
+                                        <strong>Speaker {i + 1}:</strong> {rp.name || 'N/A'} <br/>
+                                        <strong>Industry:</strong> {rp.industry || 'N/A'} | <strong>Designation:</strong> {rp.designation || 'N/A'} <br/>
+                                        <strong>Contact:</strong> {rp.mobile || 'N/A'} / {rp.email || 'N/A'} <br/>
+                                        <strong>Address:</strong> {rp.address || 'N/A'}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="no-data">No resource persons listed.</p>
+                        )}
+                    </div>
+
+                    <hr className="divider" />
+                    {renderTextSection('21. Faculty Coordinators', selectedReport.content.facultyCoordinators)}
+                    {renderTextSection('22. Student Coordinators', selectedReport.content.studentCoordinators)}
+
                     {selectedReport.pdfUrl && (
-                        <div className="pdf-download-section">
+                        <div className="pdf-download-section" style={{ marginTop: '24px' }}>
                             <i className="ri-file-pdf-fill"></i>
                             <div>
                                 <strong>System Generated PDF Available</strong>
@@ -57,7 +123,7 @@ const AdminReportReview = () => {
                         </div>
                     )}
 
-                    <div className="admin-remarks-input">
+                    <div className="admin-remarks-input" style={{ marginTop: '24px' }}>
                         <label>Admin Feedback / Remarks</label>
                         <textarea 
                             rows="3" 
@@ -84,7 +150,7 @@ const AdminReportReview = () => {
         <div className="admin-report-review-page">
             <div className="page-header">
                 <h1>Report Reviews</h1>
-                <p>Review and archive Post-Action Event Reports submitted by Club Presidents.</p>
+                <p>Review and archive Institutional Post-Action Event Reports submitted by Club Presidents.</p>
             </div>
 
             {isLoading ? (

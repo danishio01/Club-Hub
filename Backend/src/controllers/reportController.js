@@ -16,7 +16,11 @@ export const getReportByEvent = async (req, res) => {
                 event: eventId,
                 president: req.user._id,
                 club: event.club,
-                status: 'draft'
+                status: 'draft',
+                content: {
+                    socialMedia: { instagram: '', facebook: '', twitter: '' },
+                    resourcePersons: []
+                }
             });
             await report.save();
         }
