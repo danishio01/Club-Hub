@@ -10,7 +10,8 @@ import authRoutes from './routes/authRoutes.js';
 import emailRoutes from './routes/emailRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
-import reportRoutes from './routes/reportRoutes.js'; // NEW
+import reportRoutes from './routes/reportRoutes.js';
+import morgan from 'morgan'
 
 const app = express();
 
@@ -23,6 +24,8 @@ app.use(cors({
 
 app.use(express.json());
 app.use(cookieParser());
+app.use(morgan('combined'));
+
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
