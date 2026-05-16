@@ -15,7 +15,6 @@ const AdminLayout = () => {
         const verifyAdminSession = async () => {
             try {
                 const response = await axiosInstance.get('/admin/me');
-                // Inject the Admin user into Redux to sustain RBAC components
                 dispatch(loginSuccess({ ...response.data.data, role: 'admin' }));
             } catch (error) {
                 console.error("Admin session validation failed", error);
@@ -46,12 +45,14 @@ const AdminLayout = () => {
         { path: '/admin/students', icon: 'ri-group-line', label: 'Students' },
         { path: '/admin/clubs', icon: 'ri-team-line', label: 'Clubs' },
         { path: '/admin/event-approvals', icon: 'ri-calendar-check-fill', label: 'Event Approvals' },
-        { path: '/admin/reports', icon: 'ri-file-list-3-fill', label: 'Report Reviews' }, // NEW REPORT REVIEWS
+        { path: '/admin/reports', icon: 'ri-file-list-3-fill', label: 'Report Reviews' },
         { path: '/admin/leaderboard', icon: 'ri-trophy-line', label: 'Leaderboard' },
         { path: '/admin/attendance', icon: 'ri-calendar-check-line', label: 'Master Grid' }
     ];
 
-    if (isCheckingAuth || !user) return <div style={{ padding: '40px', textAlign: 'center' }}>Authenticating Admin Session...</div>;
+    if (isCheckingAuth || !user) {
+        return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Authenticating Admin Session...</div>;
+    }
 
     return (
         <div className="admin-layout">
@@ -83,17 +84,21 @@ const AdminLayout = () => {
             <aside className={`mobile-sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
                 <div className="sidebar-header">
                     <div className="nav-brand">Menu</div>
-                    <button className="close-btn" onClick={closeMenu}><i className="ri-close-line"></i></button>
+                    <button className="close-btn" onClick={closeMenu}>
+                        <i className="ri-close-line"></i>
+                    </button>
                 </div>
-                {navItems.map((item) => (
-                    <NavLink key={item.path} to={item.path} onClick={closeMenu} className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                        <i className={item.icon}></i>
-                        {item.label}
-                    </NavLink>
-                ))}
-                <button className="nav-link" onClick={() => { closeMenu(); handleLogout(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left', color: '#dc2626' }}>
-                    <i className="ri-logout-box-r-line"></i> Logout
-                </button>
+                <div className="sidebar-scrollable-nav">
+                    {navItems.map((item) => (
+                        <NavLink key={item.path} to={item.path} onClick={closeMenu} className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                            <i className={item.icon}></i>
+                            {item.label}
+                        </NavLink>
+                    ))}
+                    <button className="nav-link" onClick={() => { closeMenu(); handleLogout(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left', color: '#dc2626', marginTop: 'auto' }}>
+                        <i className="ri-logout-box-r-line"></i> Logout
+                    </button>
+                </div>
             </aside>
 
             <main className="main-content">
