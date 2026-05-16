@@ -32,7 +32,6 @@ export const getEventRegistrations = async (req, res) => {
     try {
         const { eventId } = req.params;
         
-        // Strict Ownership validation for Presidents
         if (req.user.role === 'president') {
             const event = await Event.findById(eventId).populate('club');
             if (!event || event.club?.president?.toString() !== req.user._id.toString()) {
@@ -50,7 +49,6 @@ export const getEventRegistrations = async (req, res) => {
     }
 };
 
-// ... remaining registrationController methods unchanged (generateAttendanceToken, markAttendance, getAttendedEvents, getStudentAttendanceReport, getAdminAttendanceReport, submitReview, getEventReviews, summarizeReviews)
 export const generateAttendanceToken = async (req, res) => {
     try {
         const { eventId } = req.params;
@@ -106,50 +104,7 @@ export const getAttendedEvents = async (req, res) => {
 
 export const getStudentAttendanceReport = async (req, res) => {
     try {
-        const today = new Date();
-        const events = await Event.find({ date: { $lte: today } }).sort({ date: -1 }).lean();
-        const uniqueDates = [];
-        const eventDateMap = {};
-
-        events.forEach(e => {
-            const d = new Date(e.date);
-            const formattedDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-
-            if (!eventDateMap[formattedDate]) {
-                eventDateMap[formattedDate] = [];
-                uniqueDates.push(formattedDate);
-            }
-            eventDateMap[formattedDate].push(e);
-        });
-
-        const studentId = req.user._id;
-        const attendedRegs = await Registration.find({ student: studentId, status: 'Attended' }).populate('event').lean();
-
-        const attendedMap = {};
-        attendedRegs.forEach(reg => {
-            if(reg.event) {
-                const d = new Date(reg.event.date);
-                const formattedDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-                attendedMap[formattedDate] = reg.event.title;
-            }
-        });
-
-        const report = uniqueDates.map(date => ({
-            date,
-            status: attendedMap[date] ? 'Present' : 'Absent',
-            eventName: attendedMap[date] || '-'
-        }));
-
-        return res.status(200).json({ success: true, data: report });
-    } catch (error) {
-        return res.status(500).json({ success: false, message: 'Failed to fetch report' });
-    }
-};
-
-export const getAdminAttendanceReport = async (req, res) => {
-    try {
-        const today = new Date();
-        const events = await Event.find({ date: { $lte: today } }).sort({ date: -1 }).lean();
+        const events = await Event.find({ status: { $in: ['approved', 'completed', 'Completed'] } }).sort({ date: -1 }).lean();
         const uniqueDates = [];
         const eventDateMap = {};
 
@@ -161,34 +116,128 @@ export const getAdminAttendanceReport = async (req, res) => {
                 eventDateMap[formattedDate] = [];
                 uniqueDates.push({ raw: d, formatted: formattedDate });
             }
-            eventDateMap[formattedDate].push(e._id.toString());
+            eventDateMap[formattedDate].push(e);
         });
 
-        const students = await Student.find().select('name usn department section semester').lean();
-        const allAttended = await Registration.find({ status: 'Attended' }).populate('event').lean();
+        const studentId = req.user._id.toString();
+        const studentRegs = await Registration.find({ student: studentId }).lean();
+        
+        const regMap = {};
+        studentRegs.forEach(reg => {
+            regMap[reg.event.toString()] = reg.status;
+        });
 
-        const attendanceMap = {};
-        allAttended.forEach(reg => {
-            if(reg.event && reg.student) {
-                const sId = reg.student.toString();
-                const d = new Date(reg.event.date);
-                const formattedDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+        const report = uniqueDates.map(dateObj => {
+            const eventsOnDate = eventDateMap[dateObj.formatted];
+            let finalStatus = 'Absent';
+            let finalEventName = '-';
+            let foundReg = false;
 
-                if (!attendanceMap[sId]) attendanceMap[sId] = {};
-                attendanceMap[sId][formattedDate] = reg.event.title;
+            for (const ev of eventsOnDate) {
+                const evId = ev._id.toString();
+                const regStatus = regMap[evId];
+                
+                if (regStatus) {
+                    foundReg = true;
+                    finalEventName = ev.title;
+                    if (regStatus === 'Attended') {
+                        finalStatus = 'Attended';
+                        break; 
+                    } else {
+                        if (ev.status === 'completed' || ev.status === 'Completed') {
+                            finalStatus = 'Absent';
+                        } else {
+                            finalStatus = 'Pending';
+                        }
+                    }
+                }
             }
+
+            if (!foundReg && eventsOnDate.length > 0) {
+                finalEventName = eventsOnDate[0].title;
+            }
+
+            return {
+                date: dateObj.formatted,
+                rawDate: dateObj.raw,
+                status: finalStatus,
+                eventName: finalEventName
+            };
+        });
+
+        report.sort((a, b) => b.rawDate - a.rawDate);
+        return res.status(200).json({ success: true, data: report });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to fetch report' });
+    }
+};
+
+export const getAdminAttendanceReport = async (req, res) => {
+    try {
+        const events = await Event.find({ status: { $in: ['approved', 'completed', 'Completed'] } }).sort({ date: -1 }).lean();
+        const uniqueDates = [];
+        const eventDateMap = {};
+
+        events.forEach(e => {
+            const d = new Date(e.date);
+            const formattedDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+
+            if (!eventDateMap[formattedDate]) {
+                eventDateMap[formattedDate] = [];
+                uniqueDates.push({ raw: d, formatted: formattedDate });
+            }
+            eventDateMap[formattedDate].push(e);
+        });
+
+        const students = await Student.find({ role: 'student' }).select('name usn department section semester').lean();
+        const allRegs = await Registration.find().lean();
+
+        const regMap = {};
+        allRegs.forEach(reg => {
+            const sId = reg.student.toString();
+            const eId = reg.event.toString();
+            if (!regMap[sId]) regMap[sId] = {};
+            regMap[sId][eId] = reg.status;
         });
 
         const report = [];
         students.forEach(student => {
             uniqueDates.forEach(dateObj => {
                 const sId = student._id.toString();
-                const isPresent = attendanceMap[sId]?.[dateObj.formatted];
+                const eventsOnDate = eventDateMap[dateObj.formatted];
+                
+                let finalStatus = 'Absent';
+                let finalEventName = '-';
+                let foundReg = false;
+
+                for (const ev of eventsOnDate) {
+                    const evId = ev._id.toString();
+                    const regStatus = regMap[sId]?.[evId];
+                    
+                    if (regStatus) {
+                        foundReg = true;
+                        finalEventName = ev.title;
+                        if (regStatus === 'Attended') {
+                            finalStatus = 'Attended';
+                            break;
+                        } else {
+                            if (ev.status === 'completed' || ev.status === 'Completed') {
+                                finalStatus = 'Absent';
+                            } else {
+                                finalStatus = 'Pending';
+                            }
+                        }
+                    }
+                }
+
+                if (!foundReg && eventsOnDate.length > 0) {
+                    finalEventName = eventsOnDate[0].title;
+                }
+
                 report.push({
                     studentName: student.name, usn: student.usn, department: student.department,
                     semester: student.semester || '-', section: student.section || '-',
-                    date: dateObj.formatted, rawDate: dateObj.raw, status: isPresent ? 'Present' : 'Absent',
-                    eventName: isPresent || '-'
+                    date: dateObj.formatted, rawDate: dateObj.raw, status: finalStatus, eventName: finalEventName
                 });
             });
         });

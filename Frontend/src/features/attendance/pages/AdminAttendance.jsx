@@ -28,8 +28,7 @@ const AdminAttendance = () => {
     }, []);
 
     useEffect(() => {
-        const fetchData = async () => { await loadRecords(); };
-        fetchData();
+        loadRecords();
     }, [loadRecords]);
 
     const processedData = useMemo(() => {
@@ -69,7 +68,10 @@ const AdminAttendance = () => {
                     attendance: {}
                 });
             }
-            studentMap.get(r.usn).attendance[r.date] = r.eventName !== '-' ? r.eventName : 'Absent';
+            studentMap.get(r.usn).attendance[r.date] = {
+                status: r.status,
+                eventName: r.eventName
+            };
         });
 
         let rows = Array.from(studentMap.values());
@@ -88,9 +90,8 @@ const AdminAttendance = () => {
         if (filterStatus) {
             rows = rows.filter(r => {
                 return columns.some(col => {
-                    const val = r.attendance[col.label];
-                    if (filterStatus === 'Present') return val !== 'Absent';
-                    return val === 'Absent';
+                    const cell = r.attendance[col.label] || { status: 'Absent', eventName: '-' };
+                    return cell.status === filterStatus;
                 });
             });
         }
@@ -99,15 +100,18 @@ const AdminAttendance = () => {
     }, [records, searchTerm, startDate, endDate, filterStatus, filterDepartment, filterSemester, filterSection]);
 
     const stats = useMemo(() => {
-        let present = 0;
+        let attended = 0;
+        let pending = 0;
         let absent = 0;
         processedData.rows.forEach(r => {
             processedData.columns.forEach(c => {
-                if (r.attendance[c.label] !== 'Absent') present++;
+                const cell = r.attendance[c.label] || { status: 'Absent' };
+                if (cell.status === 'Attended') attended++;
+                else if (cell.status === 'Pending') pending++;
                 else absent++;
             });
         });
-        return { totalStudents: processedData.rows.length, present, absent };
+        return { totalStudents: processedData.rows.length, attended, pending, absent };
     }, [processedData]);
 
     const clearFilters = () => {
@@ -130,7 +134,8 @@ const AdminAttendance = () => {
                 'Section': row.section,
             };
             processedData.columns.forEach(col => {
-                obj[col.label] = row.attendance[col.label] || 'Absent';
+                const cell = row.attendance[col.label];
+                obj[col.label] = cell ? `${cell.status} (${cell.eventName})` : 'Absent';
             });
             return obj;
         });
@@ -156,12 +161,16 @@ const AdminAttendance = () => {
 
             <div className="summary-stats">
                 <div className="stat-card total">
-                    <span className="stat-label">Students in Grid</span>
+                    <span className="stat-label">Students Tracked</span>
                     <span className="stat-value">{stats.totalStudents}</span>
                 </div>
                 <div className="stat-card present">
-                    <span className="stat-label">Total Participations</span>
-                    <span className="stat-value">{stats.present}</span>
+                    <span className="stat-label">Total Attended</span>
+                    <span className="stat-value">{stats.attended}</span>
+                </div>
+                <div className="stat-card pending">
+                    <span className="stat-label">Pending Scans</span>
+                    <span className="stat-value" style={{ color: '#d97706' }}>{stats.pending}</span>
                 </div>
                 <div className="stat-card absent">
                     <span className="stat-label">Total Absences</span>
@@ -194,22 +203,12 @@ const AdminAttendance = () => {
                     
                     <div className="filter-group">
                         <label>Start Date</label>
-                        <input 
-                            type="date" 
-                            className="filter-input" 
-                            value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
-                        />
+                        <input type="date" className="filter-input" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
                     </div>
 
                     <div className="filter-group">
                         <label>End Date</label>
-                        <input 
-                            type="date" 
-                            className="filter-input" 
-                            value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
-                        />
+                        <input type="date" className="filter-input" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                     </div>
 
                     <div className="filter-group">
@@ -238,23 +237,24 @@ const AdminAttendance = () => {
 
                     <div className="filter-group">
                         <label>Status</label>
-                        <select className="filter-input" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} title="Filters students who were Present/Absent on ANY of the visible dates">
+                        <select className="filter-input" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
                             <option value="">Any Status</option>
-                            <option value="Present">Has Attended</option>
-                            <option value="Absent">Has Absences</option>
+                            <option value="Attended">Attended</option>
+                            <option value="Pending">Pending Scan</option>
+                            <option value="Absent">Absent</option>
                         </select>
                     </div>
                 </div>
             </div>
 
-            <div className="table-container" style={{ overflowX: 'auto' }}>
-                <table style={{ whiteSpace: 'nowrap' }}>
+            <div className="table-container">
+                <table className="data-table">
                     <thead>
                         <tr>
-                            <th style={{ minWidth: '200px', position: 'sticky', left: 0, background: '#f8fafc', zIndex: 1 }}>Student Details</th>
-                            <th style={{ minWidth: '150px' }}>Dept, Sem & Sec</th>
+                            <th style={{ minWidth: '220px', position: 'sticky', left: 0, background: '#f8fafc', zIndex: 1 }}>Student Details</th>
+                            <th style={{ minWidth: '150px' }}>Academic Info</th>
                             {processedData.columns.map(col => (
-                                <th key={col.label} style={{ minWidth: '150px' }}>{col.label}</th>
+                                <th key={col.label} style={{ minWidth: '180px' }}>{col.label}</th>
                             ))}
                         </tr>
                     </thead>
@@ -266,27 +266,26 @@ const AdminAttendance = () => {
                         ) : (
                             processedData.rows.map((row, index) => (
                                 <tr key={index}>
-                                    <td style={{ position: 'sticky', left: 0, background: '#ffffff', zIndex: 1, borderRight: '1px solid #e2e8f0' }}>
+                                    <td style={{ position: 'sticky', left: 0, background: '#ffffff', zIndex: 1, borderRight: '1px solid #e2e8f0', whiteSpace: 'normal', wordBreak: 'break-word' }}>
                                         <div style={{ fontWeight: 600, color: '#0f172a' }}>{row.studentName}</div>
                                         <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{row.usn}</div>
                                     </td>
-                                    <td>
+                                    <td style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
                                         <div style={{ fontWeight: 500 }}>{row.department}</div>
                                         <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
                                             Sem: {row.semester} | Sec: {row.section}
                                         </div>
                                     </td>
                                     {processedData.columns.map(col => {
-                                        const status = row.attendance[col.label] || 'Absent';
+                                        const cell = row.attendance[col.label] || { status: 'Absent', eventName: '-' };
                                         return (
-                                            <td key={col.label}>
-                                                {status === 'Absent' ? (
-                                                    <span className="status-badge absent">Absent</span>
-                                                ) : (
-                                                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#16a34a' }}>
-                                                        <i className="ri-check-line"></i> {status}
-                                                    </div>
-                                                )}
+                                            <td key={col.label} style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                                                <div style={{ marginBottom: '6px', fontSize: '0.85rem', color: '#475569', lineHeight: 1.4 }}>
+                                                    {cell.eventName !== '-' ? cell.eventName : ''}
+                                                </div>
+                                                <span className={`status-badge ${cell.status.toLowerCase()}`}>
+                                                    {cell.status}
+                                                </span>
                                             </td>
                                         );
                                     })}

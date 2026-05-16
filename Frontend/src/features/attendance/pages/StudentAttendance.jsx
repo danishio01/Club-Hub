@@ -19,41 +19,42 @@ const StudentAttendance = () => {
     }, []);
 
     useEffect(() => {
-        const fetchData = async () => { await loadRecords(); };
-        fetchData();
+        loadRecords();
     }, [loadRecords]);
 
     return (
         <div className="attendance-page">
             <div className="attendance-header">
                 <h1>My Attendance Tracker</h1>
-                <p>Track your attendance for all past campus event days.</p>
+                <p>Track your registration and attendance scans for all campus events.</p>
             </div>
 
             <div className="table-container">
-                <table>
+                <table className="data-table">
                     <thead>
                         <tr>
-                            <th>Date</th>
-                            <th>Status</th>
-                            <th>Event Attended</th>
+                            <th style={{ width: '150px' }}>Date</th>
+                            <th style={{ width: '120px' }}>Status</th>
+                            <th>Event Details</th>
                         </tr>
                     </thead>
                     <tbody>
                         {isLoading ? (
-                            <tr><td colSpan="3" style={{ textAlign: 'center' }}>Loading records...</td></tr>
+                            <tr><td colSpan="3" style={{ textAlign: 'center', padding: '40px' }}>Loading records...</td></tr>
                         ) : records.length === 0 ? (
-                            <tr><td colSpan="3" style={{ textAlign: 'center' }}>No event days recorded yet.</td></tr>
+                            <tr><td colSpan="3" style={{ textAlign: 'center', padding: '40px' }}>No event days recorded yet.</td></tr>
                         ) : (
                             records.map((record, index) => (
                                 <tr key={index}>
-                                    <td style={{ fontWeight: 500 }}>{record.date}</td>
+                                    <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{record.date}</td>
                                     <td>
                                         <span className={`status-badge ${record.status.toLowerCase()}`}>
                                             {record.status}
                                         </span>
                                     </td>
-                                    <td style={{ color: '#475569' }}>{record.eventName}</td>
+                                    <td style={{ color: '#475569', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.5 }}>
+                                        {record.eventName}
+                                    </td>
                                 </tr>
                             ))
                         )}
