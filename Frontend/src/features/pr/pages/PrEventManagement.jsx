@@ -15,8 +15,8 @@ const PrEventManagement = () => {
 
     useEffect(() => {
         let isMounted = true;
-        
-        const fetchInitialData = async () => {
+
+        const initializeSessionData = async () => {
             try {
                 setIsLoading(true);
                 const evData = await getEventByIdApi(eventId);
@@ -34,11 +34,14 @@ const PrEventManagement = () => {
             }
         };
 
-        fetchInitialData();
-        return () => { isMounted = false; };
+        initializeSessionData();
+
+        return () => {
+            isMounted = false;
+        };
     }, [eventId, navigate]);
 
-    const handleRefreshRegistrations = async () => {
+    const handleRefresh = async () => {
         try {
             const regData = await getEventRegistrationsApi(eventId);
             setRegistrations(regData);
@@ -98,7 +101,7 @@ const PrEventManagement = () => {
                 <div className="registrations-panel">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                         <h2 style={{ margin: 0 }}>Registered Students</h2>
-                        <button className="btn-refresh" onClick={handleRefreshRegistrations}>
+                        <button className="btn-refresh" onClick={handleRefresh}>
                             <i className="ri-refresh-line"></i> Refresh
                         </button>
                     </div>

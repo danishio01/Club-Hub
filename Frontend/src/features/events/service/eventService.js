@@ -38,6 +38,16 @@ export const markEventCompletedApi = async (id) => {
     return response.data.data;
 };
 
+export const approveEventApi = async (id) => {
+    const response = await axiosInstance.patch(`/events/${id}/approve`);
+    return response.data.data;
+};
+
+export const rejectEventApi = async (id, reason) => {
+    const response = await axiosInstance.patch(`/events/${id}/reject`, { reason });
+    return response.data.data;
+};
+
 export const getEventRegistrationsApi = async (eventId) => {
     const response = await axiosInstance.get(`/events/${eventId}/registrations`);
     return response.data.data;

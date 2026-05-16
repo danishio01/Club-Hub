@@ -11,7 +11,14 @@ const eventSchema = new mongoose.Schema({
     price: { type: Number, default: 0 },
     maxParticipants: { type: Number, required: true },
     tags: [{ type: String }],
-    status: { type: String, enum: ['Upcoming', 'Completed'], default: 'Upcoming' }
+    status: { 
+        type: String, 
+        enum: ['review', 'approved', 'rejected', 'completed'], 
+        default: 'review' 
+    },
+    rejectedReason: { type: String, default: null },
+    rejectedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', default: null },
+    rejectedAt: { type: Date, default: null }
 }, { timestamps: true });
 
 export default mongoose.model('Event', eventSchema);

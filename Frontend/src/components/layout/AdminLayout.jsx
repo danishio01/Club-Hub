@@ -1,25 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { loginSuccess, setAuthChecked } from '../../features/auth/state/authSlice';
 import axiosInstance from '../../api/axiosInstance';
 import './AdminLayout.scss';
 
 const AdminLayout = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+    const dispatch = useDispatch();
     const navigate = useNavigate();
+    const { user, isCheckingAuth } = useSelector((state) => state.auth);
 
     useEffect(() => {
-        const verifyAdmin = async () => {
+        const verifyAdminSession = async () => {
             try {
-                await axiosInstance.get('/admin/me');
-                setIsCheckingAuth(false);
+                const response = await axiosInstance.get('/admin/me');
+                // Inject the Admin user into Redux to sustain RBAC components
+                dispatch(loginSuccess({ ...response.data.data, role: 'admin' }));
             } catch (error) {
-                console.error("Admin verification failed", error);
+                console.error("Admin session validation failed", error);
+                dispatch(setAuthChecked());
                 navigate('/admin/login', { replace: true });
             }
         };
-        verifyAdmin();
-    }, [navigate]);
+
+        if (!user) {
+            verifyAdminSession();
+        }
+    }, [dispatch, navigate, user]);
 
     const handleLogout = async () => {
         try {
@@ -37,11 +45,12 @@ const AdminLayout = () => {
         { path: '/admin/dashboard', icon: 'ri-dashboard-line', label: 'Dashboard' },
         { path: '/admin/students', icon: 'ri-group-line', label: 'Students' },
         { path: '/admin/clubs', icon: 'ri-team-line', label: 'Clubs' },
+        { path: '/admin/event-approvals', icon: 'ri-calendar-check-fill', label: 'Event Approvals' },
         { path: '/admin/leaderboard', icon: 'ri-trophy-line', label: 'Leaderboard' },
-        { path: '/admin/attendance', icon: 'ri-calendar-check-line', label: 'Attendance' }
+        { path: '/admin/attendance', icon: 'ri-calendar-check-line', label: 'Master Grid' }
     ];
 
-    if (isCheckingAuth) return <div style={{ padding: '40px', textAlign: 'center' }}>Verifying Admin Access...</div>;
+    if (isCheckingAuth || !user) return <div style={{ padding: '40px', textAlign: 'center' }}>Authenticating Admin Session...</div>;
 
     return (
         <div className="admin-layout">

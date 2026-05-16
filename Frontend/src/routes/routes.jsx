@@ -10,6 +10,7 @@ import ErrorBoundary from "../components/common/ErrorBoundary";
 import Dashboard from "../features/dashboard/pages/Dashboard";
 import Students from "../features/students/pages/Students";
 import Clubs from "../features/clubs/pages/Clubs";
+import AdminEventReviews from "../features/events/pages/AdminEventReviews";
 import Events from "../features/events/pages/Events";
 import EventDetails from "../features/events/pages/EventDetails";
 import Profile from "../features/profile/pages/Profile";
@@ -44,6 +45,8 @@ export const routes = createBrowserRouter([
             { path: "dashboard", element: <Dashboard /> },
             { path: "students", element: <Students /> },
             { path: "clubs", element: <Clubs /> },
+            { path: "event-approvals", element: <AdminEventReviews /> },
+            { path: "events/:eventId", element: <EventDetails /> },
             { path: "leaderboard", element: <Leaderboard isAdmin={true} /> },
             { path: "attendance", element: <AdminAttendance /> }
         ]

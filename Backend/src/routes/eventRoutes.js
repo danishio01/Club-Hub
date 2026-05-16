@@ -8,7 +8,9 @@ import {
     getStudentEvents, 
     getStudentEventById, 
     markEventCompleted,
-    getPresidentEvents
+    getPresidentEvents,
+    approveEvent,
+    rejectEvent
 } from '../controllers/eventController.js';
 import { 
     registerForEvent, 
@@ -23,7 +25,7 @@ import {
     summarizeReviews
 } from '../controllers/registrationController.js';
 import { getLeaderboard, resetLeaderboard } from '../controllers/leaderboardController.js';
-import { protect, presidentOnly, prOnly } from '../middleware/authMiddleware.js';
+import { protect, presidentOnly, prOnly, adminOnly } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -43,6 +45,10 @@ router.patch('/:id/complete', protect, presidentOnly, markEventCompleted);
 router.put('/:id', protect, presidentOnly, updateEvent);
 router.delete('/:id', protect, presidentOnly, deleteEvent);
 router.post('/:eventId/reviews/summary', protect, presidentOnly, summarizeReviews);
+
+// Admin Event Approvals (Ordered before getEventById to prevent matching collisions)
+router.patch('/:id/approve', protect, adminOnly, approveEvent);
+router.patch('/:id/reject', protect, adminOnly, rejectEvent);
 
 router.get('/', getEvents);
 router.get('/:id', getEventById);
