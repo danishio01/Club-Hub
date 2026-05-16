@@ -30,14 +30,17 @@ const Profile = () => {
             await dispatch(updateStudentInterestsAction(user._id, selectedInterests));
             alert('Interests updated successfully!');
         } catch (error) {
-            console.error(error);
             alert('Failed to update interests. Please try again.');
+            console.error(error)
         } finally {
             setIsSaving(false);
         }
     };
 
-    if (!user) return <div>Loading...</div>;
+    if (!user) return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading Profile Data...</div>;
+
+    const displaySemester = user.semester ? `Semester ${user.semester}` : 'Semester N/A';
+    const displaySection = user.section ? `Section ${user.section}` : 'Section N/A';
 
     return (
         <div className="profile-page">
@@ -52,23 +55,23 @@ const Profile = () => {
                     <div className="info-list">
                         <div className="info-item">
                             <span className="label">Full Name</span>
-                            <span className="value">{user.name}</span>
+                            <span className="value">{user.name || 'N/A'}</span>
                         </div>
                         <div className="info-item">
                             <span className="label">USN</span>
-                            <span className="value">{user.usn}</span>
+                            <span className="value">{user.usn || 'N/A'}</span>
                         </div>
                         <div className="info-item">
                             <span className="label">Email Address</span>
-                            <span className="value">{user.email}</span>
+                            <span className="value">{user.email || 'N/A'}</span>
                         </div>
                         <div className="info-item">
                             <span className="label">Department</span>
-                            <span className="value">{user.department}</span>
+                            <span className="value">{user.department || 'N/A'}</span>
                         </div>
                         <div className="info-item">
                             <span className="label">Semester & Section</span>
-                            <span className="value">Semester {user.semester} - Section {user.section}</span>
+                            <span className="value">{displaySemester} - {displaySection}</span>
                         </div>
                     </div>
                 </div>

@@ -47,6 +47,8 @@ export const studentLogin = async (req, res) => {
                 usn: student.usn,
                 email: student.email,
                 department: student.department,
+                semester: student.semester,
+                section: student.section,
                 interests: student.interests,
                 role: student.role,
                 clubName
@@ -88,6 +90,8 @@ export const getMe = async (req, res) => {
                 usn: student.usn,
                 email: student.email,
                 department: student.department,
+                semester: student.semester,
+                section: student.section,
                 interests: student.interests,
                 role: student.role,
                 clubName
