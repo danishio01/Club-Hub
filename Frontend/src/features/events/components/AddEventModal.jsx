@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { createEventService } from '../service/eventService';
+import { createEventService, generateEventFromAIApi } from '../service/eventService';
 import { getClubsList } from '../../clubs/service/clubService';
 import '../../students/style/StudentModals.scss';
 import '../style/EventModals.scss';
@@ -21,7 +21,10 @@ const AddEventModal = ({ onClose, onSuccess }) => {
         date: '', time: '', venue: '', eventType: 'Free',
         price: 0, maxParticipants: ''
     });
+    
     const [isLoading, setIsLoading] = useState(false);
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
     useEffect(() => {
         if (user?.role === 'admin') {
@@ -42,6 +45,34 @@ const AddEventModal = ({ onClose, onSuccess }) => {
                 ? prev.tags.filter(t => t !== tag) 
                 : [...prev.tags, tag]
         }));
+    };
+
+    const handleAiGenerate = async () => {
+        if (!aiPrompt.trim()) return;
+        
+        setIsGeneratingAI(true);
+        try {
+            const generatedData = await generateEventFromAIApi(aiPrompt);
+            
+            setFormData(prev => ({
+                ...prev,
+                title: generatedData.title || prev.title,
+                description: generatedData.description || prev.description,
+                tags: generatedData.tags && generatedData.tags.length > 0 ? generatedData.tags : prev.tags,
+                date: generatedData.date || prev.date,
+                time: generatedData.time || prev.time,
+                venue: generatedData.venue || prev.venue,
+                eventType: generatedData.eventType || prev.eventType,
+                maxParticipants: generatedData.maxParticipants ? String(generatedData.maxParticipants) : prev.maxParticipants
+            }));
+            
+            setAiPrompt('');
+        } catch (error) {
+            console.error(error);
+            alert("Failed to generate event details. Please ensure your prompt is clear and try again.");
+        } finally {
+            setIsGeneratingAI(false);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -71,8 +102,40 @@ const AddEventModal = ({ onClose, onSuccess }) => {
                     <h2>Create New Event</h2>
                     <button className="close-button" onClick={onClose}><i className="ri-close-line"></i></button>
                 </div>
-                <form onSubmit={handleSubmit}>
-                    <div className="modal-body">
+                
+                <div className="modal-body-scrollable">
+                    
+                    {user?.role === 'president' && (
+                        <div className="ai-assistant-card">
+                            <div className="ai-header">
+                                <i className="ri-sparkling-fill"></i>
+                                <span>AI Event Auto-Fill</span>
+                            </div>
+                            <div className="ai-input-group">
+                                <textarea 
+                                    className="ai-textarea"
+                                    placeholder="Describe your event... e.g. 'Conduct a 2 hour AI workshop on March 25 in the Main Seminar Hall for 200 students'"
+                                    value={aiPrompt}
+                                    onChange={(e) => setAiPrompt(e.target.value)}
+                                    disabled={isGeneratingAI}
+                                />
+                                <button 
+                                    type="button" 
+                                    className="btn-ai-generate" 
+                                    onClick={handleAiGenerate} 
+                                    disabled={isGeneratingAI || !aiPrompt.trim()}
+                                >
+                                    {isGeneratingAI ? (
+                                        <><i className="ri-loader-4-line spin-icon"></i> Generating...</>
+                                    ) : (
+                                        <><i className="ri-magic-line"></i> Generate</>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="event-creation-form">
                         <div className="form-row">
                             <div className="form-group">
                                 <label>Event Name</label>
@@ -91,7 +154,7 @@ const AddEventModal = ({ onClose, onSuccess }) => {
 
                         <div className="form-group">
                             <label>Description</label>
-                            <textarea name="description" rows="2" required value={formData.description} onChange={handleChange}></textarea>
+                            <textarea name="description" rows="3" required value={formData.description} onChange={handleChange}></textarea>
                         </div>
 
                         <div className="form-group">
@@ -144,14 +207,15 @@ const AddEventModal = ({ onClose, onSuccess }) => {
                                 <input type="number" name="maxParticipants" min="1" required value={formData.maxParticipants} onChange={handleChange} />
                             </div>
                         </div>
-                    </div>
-                    <div className="modal-footer">
-                        <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
-                        <button type="submit" className="btn-primary" disabled={isLoading}>
-                            {isLoading ? 'Saving...' : 'Create Event'}
-                        </button>
-                    </div>
-                </form>
+                        
+                        <div className="modal-footer" style={{ padding: '20px 0 0 0', marginTop: '20px', borderTop: '1px solid #e2e8f0', background: 'transparent' }}>
+                            <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
+                            <button type="submit" className="btn-primary" disabled={isLoading || isGeneratingAI}>
+                                {isLoading ? 'Saving...' : 'Submit Event'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     );

@@ -67,3 +67,8 @@ export const summarizeReviewsApi = async (eventId) => {
     const response = await axiosInstance.post(`/events/${eventId}/reviews/summary`);
     return response.data.data;
 };
+
+export const generateEventFromAIApi = async (prompt) => {
+    const response = await axiosInstance.post('/ai/generate-event', { prompt });
+    return response.data.data;
+};

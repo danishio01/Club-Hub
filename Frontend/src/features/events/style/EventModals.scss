@@ -62,10 +62,104 @@
   }
 }
 
-.modal-body {
+.modal-body-scrollable {
   padding: 24px;
   overflow-y: auto;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* --------------------------------------
+   AI ASSISTANT CARD (President)
+--------------------------------------- */
+.ai-assistant-card {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .ai-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #0284c7;
+    font-weight: 700;
+    font-size: 1.1rem;
+
+    i { color: #eab308; font-size: 1.25rem; }
+  }
+
+  .ai-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .ai-textarea {
+      width: 100%;
+      padding: 16px;
+      border: 1px solid #7dd3fc;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 80px;
+      transition: all 0.2s;
+
+      &:focus {
+        outline: none;
+        border-color: #0284c7;
+        box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
+      }
+      
+      &:disabled {
+        background: #f8fafc;
+        color: #94a3b8;
+        cursor: not-allowed;
+      }
+    }
+
+    .btn-ai-generate {
+      align-self: flex-end;
+      background-color: #0284c7;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s;
+
+      &:hover:not(:disabled) {
+        background-color: #0369a1;
+      }
+
+      &:disabled {
+        background-color: #93c5fd;
+        cursor: not-allowed;
+      }
+
+      .spin-icon {
+        animation: spin 1s linear infinite;
+      }
+    }
+  }
+}
+
+/* --------------------------------------
+   STANDARD FORM STYLES
+--------------------------------------- */
+.event-creation-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .modal-footer {
@@ -77,60 +171,6 @@
   background-color: #f8fafc;
   border-bottom-left-radius: 12px;
   border-bottom-right-radius: 12px;
-}
-
-.registrations-table-container {
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  overflow-x: auto;
-  
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 700px;
-
-    th, td {
-      padding: 14px 16px;
-      text-align: left;
-      border-bottom: 1px solid #f1f5f9;
-      font-size: 0.9rem;
-      color: #475569;
-    }
-
-    th {
-      background-color: #f8fafc;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      font-size: 0.8rem;
-    }
-
-    tr:last-child td {
-      border-bottom: none;
-    }
-
-    tr:hover {
-      background-color: #f8fafc;
-    }
-  }
-}
-
-.reg-status-badge {
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  display: inline-block;
-
-  &.registered {
-    background-color: #eff6ff;
-    color: #1d4ed8;
-  }
-
-  &.attended {
-    background-color: #dcfce7;
-    color: #166534;
-  }
 }
 
 .tags-grid {
@@ -159,14 +199,12 @@
 }
 
 @keyframes modalSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
 }
 
 @media (max-width: 768px) {
@@ -186,5 +224,10 @@
   
   .tags-grid {
     gap: 12px;
+  }
+
+  .ai-assistant-card .btn-ai-generate {
+    width: 100%;
+    justify-content: center;
   }
 }

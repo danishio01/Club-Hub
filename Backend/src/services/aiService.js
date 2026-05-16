@@ -184,3 +184,44 @@ export const processAiChat = async (history, mode, eventId, io, socketId) => {
 
     return finalResponse;
 };
+
+// NEW FUNCTION: Generate Event Form Details
+export const generateEventDetailsFromPrompt = async (promptText) => {
+    const jsonModel = new ChatMistralAI({
+        model: "mistral-medium-latest",
+        apiKey: process.env.MISTRAL_API_KEY,
+        temperature: 0.2
+    });
+
+    const currentDate = new Date().toISOString().split('T')[0];
+
+    // Using \x60 to represent backticks safely in AST parsers without breaking syntax highlighting
+    const systemPrompt = `You are an AI event planning assistant for ClubHub.
+    Extract and generate event details from the user's input.
+    Respond ONLY with a raw JSON object. Do NOT wrap the response in markdown blocks like \x60\x60\x60json. Just output the raw JSON object.
+    
+    Rules:
+    1. "title": Generate a professional, catchy event name based on the prompt. (ALWAYS FILL)
+    2. "description": Generate a 2-3 sentence engaging description. (ALWAYS FILL)
+    3. "tags": Select 3-5 relevant tags from this exact list ONLY: ['Coding', 'Development', 'AI', 'Problem Solving', 'Tech Talk', 'Editing', 'Photography', 'Content Creation', 'Games', 'Dance', 'Music', 'Entertainment', 'Interaction', 'Social Media', 'Promotion']. (ALWAYS FILL)
+    4. "date": Extract date if mentioned (format: YYYY-MM-DD). If no year is mentioned, assume current or next upcoming relative to today (${currentDate}). If absolutely no date is mentioned, return an empty string "".
+    5. "time": Extract time if mentioned (format: HH:mm in 24h). If not mentioned, return empty string "".
+    6. "venue": Extract venue name if mentioned. If not mentioned, return empty string "".
+    7. "eventType": "Free" or "Paid". Default to "Free" unless cost is mentioned.
+    8. "maxParticipants": Extract the number of participants if mentioned. If not mentioned, return an empty string "".
+
+    Ensure keys exactly match the names above.`;
+
+    try {
+        const response = await jsonModel.invoke([
+            new SystemMessage(systemPrompt),
+            new HumanMessage(promptText)
+        ]);
+
+        // Clean any accidental markdown blocks the LLM hallucinates (using \x60 to prevent parser crash)
+        let jsonStr = response.content.replace(/\x60\x60\x60json/gi, '').replace(/\x60\x60\x60/g, '').trim();
+        return JSON.parse(jsonStr);
+    } catch (error) {
+        throw new Error("Failed to parse event details from AI response.");
+    }
+};
