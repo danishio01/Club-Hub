@@ -47,7 +47,7 @@ export const sendEmailService = async ({ to, subject, html, text }) => {
         const { access_token } = await tokenResponse.json();
 
         const sendResponse = await fetch(
-            'https://gmail.googleapis.com/upload/gmail/v1/users/me/messages/send',
+            'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
             {
                 method: 'POST',
                 headers: {
