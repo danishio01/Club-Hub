@@ -13,11 +13,37 @@ const s3 = new S3Client({
 });
 
 export const generateAndUploadReportPDF = async (reportData, eventTitle, clubName, presidentName) => {
+    let logoBuffer = null;
+    try {
+        const response = await fetch('https://ik.imagekit.io/p4nbkerbz/ClubHub/image.png');
+        if (response.ok) {
+            const arrayBuffer = await response.arrayBuffer();
+            logoBuffer = Buffer.from(arrayBuffer);
+        }
+    } catch (err) {
+        console.error("Failed to fetch logo for PDF:", err);
+    }
+
     return new Promise((resolve, reject) => {
-        const doc = new PDFDocument({ margin: 50 });
+        // Increased top margin to 140 to make space for the wide header banner
+        const doc = new PDFDocument({ 
+            margins: { top: 140, bottom: 50, left: 50, right: 50 } 
+        });
         const buffers = [];
 
+        // Fixed sizing to preserve aspect ratio and stretch appropriately
+        const addHeader = () => {
+            if (logoBuffer) {
+                // By providing only width, pdfkit scales height proportionally, preserving aspect ratio.
+                const bannerWidth = 420;
+                doc.image(logoBuffer, (doc.page.width - bannerWidth) / 2, 25, { width: bannerWidth });
+            }
+        };
+
+        // Attach header event so the banner repeats cleanly on every page break
+        doc.on('pageAdded', addHeader);
         doc.on('data', buffers.push.bind(buffers));
+        
         doc.on('end', async () => {
             const pdfData = Buffer.concat(buffers);
             const key = `reports/Report_${eventTitle.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.pdf`;
@@ -37,6 +63,9 @@ export const generateAndUploadReportPDF = async (reportData, eventTitle, clubNam
                 reject(err);
             }
         });
+
+        // Add header to the first page manually
+        addHeader();
 
         // Construct PDF Content
         doc.fontSize(22).font('Helvetica-Bold').text('Institutional Event Post-Action Report', { align: 'center' });

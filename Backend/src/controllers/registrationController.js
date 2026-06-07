@@ -71,12 +71,12 @@ export const markAttendance = async (req, res) => {
         const registration = await Registration.findOne({ event: eventId, student: studentId });
         if (!registration) return res.status(404).json({ success: false, message: 'You are not registered for this event.' });
         if (registration.status === 'Attended') return res.status(400).json({ success: false, message: 'Attendance already recorded.' });
+        if (registration.status === 'Scanned') return res.status(400).json({ success: false, message: 'QR already scanned. Please submit your review to complete attendance.' });
 
-        registration.status = 'Attended';
+        registration.status = 'Scanned';
         await registration.save();
-        await Student.findByIdAndUpdate(studentId, { $inc: { points: 100 } });
 
-        return res.status(200).json({ success: true, message: 'Attendance recorded! You earned 100 points.' });
+        return res.status(200).json({ success: true, message: 'QR Scanned! Please submit a review to mark your attendance and earn points.' });
     } catch (error) {
         return res.status(401).json({ success: false, message: 'Invalid or expired QR Code.' });
     }
@@ -143,6 +143,9 @@ export const getStudentAttendanceReport = async (req, res) => {
                     if (regStatus === 'Attended') {
                         finalStatus = 'Attended';
                         break; 
+                    } else if (regStatus === 'Scanned') {
+                        finalStatus = 'Pending Review';
+                        break;
                     } else {
                         if (ev.status === 'completed' || ev.status === 'Completed') {
                             finalStatus = 'Absent';
@@ -220,6 +223,9 @@ export const getAdminAttendanceReport = async (req, res) => {
                         if (regStatus === 'Attended') {
                             finalStatus = 'Attended';
                             break;
+                        } else if (regStatus === 'Scanned') {
+                            finalStatus = 'Pending Review';
+                            break;
                         } else {
                             if (ev.status === 'completed' || ev.status === 'Completed') {
                                 finalStatus = 'Absent';
@@ -252,12 +258,23 @@ export const getAdminAttendanceReport = async (req, res) => {
 export const submitReview = async (req, res) => {
     try {
         const { rating, review } = req.body;
-        const registration = await Registration.findOneAndUpdate(
-            { event: req.params.eventId, student: req.user._id, status: 'Attended' },
-            { rating, review }, { new: true }
-        );
-        if (!registration) return res.status(400).json({ success: false, message: 'Must attend the event to review.' });
-        return res.status(200).json({ success: true, message: 'Review submitted successfully!' });
+        const registration = await Registration.findOne({ event: req.params.eventId, student: req.user._id });
+        
+        if (!registration || !['Scanned', 'Attended'].includes(registration.status)) {
+            return res.status(400).json({ success: false, message: 'Must scan QR code at the event before reviewing.' });
+        }
+
+        registration.rating = rating;
+        registration.review = review;
+        
+        if (registration.status === 'Scanned') {
+            registration.status = 'Attended';
+            await Student.findByIdAndUpdate(req.user._id, { $inc: { points: 100 } });
+        }
+        
+        await registration.save();
+        
+        return res.status(200).json({ success: true, message: 'Review submitted successfully! Attendance marked and 100 points awarded.' });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to submit review' });
     }

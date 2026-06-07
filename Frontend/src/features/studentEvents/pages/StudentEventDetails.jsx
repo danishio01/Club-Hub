@@ -119,7 +119,7 @@ const StudentEventDetails = () => {
                 if (!token) return alert('Invalid QR code format.');
 
                 await markAttendanceApi(eventId, token);
-                alert('Attendance recorded successfully! Points awarded.');
+                alert('QR Scanned! Please submit a review below to finalize your attendance.');
                 await loadEvent(); 
             } catch (error) {
                 alert(error.response?.data?.message || 'Failed to mark attendance.');
@@ -131,7 +131,8 @@ const StudentEventDetails = () => {
         try {
             await submitReviewApi(eventId, { rating, review: reviewText });
             setIsReviewSubmitted(true);
-            alert('Thank you for your feedback!');
+            alert('Review submitted! Attendance marked and points awarded.');
+            await loadEvent();
         } catch (error) {
             console.error("Review Upload Error:", error);
             alert('Failed to submit review.');
@@ -164,6 +165,10 @@ const StudentEventDetails = () => {
                     {event.attendanceStatus === 'Attended' ? (
                         <div className="status-badge status-attended">
                             <i className="ri-checkbox-circle-fill" style={{ fontSize: '1.2rem' }}></i> Attendance Marked
+                        </div>
+                    ) : event.attendanceStatus === 'Scanned' ? (
+                        <div className="status-badge" style={{ background: '#fef08a', color: '#854d0e', border: '1px solid #fde047' }}>
+                            <i className="ri-error-warning-fill" style={{ fontSize: '1.2rem' }}></i> Pending Review
                         </div>
                     ) : event.isRegistered ? (
                         <button className="btn-registered" disabled>
@@ -211,8 +216,7 @@ const StudentEventDetails = () => {
                         </span>
                     </div>
 
-                    {/* RESTORED SCANNER TRIGGER UI */}
-                    {event.isRegistered && event.attendanceStatus !== 'Attended' && (
+                    {event.isRegistered && event.attendanceStatus !== 'Attended' && event.attendanceStatus !== 'Scanned' && (
                         <div style={{ marginTop: '16px', paddingTop: '20px', borderTop: '1px solid #f1f5f9' }}>
                             <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '12px', textAlign: 'center' }}>
                                 At the venue? Scan the QR code displayed by the PR officer.
@@ -225,27 +229,36 @@ const StudentEventDetails = () => {
                 </div>
             </div>
 
-            {event.attendanceStatus === 'Attended' && !isReviewSubmitted && (
-                <div className="review-section" style={{ marginTop: '30px', padding: '20px', background: '#f8fafc', borderRadius: '12px' }}>
-                    <h3>Rate this Event</h3>
-                    <select value={rating} onChange={(e) => setRating(Number(e.target.value))} style={{ padding: '8px', marginBottom: '10px' }}>
+            {event.attendanceStatus === 'Scanned' && !isReviewSubmitted && (
+                <div className="review-section" style={{ marginTop: '30px', padding: '24px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <h3 style={{ marginTop: 0, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <i className="ri-star-smile-fill" style={{ color: '#eab308' }}></i> Complete Your Attendance
+                    </h3>
+                    <p style={{ color: '#475569', fontSize: '0.95rem', marginBottom: '20px' }}>
+                        You have successfully scanned the QR code. Please rate the event and provide a short review to finalize your attendance and earn 100 points!
+                    </p>
+                    
+                    <select value={rating} onChange={(e) => setRating(Number(e.target.value))} style={{ padding: '10px 14px', marginBottom: '16px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '1rem', outline: 'none' }}>
                         <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
                         <option value="4">⭐⭐⭐⭐ Good</option>
                         <option value="3">⭐⭐⭐ Average</option>
                         <option value="2">⭐⭐ Poor</option>
                         <option value="1">⭐ Terrible</option>
                     </select>
+                    
                     <textarea 
-                        placeholder="Write a short review..." 
+                        placeholder="Write a short review about the event..." 
                         value={reviewText} 
                         onChange={(e) => setReviewText(e.target.value)}
-                        style={{ width: '100%', height: '80px', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '10px' }}
+                        style={{ width: '100%', height: '100px', padding: '12px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '16px', fontFamily: 'inherit', resize: 'vertical', outline: 'none' }}
                     />
-                    <button className="btn-primary" onClick={handleReviewSubmit}>Submit Review</button>
+                    
+                    <button className="btn-primary" onClick={handleReviewSubmit} style={{ padding: '12px 24px', fontSize: '1rem' }}>
+                        Submit Review & Get Points
+                    </button>
                 </div>
             )}
 
-            {/* RESTORED SCANNER OVERLAY */}
             {isScannerOpen && (
                 <div className="scanner-modal-overlay">
                     <div className="scanner-container">

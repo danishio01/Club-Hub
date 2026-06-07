@@ -8,6 +8,7 @@ const Certificates = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     const signatureUrl = "https://ik.imagekit.io/p4nbkerbz/ClubHub/signature_updated.jpeg"; 
+    const headerLogoUrl = "https://ik.imagekit.io/p4nbkerbz/ClubHub/image.png";
 
     const loadCertificates = useCallback(async () => {
         setIsLoading(true);
@@ -56,6 +57,13 @@ const Certificates = () => {
         const width = doc.internal.pageSize.getWidth();
         const height = doc.internal.pageSize.getHeight();
 
+        let headerLogoBase64 = null;
+        try {
+            headerLogoBase64 = await getBase64ImageFromURL(headerLogoUrl);
+        } catch (error) {
+            console.error("Failed to load header logo", error);
+        }
+
         const dateObj = new Date(cert.eventDate);
         const day = String(dateObj.getDate()).padStart(2, '0');
         const month = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -68,48 +76,57 @@ const Certificates = () => {
         h = h % 12 || 12;
         const formattedTime = `${h}:${minutes} ${ampm}`;
 
+        // Outer borders
         doc.setLineWidth(2);
         doc.rect(10, 10, width - 20, height - 20);
         doc.setLineWidth(0.5);
         doc.rect(12, 12, width - 24, height - 24);
 
+        // Header Logo - Fixed Alignment and Scaling (Width 150mm, Height 30mm)
+        if (headerLogoBase64) {
+            const logoWidth = 150;
+            const logoHeight = 30;
+            doc.addImage(headerLogoBase64, 'PNG', (width - logoWidth) / 2, 15, logoWidth, logoHeight);
+        }
+
+        // College Name & Details pushed down to accommodate the header image
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(22);
         doc.setTextColor(15, 23, 42); 
-        doc.text('GOPALAN COLLEGE OF ENGINEERING AND MANAGEMENT', width / 2, 40, { align: 'center' });
+        doc.text('GOPALAN COLLEGE OF ENGINEERING AND MANAGEMENT', width / 2, 55, { align: 'center' });
         
         doc.setFontSize(16);
         doc.setFont('helvetica', 'normal');
-        doc.text('Bengaluru, Karnataka', width / 2, 50, { align: 'center' });
+        doc.text('Bengaluru, Karnataka', width / 2, 63, { align: 'center' });
 
         doc.setFont('times', 'italic');
         doc.setFontSize(32);
         doc.setTextColor(59, 130, 246); 
-        doc.text('Certificate of Participation', width / 2, 80, { align: 'center' });
+        doc.text('Certificate of Participation', width / 2, 85, { align: 'center' });
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(16);
         doc.setTextColor(71, 85, 105);
-        doc.text('This is to certify that', width / 2, 100, { align: 'center' });
+        doc.text('This is to certify that', width / 2, 105, { align: 'center' });
 
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(24);
         doc.setTextColor(15, 23, 42);
-        doc.text(cert.studentName.toUpperCase(), width / 2, 115, { align: 'center' });
+        doc.text(cert.studentName.toUpperCase(), width / 2, 120, { align: 'center' });
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(16);
         doc.setTextColor(71, 85, 105);
-        doc.text(`has actively participated in the event`, width / 2, 130, { align: 'center' });
+        doc.text(`has actively participated in the event`, width / 2, 135, { align: 'center' });
 
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(20);
         doc.setTextColor(15, 23, 42);
-        doc.text(`"${cert.eventName}"`, width / 2, 145, { align: 'center' });
+        doc.text(`"${cert.eventName}"`, width / 2, 150, { align: 'center' });
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(14);
-        doc.text(`Organized by ${cert.clubName}`, width / 2, 155, { align: 'center' });
+        doc.text(`Organized by ${cert.clubName}`, width / 2, 160, { align: 'center' });
 
         doc.setFontSize(12);
         doc.text(`Date: ${formattedDate}`, 40, 180);

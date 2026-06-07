@@ -54,7 +54,7 @@ const StudentAttendance = () => {
                                 <tr key={index}>
                                     <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{record.date}</td>
                                     <td>
-                                        <span className={`status-badge ${record.status.toLowerCase()}`}>
+                                        <span className={`status-badge ${record.status.replace(/\s+/g, '-').toLowerCase()}`}>
                                             {record.status}
                                         </span>
                                     </td>

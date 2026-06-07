@@ -113,7 +113,7 @@ const AdminAttendance = () => {
             processedData.columns.forEach(c => {
                 const cell = r.attendance[c.label] || { status: 'Absent' };
                 if (cell.status === 'Attended') attended++;
-                else if (cell.status === 'Pending') pending++;
+                else if (cell.status === 'Pending' || cell.status === 'Pending Review') pending++;
                 else absent++;
             });
         });
@@ -175,7 +175,7 @@ const AdminAttendance = () => {
                     <span className="stat-value">{stats.attended}</span>
                 </div>
                 <div className="stat-card pending">
-                    <span className="stat-label">Pending Scans</span>
+                    <span className="stat-label">Pending / Scans</span>
                     <span className="stat-value" style={{ color: '#d97706' }}>{stats.pending}</span>
                 </div>
                 <div className="stat-card absent">
@@ -246,6 +246,7 @@ const AdminAttendance = () => {
                         <select className="filter-input" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
                             <option value="">Any Status</option>
                             <option value="Attended">Attended</option>
+                            <option value="Pending Review">Pending Review</option>
                             <option value="Pending">Pending Scan</option>
                             <option value="Absent">Absent</option>
                         </select>
@@ -289,7 +290,7 @@ const AdminAttendance = () => {
                                                 <div style={{ marginBottom: '6px', fontSize: '0.85rem', color: '#475569', lineHeight: 1.4 }}>
                                                     {cell.eventName !== '-' ? cell.eventName : ''}
                                                 </div>
-                                                <span className={`status-badge ${cell.status.toLowerCase()}`}>
+                                                <span className={`status-badge ${cell.status.replace(/\s+/g, '-').toLowerCase()}`}>
                                                     {cell.status}
                                                 </span>
                                             </td>

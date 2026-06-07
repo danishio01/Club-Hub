@@ -9,7 +9,7 @@ const MarkAttendance = () => {
     const navigate = useNavigate();
 
     const [status, setStatus] = useState('processing'); 
-    const [message, setMessage] = useState('Recording your attendance...');
+    const [message, setMessage] = useState('Recording your scan...');
 
     useEffect(() => {
         const recordAttendance = async () => {
@@ -25,7 +25,7 @@ const MarkAttendance = () => {
                 setMessage(response.message);
             } catch (error) {
                 setStatus('error');
-                setMessage(error.response?.data?.message || 'Failed to record attendance. Please try again.');
+                setMessage(error.response?.data?.message || 'Failed to process QR scan. Please try again.');
             }
         };
 
@@ -44,10 +44,10 @@ const MarkAttendance = () => {
 
             {status === 'success' && (
                 <div>
-                    <div style={{ width: '80px', height: '80px', background: '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                        <i className="ri-check-line" style={{ fontSize: '3rem', color: '#16a34a' }}></i>
+                    <div style={{ width: '80px', height: '80px', background: '#fef08a', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                        <i className="ri-qr-scan-2-line" style={{ fontSize: '3rem', color: '#854d0e' }}></i>
                     </div>
-                    <h2 style={{ color: '#16a34a', marginBottom: '8px' }}>Success!</h2>
+                    <h2 style={{ color: '#854d0e', marginBottom: '8px' }}>QR Scanned!</h2>
                 </div>
             )}
 
@@ -56,18 +56,27 @@ const MarkAttendance = () => {
                     <div style={{ width: '80px', height: '80px', background: '#fee2e2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                         <i className="ri-close-line" style={{ fontSize: '3rem', color: '#dc2626' }}></i>
                     </div>
-                    <h2 style={{ color: '#dc2626', marginBottom: '8px' }}>Attendance Failed</h2>
+                    <h2 style={{ color: '#dc2626', marginBottom: '8px' }}>Scan Failed</h2>
                 </div>
             )}
 
             <p style={{ color: '#475569', fontSize: '1.1rem', marginBottom: '24px' }}>{message}</p>
 
-            <button 
-                onClick={() => navigate('/student/dashboard')}
-                style={{ padding: '12px 24px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', fontSize: '1rem', cursor: 'pointer', fontWeight: 500 }}
-            >
-                Return to Dashboard
-            </button>
+            {status === 'success' ? (
+                <button 
+                    onClick={() => navigate(`/student/events/${eventId}`)}
+                    style={{ padding: '12px 24px', background: '#9333ea', color: 'white', border: 'none', borderRadius: '6px', fontSize: '1rem', cursor: 'pointer', fontWeight: 500 }}
+                >
+                    Continue to Review
+                </button>
+            ) : (
+                <button 
+                    onClick={() => navigate('/student/dashboard')}
+                    style={{ padding: '12px 24px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', fontSize: '1rem', cursor: 'pointer', fontWeight: 500 }}
+                >
+                    Return to Dashboard
+                </button>
+            )}
 
             <style>{`
                 @keyframes spin { 100% { transform: rotate(360deg); } }
