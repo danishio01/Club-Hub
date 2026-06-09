@@ -27,6 +27,7 @@ import PresidentDashboard from "../features/president/pages/PresidentDashboard";
 import PrDashboard from "../features/pr/pages/PrDashboard";
 import PrEventManagement from "../features/pr/pages/PrEventManagement";
 import PrEventGallery from "../features/pr/pages/PrEventGallery"; 
+import PrSocialShare from "../features/pr/pages/PrSocialShare"; // NEW
 import GrafikDashboard from "../features/grafik/pages/GrafikDashboard";
 import GrafikGalleriesList from "../features/grafik/pages/GrafikGalleriesList";
 import GrafikEventBanner from "../features/grafik/pages/GrafikEventBanner"; 
@@ -80,7 +81,8 @@ export const routes = createBrowserRouter([
         children: [
             { path: "dashboard", element: <PrDashboard /> },
             { path: "events/:eventId", element: <PrEventManagement /> },
-            { path: "galleries", element: <PrEventGallery /> }
+            { path: "galleries", element: <PrEventGallery /> },
+            { path: "events/:eventId/share", element: <PrSocialShare /> } // NEW
         ]
     },
     {

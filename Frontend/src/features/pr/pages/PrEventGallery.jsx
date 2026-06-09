@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getPrCompletedEventsApi } from '../../events/service/eventService';
 import ImageLightbox from '../../../components/common/ImageLightbox';
 import '../style/PrEventGallery.scss';
 
 const PrEventGallery = () => {
+    const navigate = useNavigate();
     const [events, setEvents] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedEvent, setSelectedEvent] = useState(null);
@@ -42,7 +44,7 @@ const PrEventGallery = () => {
         <div className="pr-gallery-page">
             <div className="header-section">
                 <h1>Official Event Galleries</h1>
-                <p>Access high-quality post-event photos curated by the Grafik Team for promotional use.</p>
+                <p>Access high-quality post-event photos curated by the Grafik Team and prepare social media promotions.</p>
             </div>
 
             {selectedEvent ? (
@@ -51,10 +53,17 @@ const PrEventGallery = () => {
                         <button className="btn-secondary" onClick={closeGallery}>
                             <i className="ri-arrow-left-line"></i> Back to Albums
                         </button>
-                        <div>
+                        <div className="header-details">
                             <h2>{selectedEvent.title}</h2>
                             <p>Organized by {selectedEvent.club?.name}</p>
                         </div>
+                        <button 
+                            className="btn-primary" 
+                            style={{ marginLeft: 'auto' }}
+                            onClick={() => navigate(`/pr/events/${selectedEvent._id}/share`)}
+                        >
+                            <i className="ri-share-forward-line"></i> Create Social Post
+                        </button>
                     </div>
                     
                     <div className="photos-grid">
@@ -77,7 +86,7 @@ const PrEventGallery = () => {
                         </div>
                     ) : (
                         events.map(event => (
-                            <div key={event._id} className="album-card" onClick={() => openGallery(event)}>
+                            <div key={event._id} className="album-card">
                                 <div className="album-cover">
                                     <img src={event.gallery[0].url} alt="Album Cover" />
                                     <div className="photo-count">
@@ -87,6 +96,14 @@ const PrEventGallery = () => {
                                 <div className="album-info">
                                     <h3>{event.title}</h3>
                                     <p>{new Date(event.date).toLocaleDateString()}</p>
+                                </div>
+                                <div className="album-actions">
+                                    <button className="btn-action view" onClick={() => openGallery(event)}>
+                                        <i className="ri-eye-line"></i> View Gallery
+                                    </button>
+                                    <button className="btn-action share" onClick={() => navigate(`/pr/events/${event._id}/share`)}>
+                                        <i className="ri-share-forward-line"></i> Create Post
+                                    </button>
                                 </div>
                             </div>
                         ))

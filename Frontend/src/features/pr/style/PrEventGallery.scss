@@ -22,53 +22,72 @@
 
   .albums-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 24px;
   }
 
   .album-card {
-    background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: transform 0.2s;
     
     &:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
 
     .album-cover {
-      width: 100%; aspect-ratio: 4/3; position: relative; background: #f8fafc;
+      width: 100%; height: 200px; position: relative; background: #f8fafc; border-bottom: 1px solid #e2e8f0;
       img { width: 100%; height: 100%; object-fit: cover; display: block; }
       .photo-count { position: absolute; bottom: 12px; right: 12px; background: rgba(15, 23, 42, 0.8); color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 6px; backdrop-filter: blur(4px); }
     }
 
     .album-info {
-      padding: 16px;
-      h3 { margin: 0 0 4px 0; font-size: 1.1rem; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      p { margin: 0; font-size: 0.85rem; color: #64748b; }
+      padding: 20px; flex-grow: 1;
+      h3 { margin: 0 0 6px 0; font-size: 1.2rem; color: #0f172a; line-height: 1.4; }
+      p { margin: 0; font-size: 0.9rem; color: #64748b; }
+    }
+
+    .album-actions {
+      display: flex; gap: 12px; padding: 0 20px 20px 20px;
+      
+      .btn-action {
+        flex: 1; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px; font-size: 0.9rem; border: none; transition: all 0.2s;
+        
+        &.view { background: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; &:hover { background: #e2e8f0; } }
+        &.share { background: #9333ea; color: #ffffff; &:hover { background: #7e22ce; } }
+      }
     }
   }
 
   .gallery-view {
-    display: flex; flex-direction: column; gap: 20px;
+    display: flex; flex-direction: column; gap: 24px;
     
     .gallery-view-header {
-      display: flex; align-items: center; gap: 20px; background: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;
+      display: flex; align-items: center; gap: 20px; background: #ffffff; padding: 20px 24px; border-radius: 12px; border: 1px solid #e2e8f0; flex-wrap: wrap;
+      
       .btn-secondary { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px 16px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 500; transition: background 0.2s; &:hover { background: #e2e8f0; } }
-      h2 { margin: 0 0 4px 0; font-size: 1.4rem; color: #0f172a; }
-      p { margin: 0; color: #64748b; font-size: 0.9rem; }
-      @media (max-width: 600px) { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .btn-primary { background: #9333ea; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.2s; &:hover { background: #7e22ce; } }
+      
+      .header-details {
+        h2 { margin: 0 0 4px 0; font-size: 1.5rem; color: #0f172a; }
+        p { margin: 0; color: #64748b; font-size: 0.95rem; }
+      }
+      
+      @media (max-width: 768px) { flex-direction: column; align-items: flex-start; gap: 16px; .btn-primary { margin-left: 0 !important; width: 100%; justify-content: center; } .btn-secondary { width: 100%; justify-content: center; } }
     }
 
     .photos-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;
       
       .photo-card {
-        aspect-ratio: 4/3; border-radius: 8px; overflow: hidden; position: relative; background: #f1f5f9; border: 1px solid #e2e8f0;
+        aspect-ratio: 4/3; border-radius: 12px; overflow: hidden; position: relative; background: #f1f5f9; border: 1px solid #e2e8f0; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: transform 0.2s;
+        
+        &:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        
         img { width: 100%; height: 100%; object-fit: contain; display: block; }
         
-        .btn-download-overlay {
-          position: absolute; top: 10px; right: 10px; width: 36px; height: 36px; background: rgba(255,255,255,0.9); border-radius: 8px; display: flex; justify-content: center; align-items: center; color: #0f172a; text-decoration: none; opacity: 0; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          &:hover { background: #ffffff; transform: scale(1.05); }
+        .zoom-overlay {
+          position: absolute; inset: 0; background: rgba(15, 23, 42, 0.4); display: flex; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s;
+          i { color: white; font-size: 2rem; background: rgba(0,0,0,0.5); width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
         }
         
-        &:hover .btn-download-overlay { opacity: 1; }
-        @media (max-width: 768px) { .btn-download-overlay { opacity: 1; } }
+        &:hover .zoom-overlay { opacity: 1; }
       }
     }
   }

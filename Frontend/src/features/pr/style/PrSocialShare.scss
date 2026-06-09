@@ -1,0 +1,137 @@
+.pr-social-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  .loading-state {
+    padding: 60px; text-align: center; color: #64748b; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 8px; font-size: 1.1rem;
+  }
+
+  .btn-secondary {
+    background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; padding: 10px 16px; border-radius: 6px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px; width: fit-content; transition: background 0.2s;
+    &:hover { background-color: #e2e8f0; }
+  }
+
+  .page-header {
+    background: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0;
+    
+    .title-row {
+      display: flex; align-items: center; gap: 16px; margin: 16px 0 8px 0; flex-wrap: wrap;
+      h1 { margin: 0; font-size: 1.75rem; color: #0f172a; }
+      .club-chip { background: #faf5ff; color: #9333ea; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; border: 1px solid #e9d5ff; }
+    }
+    p { margin: 0; color: #64748b; font-size: 0.95rem; }
+  }
+
+  .social-workspace-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 24px;
+    align-items: start;
+
+    @media (max-width: 992px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .left-panel {
+    display: flex; flex-direction: column; gap: 24px;
+  }
+
+  .info-card, .gallery-selection-card {
+    background: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+    
+    h2 { margin: 0 0 16px 0; font-size: 1.25rem; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; }
+  }
+
+  .info-list {
+    display: flex; flex-direction: column; gap: 12px; font-size: 0.95rem; color: #334155;
+    strong { color: #0f172a; }
+  }
+
+  .banner-preview {
+    margin-top: 20px; border-top: 1px dashed #e2e8f0; padding-top: 16px;
+    strong { display: block; margin-bottom: 10px; color: #0f172a; font-size: 0.95rem; }
+    img { width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; max-height: 250px; object-fit: contain; background: #f8fafc; }
+  }
+
+  .gallery-selection-card {
+    .card-header {
+      display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 16px;
+      h2 { margin: 0; border: none; padding: 0; }
+      .selection-actions {
+        display: flex; gap: 12px;
+        .btn-text { background: none; border: none; font-weight: 600; font-size: 0.85rem; color: #2563eb; cursor: pointer; &:hover { text-decoration: underline; } &.danger { color: #dc2626; } }
+      }
+    }
+
+    .empty-gallery { padding: 30px; text-align: center; color: #94a3b8; font-style: italic; background: #f8fafc; border-radius: 8px; }
+
+    .thumbnail-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px;
+      
+      .thumbnail-card {
+        aspect-ratio: 1/1; border-radius: 8px; overflow: hidden; position: relative; border: 2px solid transparent; cursor: pointer; transition: all 0.2s; background: #f1f5f9;
+        
+        img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        
+        .selection-overlay {
+          position: absolute; inset: 0; background: rgba(37, 99, 235, 0.4); display: flex; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s;
+          i { background: #2563eb; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        }
+
+        .btn-expand {
+          position: absolute; top: 8px; right: 8px; background: rgba(15, 23, 42, 0.7); color: white; border: none; width: 28px; height: 28px; border-radius: 6px; display: flex; justify-content: center; align-items: center; cursor: pointer; opacity: 0; transition: opacity 0.2s;
+          &:hover { background: #0f172a; }
+        }
+        
+        &:hover { border-color: #93c5fd; .btn-expand { opacity: 1; } }
+        
+        &.selected {
+          border-color: #2563eb;
+          .selection-overlay { opacity: 1; }
+        }
+
+        @media (max-width: 768px) { .btn-expand { opacity: 1; } }
+      }
+    }
+  }
+
+  .right-panel {
+    background: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+    h2 { margin: 0 0 8px 0; font-size: 1.25rem; color: #0f172a; }
+    .helper-text { margin: 0 0 24px 0; font-size: 0.9rem; color: #64748b; }
+
+    .templates-list {
+      display: flex; flex-direction: column; gap: 20px;
+    }
+
+    .template-card {
+      border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #f8fafc;
+      
+      .platform-header {
+        padding: 12px 16px; font-weight: 700; color: white; display: flex; align-items: center; gap: 8px; font-size: 0.95rem;
+      }
+      
+      &.instagram .platform-header { background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); }
+      &.linkedin .platform-header { background: #0077b5; }
+      &.whatsapp .platform-header { background: #25d366; }
+      &.twitter .platform-header { background: #0f1419; }
+
+      textarea {
+        width: 100%; height: 160px; padding: 16px; border: none; resize: vertical; font-family: inherit; font-size: 0.95rem; color: #334155; line-height: 1.5; outline: none; background: #ffffff;
+      }
+
+      .card-actions {
+        display: flex; gap: 12px; padding: 12px 16px; background: #f8fafc; border-top: 1px solid #e2e8f0;
+        
+        button { flex: 1; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px; font-size: 0.9rem; transition: all 0.2s; }
+        
+        .btn-outline { background: white; border: 1px solid #cbd5e1; color: #0f172a; &:hover { background: #f1f5f9; } }
+        .btn-solid { background: #9333ea; border: none; color: white; &:hover { background: #7e22ce; } }
+      }
+    }
+  }
+}
