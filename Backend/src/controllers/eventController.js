@@ -128,6 +128,14 @@ export const deleteEvent = async (req, res) => {
                 await deleteBannerFromImageKit(event.bannerFileId);
             } catch (err) {}
         }
+        
+        if (event && event.gallery && event.gallery.length > 0) {
+            for (const img of event.gallery) {
+                try {
+                    await deleteBannerFromImageKit(img.fileId);
+                } catch (err) {}
+            }
+        }
 
         await Event.findByIdAndDelete(id);
         return res.status(200).json({ success: true, message: 'Event deleted successfully' });
@@ -336,5 +344,66 @@ export const approveEventBanner = async (req, res) => {
         return res.status(200).json({ success: true, data: event, message: 'Banner approved. Event submitted to Admin.' });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to approve banner' });
+    }
+};
+
+export const uploadGalleryImage = async (req, res) => {
+    try {
+        const { imageBase64 } = req.body;
+        if (!imageBase64) return res.status(400).json({ success: false, message: 'Image data is required' });
+
+        const event = await Event.findById(req.params.id);
+        if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+        
+        if (event.status !== 'completed') {
+            return res.status(400).json({ success: false, message: 'Galleries can only be uploaded to completed events.' });
+        }
+
+        const safeTitle = event.title.replace(/[^a-zA-Z0-9]/g, '_') + '_gallery';
+        const uploadResult = await uploadBannerToImageKit(imageBase64, safeTitle);
+
+        event.gallery.push({ url: uploadResult.url, fileId: uploadResult.fileId });
+        await event.save();
+
+        return res.status(200).json({ success: true, data: event.gallery });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to upload gallery image' });
+    }
+};
+
+export const deleteGalleryImage = async (req, res) => {
+    try {
+        const { id, fileId } = req.params;
+        
+        const event = await Event.findById(id);
+        if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+
+        const imageExists = event.gallery.some(img => img.fileId === fileId);
+        if (!imageExists) return res.status(404).json({ success: false, message: 'Image not found in gallery' });
+
+        try {
+            await deleteBannerFromImageKit(fileId);
+        } catch (err) {
+            console.error("ImageKit Deletion Error:", err);
+        }
+
+        event.gallery = event.gallery.filter(img => img.fileId !== fileId);
+        await event.save();
+
+        return res.status(200).json({ success: true, data: event.gallery, message: 'Image deleted successfully' });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to delete gallery image' });
+    }
+};
+
+export const getPrCompletedEvents = async (req, res) => {
+    try {
+        const events = await Event.find({ status: 'completed', 'gallery.0': { $exists: true } })
+            .populate('club', 'name')
+            .sort({ date: -1 })
+            .lean();
+        return res.status(200).json({ success: true, data: events });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to fetch PR galleries' });
     }
 };

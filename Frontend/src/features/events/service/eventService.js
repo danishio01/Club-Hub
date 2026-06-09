@@ -97,3 +97,18 @@ export const approveBannerApi = async (id) => {
     const response = await axiosInstance.patch(`/events/${id}/banner/approve`);
     return response.data.data;
 };
+
+export const uploadGalleryImageApi = async (id, imageBase64) => {
+    const response = await axiosInstance.post(`/events/${id}/gallery/upload`, { imageBase64 });
+    return response.data.data;
+};
+
+export const deleteGalleryImageApi = async (id, fileId) => {
+    const response = await axiosInstance.delete(`/events/${id}/gallery/${fileId}`);
+    return response.data.data;
+};
+
+export const getPrCompletedEventsApi = async () => {
+    const response = await axiosInstance.get('/events/pr/galleries');
+    return response.data.data;
+};

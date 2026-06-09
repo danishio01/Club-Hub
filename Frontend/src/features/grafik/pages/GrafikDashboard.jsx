@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getGrafikEventsApi } from '../../events/service/eventService';
 import '../style/GrafikDashboard.scss';
@@ -8,30 +8,30 @@ const GrafikDashboard = () => {
     const [events, setEvents] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    const loadEvents = useCallback(async () => {
+        try {
+            const data = await getGrafikEventsApi();
+            setEvents(data);
+        } catch (error) {
+            console.error("Failed to load Grafik events:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         let isMounted = true;
         
-        const fetchEvents = async () => {
-            try {
-                const data = await getGrafikEventsApi();
-                if (isMounted) {
-                    setEvents(data);
-                }
-            } catch (error) {
-                console.error("Failed to load Grafik events:", error);
-            } finally {
-                if (isMounted) {
-                    setIsLoading(false);
-                }
-            }
+        const fetchInitialData = async () => {
+            if (isMounted) await loadEvents();
         };
-        
-        fetchEvents();
+
+        fetchInitialData();
         
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [loadEvents]);
 
     const renderEventCard = (event, badgeClass, statusLabel) => (
         <div key={event._id} className="grafik-card">
@@ -69,28 +69,28 @@ const GrafikDashboard = () => {
     const pendingCreation = events.filter(e => e.status === 'review');
     const pendingAdmin = events.filter(e => e.status === 'pending_admin');
     const rejectedBanners = events.filter(e => e.status === 'banner_rejected');
-    const completed = events.filter(e => e.status === 'approved' || e.status === 'completed');
+    const approved = events.filter(e => e.status === 'approved');
 
     return (
         <div className="grafik-dashboard-page">
             <div className="header-section">
                 <h1>Grafik Operations Dashboard</h1>
-                <p>Track your assignments, manage banners, and view submission history.</p>
+                <p>Track your assignments and manage upcoming event banners.</p>
             </div>
             
             {isLoading ? (
                 <div className="loading-state">Loading dashboard data...</div>
-            ) : events.length === 0 ? (
+            ) : pendingCreation.length === 0 && pendingAdmin.length === 0 && rejectedBanners.length === 0 && approved.length === 0 ? (
                 <div className="placeholder-container">
                     <i className="ri-image-edit-fill placeholder-icon"></i>
                     <h2>All Caught Up!</h2>
-                    <p>No events require banner management at this time.</p>
+                    <p>No active events require banner management at this time.</p>
                 </div>
             ) : (
                 <div className="dashboard-sections">
                     {rejectedBanners.length > 0 && (
                         <div className="section-block">
-                            <h2 className="section-title error"><i className="ri-error-warning-fill"></i> Rejected Banners (Action Required)</h2>
+                            <h2 className="section-title error"><i className="ri-error-warning-fill"></i> Rejected Banners</h2>
                             <div className="grafik-grid">
                                 {rejectedBanners.map(e => renderEventCard(e, 'rejected', 'Fix Required'))}
                             </div>
@@ -115,11 +115,11 @@ const GrafikDashboard = () => {
                         </div>
                     )}
 
-                    {completed.length > 0 && (
+                    {approved.length > 0 && (
                         <div className="section-block">
-                            <h2 className="section-title success"><i className="ri-check-double-line"></i> Completed / Published</h2>
+                            <h2 className="section-title success"><i className="ri-check-double-line"></i> Published & Upcoming</h2>
                             <div className="grafik-grid">
-                                {completed.map(e => renderEventCard(e, 'success', 'Approved'))}
+                                {approved.map(e => renderEventCard(e, 'success', 'Approved'))}
                             </div>
                         </div>
                     )}

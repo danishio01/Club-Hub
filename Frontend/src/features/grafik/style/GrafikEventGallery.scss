@@ -1,0 +1,154 @@
+.grafik-gallery-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 0;
+
+  .loading-state {
+    padding: 60px; text-align: center; color: #64748b; font-size: 1.1rem; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0;
+  }
+
+  .error-banner {
+    background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; padding: 20px; border-radius: 8px; display: flex; align-items: center; gap: 12px; font-weight: 500; font-size: 1.1rem;
+    i { font-size: 1.5rem; }
+  }
+
+  .btn-secondary {
+    background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; padding: 10px 16px; border-radius: 6px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px; width: fit-content; transition: background 0.2s;
+    &:hover { background-color: #e2e8f0; }
+  }
+
+  .btn-primary {
+    background-color: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.2s;
+    &:hover { background-color: #1d4ed8; }
+    &:disabled { opacity: 0.7; cursor: not-allowed; }
+  }
+
+  .page-header {
+    background: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0;
+    display: flex; flex-direction: column; gap: 12px;
+    
+    .title-row {
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+      h1 { margin: 0; font-size: 1.75rem; color: #0f172a; }
+      .club-chip { background: #fdf4ff; color: #c026d3; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; border: 1px solid #fae8ff; }
+    }
+    p { margin: 0; color: #64748b; }
+  }
+
+  .management-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+
+    @media (min-width: 992px) {
+      flex-direction: row;
+      align-items: flex-start;
+    }
+  }
+
+  .event-info-panel, .banner-control-panel {
+    background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+    flex: 1;
+
+    h2 { margin: 0 0 20px 0; font-size: 1.25rem; color: #0f172a; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; }
+  }
+
+  .event-info-panel {
+    .info-list {
+      display: flex; flex-direction: column; gap: 16px;
+    }
+
+    .info-grid { 
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; padding-top: 16px; border-top: 1px dashed #e2e8f0; 
+    }
+    
+    .info-item {
+      display: flex; flex-direction: column; gap: 6px;
+      .label { font-size: 0.8rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+      .value { font-size: 1.05rem; color: #0f172a; font-weight: 500; }
+      .desc { color: #475569; font-weight: 400; line-height: 1.6; white-space: pre-wrap; font-size: 0.95rem; }
+    }
+  }
+
+  .banner-control-panel {
+    .full-event-banner-container {
+      width: 100%; aspect-ratio: 1/1; background: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+      
+      .banner-image { width: 100%; height: 100%; object-fit: contain; cursor: pointer; transition: transform 0.2s; &:hover { transform: scale(1.02); } }
+      
+      .empty-preview {
+        display: flex; flex-direction: column; align-items: center; gap: 12px; color: #94a3b8;
+        i { font-size: 3rem; }
+        span { font-size: 1rem; font-weight: 500; }
+      }
+    }
+  }
+
+  .gallery-workspace {
+    display: flex; flex-direction: column; gap: 24px;
+  }
+
+  .upload-panel {
+    .upload-box {
+      background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; cursor: pointer; transition: all 0.2s;
+      
+      &:hover { background: #f1f5f9; border-color: #94a3b8; }
+      
+      i { font-size: 3rem; color: #0f172a; }
+      h3 { margin: 0; color: #0f172a; font-size: 1.25rem; }
+      p { margin: 0; color: #64748b; font-size: 0.95rem; }
+      
+      .spin { animation: spin 1s linear infinite; }
+    }
+  }
+
+  .queue-panel, .gallery-display-panel {
+    background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);
+  }
+
+  .queue-panel {
+    background: #fffbeb; border-color: #fef08a;
+    .queue-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid #fde047; padding-bottom: 12px;
+      h3 { margin: 0; color: #854d0e; display: flex; align-items: center; gap: 8px; font-size: 1.1rem; }
+    }
+  }
+
+  .gallery-display-header {
+    margin-bottom: 20px; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px;
+    h2 { margin: 0; color: #0f172a; font-size: 1.25rem; }
+  }
+
+  .photos-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px;
+
+    .empty-gallery {
+      grid-column: 1 / -1; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 60px; text-align: center; color: #94a3b8;
+      i { font-size: 3rem; margin-bottom: 12px; display: block; }
+      p { margin: 0; font-size: 1.1rem; }
+    }
+
+    .photo-card {
+      position: relative; aspect-ratio: 1/1; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; background: #f1f5f9; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); cursor: pointer; transition: transform 0.2s;
+      
+      &:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+      &.preview { border-color: #fde047; box-shadow: 0 4px 10px rgba(234, 179, 8, 0.2); cursor: default; &:hover { transform: none; } }
+
+      img { width: 100%; height: 100%; object-fit: contain; display: block; }
+      
+      .btn-delete-photo {
+        position: absolute; top: 12px; right: 12px; background: rgba(220, 38, 38, 0.9); color: white; border: none; width: 36px; height: 36px; border-radius: 8px; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: background 0.2s; opacity: 0;
+        &:hover { background: #b91c1c; }
+        &:disabled { cursor: not-allowed; opacity: 1; }
+        .spin { animation: spin 1s linear infinite; }
+      }
+
+      &:hover .btn-delete-photo { opacity: 1; }
+      @media (max-width: 768px) { .btn-delete-photo { opacity: 1; } }
+    }
+  }
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }

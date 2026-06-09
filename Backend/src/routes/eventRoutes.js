@@ -15,7 +15,10 @@ import {
     getGrafikEventById,
     generateEventBanner,
     uploadCustomEventBanner,
-    approveEventBanner
+    approveEventBanner,
+    uploadGalleryImage,
+    deleteGalleryImage,
+    getPrCompletedEvents
 } from '../controllers/eventController.js';
 import { 
     registerForEvent, 
@@ -59,6 +62,10 @@ router.get('/grafik/:id', protect, grafikOnly, getGrafikEventById);
 router.post('/:id/banner/generate', protect, grafikOnly, generateEventBanner);
 router.post('/:id/banner/upload', protect, grafikOnly, uploadCustomEventBanner);
 router.patch('/:id/banner/approve', protect, grafikOnly, approveEventBanner);
+router.post('/:id/gallery/upload', protect, grafikOnly, uploadGalleryImage);
+router.delete('/:id/gallery/:fileId', protect, grafikOnly, deleteGalleryImage);
+
+router.get('/pr/galleries', protect, prOnly, getPrCompletedEvents);
 
 router.get('/', getEvents);
 router.get('/:id', getEventById);

@@ -56,7 +56,10 @@ const GrafikLayout = () => {
                 </div>
                 <nav className="sidebar-nav">
                     <NavLink to="/grafik/dashboard" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
-                        <i className="ri-image-edit-line"></i> Dashboard
+                        <i className="ri-image-edit-line"></i> Banner Dashboard
+                    </NavLink>
+                    <NavLink to="/grafik/galleries" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
+                        <i className="ri-camera-lens-fill"></i> Event Galleries
                     </NavLink>
                 </nav>
                 <div className="sidebar-footer">

@@ -1,5 +1,10 @@
 import mongoose from 'mongoose';
 
+const galleryImageSchema = new mongoose.Schema({
+    url: { type: String, required: true },
+    fileId: { type: String, required: true }
+});
+
 const eventSchema = new mongoose.Schema({
     title: { type: String, required: true },
     description: { type: String, required: true },
@@ -13,6 +18,7 @@ const eventSchema = new mongoose.Schema({
     tags: [{ type: String }],
     bannerUrl: { type: String, default: null },
     bannerFileId: { type: String, default: null },
+    gallery: [galleryImageSchema],
     status: { 
         type: String, 
         enum: ['review', 'pending_admin', 'approved', 'rejected', 'banner_rejected', 'completed'], 

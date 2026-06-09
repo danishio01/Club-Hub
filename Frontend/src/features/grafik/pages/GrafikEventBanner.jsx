@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getGrafikEventByIdApi, generateBannerApi, uploadCustomBannerApi, approveBannerApi } from '../../events/service/eventService';
+import ImageLightbox from '../../../components/common/ImageLightbox';
 import '../style/GrafikEventBanner.scss';
 
 const GrafikEventBanner = () => {
@@ -11,34 +12,33 @@ const GrafikEventBanner = () => {
     const [event, setEvent] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [lightboxImage, setLightboxImage] = useState(null);
+
+    const loadEventDetails = useCallback(async () => {
+        try {
+            const data = await getGrafikEventByIdApi(eventId);
+            setEvent(data);
+        } catch (error) {
+            console.error(error);
+            alert("Failed to load event details.");
+            navigate('/grafik/dashboard');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [eventId, navigate]);
 
     useEffect(() => {
         let isMounted = true;
-        const fetchEventDetails = async () => {
-            try {
-                const data = await getGrafikEventByIdApi(eventId);
-                if (isMounted) {
-                    setEvent(data);
-                }
-            } catch (error) {
-                console.error(error);
-                if (isMounted) {
-                    alert("Failed to load event details.");
-                    navigate('/grafik/dashboard');
-                }
-            } finally {
-                if (isMounted) {
-                    setIsLoading(false);
-                }
-            }
+        const fetchInitialData = async () => {
+            if (isMounted) await loadEventDetails();
         };
 
-        fetchEventDetails();
-
+        fetchInitialData();
+        
         return () => {
             isMounted = false;
         };
-    }, [eventId, navigate]);
+    }, [loadEventDetails]);
 
     const handleGenerate = async () => {
         setIsProcessing(true);
@@ -87,68 +87,72 @@ const GrafikEventBanner = () => {
     };
 
     if (isLoading) return <div className="loading-state">Loading Event Management Workspace...</div>;
-    if (!event) return <div className="loading-state">Event not found.</div>;
+    if (!event) return null;
 
     const formattedDate = new Date(event.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
     const isReadOnly = event.status === 'approved' || event.status === 'completed' || event.status === 'pending_admin';
 
     return (
         <div className="grafik-banner-page">
-            <div className="page-header" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+            <div className="page-header">
                 <button className="btn-secondary" onClick={() => navigate('/grafik/dashboard')}>
                     <i className="ri-arrow-left-line"></i> Back to Dashboard
                 </button>
-                <h1 style={{ margin: 0, fontSize: '1.75rem', color: '#0f172a' }}>Event Banner Management</h1>
-                <p style={{ margin: 0, color: '#64748b' }}>Generate, preview, and assign promotional banners for this event.</p>
+                <div className="title-wrapper">
+                    <h1>Official Event Banner</h1>
+                    <p>Generate, preview, and assign promotional banners for this event.</p>
+                </div>
             </div>
 
             {event.status === 'banner_rejected' && event.rejectedReason && (
                 <div className="rejection-banner">
                     <i className="ri-error-warning-fill"></i>
-                    <div>
+                    <div className="rejection-content">
                         <h3>Banner Design Rejected by Admin</h3>
                         <p>{event.rejectedReason}</p>
                     </div>
                 </div>
             )}
 
-            <div className="management-grid">
+            <div className="workspace-layout">
                 <div className="event-info-panel">
-                    <h2>Event Details</h2>
-                    <div className="info-block">
-                        <span className="label">Title</span>
-                        <span className="value">{event.title}</span>
-                    </div>
-                    <div className="info-block">
-                        <span className="label">Organizing Club</span>
-                        <span className="value">{event.club?.name}</span>
-                    </div>
-                    <div className="info-block">
-                        <span className="label">Description</span>
-                        <span className="value desc">{event.description}</span>
+                    <h2>Event Details Reference</h2>
+                    <div className="info-list">
+                        <div className="info-item">
+                            <div className="label">Title</div>
+                            <div className="value">{event.title}</div>
+                        </div>
+                        <div className="info-item">
+                            <div className="label">Organizing Club</div>
+                            <div className="value">{event.club?.name}</div>
+                        </div>
+                        <div className="info-item">
+                            <div className="label">Description</div>
+                            <div className="value desc">{event.description}</div>
+                        </div>
                     </div>
                     
                     <div className="info-grid">
-                        <div className="info-block">
-                            <span className="label">Date</span>
-                            <span className="value">{formattedDate}</span>
+                        <div className="info-item">
+                            <div className="label">Date</div>
+                            <div className="value">{formattedDate}</div>
                         </div>
-                        <div className="info-block">
-                            <span className="label">Time</span>
-                            <span className="value">{event.time}</span>
+                        <div className="info-item">
+                            <div className="label">Time</div>
+                            <div className="value">{event.time}</div>
                         </div>
-                        <div className="info-block">
-                            <span className="label">Venue</span>
-                            <span className="value">{event.venue}</span>
+                        <div className="info-item">
+                            <div className="label">Venue</div>
+                            <div className="value">{event.venue}</div>
                         </div>
-                        <div className="info-block">
-                            <span className="label">Entry / Fee</span>
-                            <span className="value">{event.eventType === 'Free' ? 'Free' : `₹${event.price}`}</span>
+                        <div className="info-item">
+                            <div className="label">Entry / Fee</div>
+                            <div className="value">{event.eventType === 'Free' ? 'Free' : `₹${event.price}`}</div>
                         </div>
                     </div>
 
-                    <div className="info-block" style={{ marginTop: '16px' }}>
-                        <span className="label">Tags</span>
+                    <div className="info-item tags-section">
+                        <div className="label">Tags</div>
                         <div className="tag-list">
                             {event.tags?.map(tag => <span key={tag} className="tag">{tag}</span>)}
                         </div>
@@ -157,9 +161,14 @@ const GrafikEventBanner = () => {
 
                 <div className="banner-control-panel">
                     <h2>Banner Management</h2>
-                    <div className="full-event-banner-container">
+                    <div className="preview-container">
                         {event.bannerUrl ? (
-                            <img src={event.bannerUrl} alt="Event Banner" className="full-event-banner" />
+                            <img 
+                                src={event.bannerUrl} 
+                                alt="Event Banner" 
+                                className="banner-image" 
+                                onClick={() => setLightboxImage(event.bannerUrl)} 
+                            />
                         ) : (
                             <div className="empty-preview">
                                 <i className="ri-image-add-line"></i>
@@ -173,7 +182,7 @@ const GrafikEventBanner = () => {
                             <div className="generation-options">
                                 <button className="btn-ai" onClick={handleGenerate} disabled={isProcessing}>
                                     <i className={isProcessing ? "ri-loader-4-line spin" : "ri-magic-line"}></i> 
-                                    {event.bannerUrl ? 'Regenerate Different Theme' : 'Generate Automatic Banner'}
+                                    {event.bannerUrl ? 'Regenerate Automatic Banner' : 'Generate Automatic Banner'}
                                 </button>
                                 
                                 <button className="btn-upload" onClick={() => fileInputRef.current?.click()} disabled={isProcessing}>
@@ -204,6 +213,13 @@ const GrafikEventBanner = () => {
                     )}
                 </div>
             </div>
+
+            {lightboxImage && (
+                <ImageLightbox 
+                    imageUrl={lightboxImage} 
+                    onClose={() => setLightboxImage(null)} 
+                />
+            )}
         </div>
     );
 };

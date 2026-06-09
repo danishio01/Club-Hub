@@ -38,7 +38,7 @@ const PrLayout = () => {
         }
     };
 
-    const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+    const toggleSidebar = () => setIsSidebarOpen(prev => !prev);
     const closeSidebar = () => setIsSidebarOpen(false);
 
     if (isCheckingAuth || !user) return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Authenticating PR...</div>;
@@ -57,6 +57,9 @@ const PrLayout = () => {
                 <nav className="sidebar-nav">
                     <NavLink to="/pr/dashboard" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
                         <i className="ri-qr-scan-2-line"></i> Attendance Scanner
+                    </NavLink>
+                    <NavLink to="/pr/galleries" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
+                        <i className="ri-camera-lens-line"></i> Event Galleries
                     </NavLink>
                 </nav>
                 <div className="sidebar-footer">

@@ -6,6 +6,7 @@ import remarkGfm from 'remark-gfm';
 import { getEventByIdApi, deleteEventService, markEventCompletedApi, getEventReviewsApi, summarizeReviewsApi, getEventRegistrationsApi, approveEventApi, rejectEventApi } from '../service/eventService';
 import EditEventModal from '../components/EditEventModal';
 import RejectEventModal from '../components/RejectEventModal';
+import ImageLightbox from '../../../components/common/ImageLightbox';
 import '../style/EventDetails.scss';
 
 const EventDetails = () => {
@@ -22,6 +23,7 @@ const EventDetails = () => {
     
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+    const [lightboxImage, setLightboxImage] = useState(null);
 
     useEffect(() => {
         let isMounted = true;
@@ -151,8 +153,8 @@ const EventDetails = () => {
         }
     };
 
-    if (isLoading) return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading event framework...</div>;
-    if (!event) return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Event not found or has been deleted.</div>;
+    if (isLoading) return <div className="loading-state">Loading event framework...</div>;
+    if (!event) return <div className="loading-state">Event not found or has been deleted.</div>;
 
     const formattedDate = new Date(event.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
     const isCompleted = event.status === 'completed' || event.status === 'Completed';
@@ -254,7 +256,7 @@ const EventDetails = () => {
 
             {event.bannerUrl && (
                 <div className="full-event-banner-container">
-                    <img src={event.bannerUrl} alt="Event Banner" className="full-event-banner" />
+                    <img src={event.bannerUrl} alt="Event Banner" className="full-event-banner" onClick={() => setLightboxImage(event.bannerUrl)} style={{ cursor: 'pointer' }} />
                 </div>
             )}
 
@@ -292,6 +294,21 @@ const EventDetails = () => {
                     </div>
                 </div>
             </div>
+
+            {isCompleted && event.gallery && event.gallery.length > 0 && (
+                <div className="gallery-panel">
+                    <div className="panel-header">
+                        <h2><i className="ri-camera-lens-fill" style={{ color: '#0f172a' }}></i> Official Post-Event Gallery</h2>
+                    </div>
+                    <div className="gallery-grid">
+                        {event.gallery.map(img => (
+                            <div key={img.fileId} className="gallery-image-wrapper" onClick={() => setLightboxImage(img.url)} style={{ cursor: 'pointer' }}>
+                                <img src={img.url} alt="Event Moment" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {(isApproved || isCompleted) && (user?.role === 'president' || user?.role === 'admin') && (
                 <>
@@ -368,6 +385,7 @@ const EventDetails = () => {
 
             {isEditModalOpen && <EditEventModal event={event} onClose={() => setIsEditModalOpen(false)} onSuccess={() => { setIsEditModalOpen(false); handleManualRefresh(); }} />}
             {isRejectModalOpen && <RejectEventModal onClose={() => setIsRejectModalOpen(false)} onConfirm={handleReject} />}
+            {lightboxImage && <ImageLightbox imageUrl={lightboxImage} onClose={() => setLightboxImage(null)} />}
         </div>
     );
 };

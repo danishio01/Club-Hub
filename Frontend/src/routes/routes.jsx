@@ -26,8 +26,11 @@ import AdminAiAgent from "../features/ai/pages/AdminAiAgent";
 import PresidentDashboard from "../features/president/pages/PresidentDashboard";
 import PrDashboard from "../features/pr/pages/PrDashboard";
 import PrEventManagement from "../features/pr/pages/PrEventManagement";
+import PrEventGallery from "../features/pr/pages/PrEventGallery"; 
 import GrafikDashboard from "../features/grafik/pages/GrafikDashboard";
-import GrafikEventBanner from "../features/grafik/pages/GrafikEventBanner"; // NEW
+import GrafikGalleriesList from "../features/grafik/pages/GrafikGalleriesList";
+import GrafikEventBanner from "../features/grafik/pages/GrafikEventBanner"; 
+import GrafikEventGallery from "../features/grafik/pages/GrafikEventGallery";
 
 import ReportEditor from "../features/reports/pages/ReportEditor";
 import AdminReportReview from "../features/reports/pages/AdminReportReview";
@@ -76,7 +79,8 @@ export const routes = createBrowserRouter([
         errorElement: <ErrorBoundary />,
         children: [
             { path: "dashboard", element: <PrDashboard /> },
-            { path: "events/:eventId", element: <PrEventManagement /> }
+            { path: "events/:eventId", element: <PrEventManagement /> },
+            { path: "galleries", element: <PrEventGallery /> }
         ]
     },
     {
@@ -85,7 +89,9 @@ export const routes = createBrowserRouter([
         errorElement: <ErrorBoundary />,
         children: [
             { path: "dashboard", element: <GrafikDashboard /> },
-            { path: "events/:eventId/banner", element: <GrafikEventBanner /> } // NEW
+            { path: "galleries", element: <GrafikGalleriesList /> },
+            { path: "events/:eventId/banner", element: <GrafikEventBanner /> },
+            { path: "events/:eventId/gallery", element: <GrafikEventGallery /> }
         ]
     },
     {
