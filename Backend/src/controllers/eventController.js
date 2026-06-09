@@ -1,6 +1,8 @@
 import Event from '../models/eventModel.js';
 import Registration from '../models/registrationModel.js';
 import Club from '../models/clubModel.js';
+import { generatePosterBuffer } from '../services/bannerService.js';
+import { uploadBannerToImageKit, deleteBannerFromImageKit } from '../services/imagekitService.js';
 
 export const getPresidentEvents = async (req, res) => {
     try {
@@ -71,6 +73,16 @@ export const getEventById = async (req, res) => {
     }
 };
 
+export const getGrafikEventById = async (req, res) => {
+    try {
+        const event = await Event.findById(req.params.id).populate('club', 'name').lean();
+        if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+        return res.status(200).json({ success: true, data: event });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to fetch grafik event' });
+    }
+};
+
 export const updateEvent = async (req, res) => {
     try {
         const { id } = req.params;
@@ -84,7 +96,6 @@ export const updateEvent = async (req, res) => {
             }
             delete updateData.club;
             
-            // Re-trigger review
             updateData.status = 'review';
             updateData.rejectedReason = null;
             updateData.rejectedBy = null;
@@ -109,6 +120,13 @@ export const deleteEvent = async (req, res) => {
             if (eventToDelete.club.president?.toString() !== req.user._id.toString()) {
                 return res.status(403).json({ message: 'Unauthorized: You do not own this event.' });
             }
+        }
+
+        const event = await Event.findById(id);
+        if (event && event.bannerFileId) {
+            try {
+                await deleteBannerFromImageKit(event.bannerFileId);
+            } catch (err) {}
         }
 
         await Event.findByIdAndDelete(id);
@@ -137,25 +155,33 @@ export const approveEvent = async (req, res) => {
 export const rejectEvent = async (req, res) => {
     try {
         const { id } = req.params;
-        const { reason } = req.body;
+        const { reason, rejectType } = req.body;
 
         if (!reason || reason.trim() === '') {
             return res.status(400).json({ success: false, message: 'Rejection reason is required.' });
         }
 
-        const event = await Event.findByIdAndUpdate(
-            id, 
-            { 
-                status: 'rejected', 
-                rejectedReason: reason, 
-                rejectedBy: req.user._id, 
-                rejectedAt: new Date() 
-            }, 
-            { new: true }
-        ).populate('club', 'name isActive');
+        const eventToUpdate = await Event.findById(id);
+        if (!eventToUpdate) return res.status(404).json({ success: false, message: 'Event not found' });
 
-        if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
-        return res.status(200).json({ success: true, data: event, message: 'Event rejected successfully' });
+        const targetStatus = rejectType === 'banner' ? 'banner_rejected' : 'rejected';
+
+        if (rejectType === 'event' && eventToUpdate.bannerFileId) {
+            try {
+                await deleteBannerFromImageKit(eventToUpdate.bannerFileId);
+                eventToUpdate.bannerUrl = null;
+                eventToUpdate.bannerFileId = null;
+            } catch (err) {}
+        }
+
+        eventToUpdate.status = targetStatus;
+        eventToUpdate.rejectedReason = reason;
+        eventToUpdate.rejectedBy = req.user._id;
+        eventToUpdate.rejectedAt = new Date();
+        await eventToUpdate.save();
+
+        const populatedEvent = await Event.findById(id).populate('club', 'name isActive');
+        return res.status(200).json({ success: true, data: populatedEvent, message: 'Rejection processed successfully' });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to reject event' });
     }
@@ -231,5 +257,84 @@ export const getStudentEventById = async (req, res) => {
         });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to fetch event details' });
+    }
+};
+
+export const getGrafikEvents = async (req, res) => {
+    try {
+        const events = await Event.find({ 
+            status: { $in: ['review', 'pending_admin', 'banner_rejected', 'approved', 'completed'] } 
+        }).populate('club', 'name').sort({ createdAt: -1 });
+        
+        return res.status(200).json({ success: true, data: events });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to fetch grafik events' });
+    }
+};
+
+export const generateEventBanner = async (req, res) => {
+    try {
+        const event = await Event.findById(req.params.id).populate('club');
+        if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+
+        if (event.bannerFileId) {
+            try {
+                await deleteBannerFromImageKit(event.bannerFileId);
+            } catch (err) {}
+        }
+
+        const buffer = await generatePosterBuffer(event);
+        const safeTitle = event.title.replace(/[^a-zA-Z0-9]/g, '_');
+        const uploadResult = await uploadBannerToImageKit(buffer, safeTitle);
+        
+        event.bannerUrl = uploadResult.url;
+        event.bannerFileId = uploadResult.fileId;
+        await event.save();
+        
+        return res.status(200).json({ success: true, data: uploadResult.url });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to generate banner' });
+    }
+};
+
+export const uploadCustomEventBanner = async (req, res) => {
+    try {
+        const { imageBase64 } = req.body;
+        if (!imageBase64) return res.status(400).json({ success: false, message: 'Image data is required' });
+
+        const event = await Event.findById(req.params.id);
+        if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+
+        if (event.bannerFileId) {
+            try {
+                await deleteBannerFromImageKit(event.bannerFileId);
+            } catch (err) {}
+        }
+
+        const safeTitle = event.title.replace(/[^a-zA-Z0-9]/g, '_');
+        const uploadResult = await uploadBannerToImageKit(imageBase64, safeTitle);
+
+        event.bannerUrl = uploadResult.url;
+        event.bannerFileId = uploadResult.fileId;
+        await event.save();
+
+        return res.status(200).json({ success: true, data: uploadResult.url });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to upload custom banner' });
+    }
+};
+
+export const approveEventBanner = async (req, res) => {
+    try {
+        const event = await Event.findByIdAndUpdate(
+            req.params.id, 
+            { status: 'pending_admin' }, 
+            { new: true }
+        ).populate('club', 'name isActive');
+        
+        if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+        return res.status(200).json({ success: true, data: event, message: 'Banner approved. Event submitted to Admin.' });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to approve banner' });
     }
 };

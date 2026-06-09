@@ -3,6 +3,7 @@ import '../style/EventModals.scss';
 
 const RejectEventModal = ({ onClose, onConfirm }) => {
     const [reason, setReason] = useState('');
+    const [rejectType, setRejectType] = useState('banner');
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -13,7 +14,7 @@ const RejectEventModal = ({ onClose, onConfirm }) => {
             return;
         }
         
-        onConfirm(trimmedReason);
+        onConfirm({ reason: trimmedReason, rejectType });
     };
 
     return (
@@ -26,16 +27,28 @@ const RejectEventModal = ({ onClose, onConfirm }) => {
                 <form onSubmit={handleSubmit}>
                     <div className="modal-body">
                         <div className="form-group">
+                            <label style={{ color: '#0f172a' }}>Rejection Target *</label>
+                            <select 
+                                value={rejectType} 
+                                onChange={(e) => setRejectType(e.target.value)}
+                                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', marginBottom: '16px' }}
+                            >
+                                <option value="banner">Reject Banner Design (Returns to Grafik)</option>
+                                <option value="event">Reject Entire Event Details (Returns to President)</option>
+                            </select>
+                        </div>
+
+                        <div className="form-group">
                             <label style={{ color: '#dc2626' }}>Reason for Rejection *</label>
                             <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 12px 0', lineHeight: 1.5 }}>
-                                This reason will be visible to the Club President so they can correct and resubmit the event structure. Cannot be empty.
+                                This reason will be visible to the responsible team so they can correct and resubmit. Cannot be empty.
                             </p>
                             <textarea 
                                 rows="5" 
                                 required 
                                 value={reason} 
                                 onChange={(e) => setReason(e.target.value)}
-                                placeholder="E.g., The main auditorium is already booked on this date. Please select an alternate venue or reschedule."
+                                placeholder={rejectType === 'banner' ? "E.g., The banner text is illegible, please upload a clearer version." : "E.g., The main auditorium is already booked. Reschedule."}
                                 style={{ borderColor: '#fca5a5', width: '100%', resize: 'vertical' }}
                             ></textarea>
                         </div>

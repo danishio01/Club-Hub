@@ -43,8 +43,8 @@ export const approveEventApi = async (id) => {
     return response.data.data;
 };
 
-export const rejectEventApi = async (id, reason) => {
-    const response = await axiosInstance.patch(`/events/${id}/reject`, { reason });
+export const rejectEventApi = async (id, payload) => {
+    const response = await axiosInstance.patch(`/events/${id}/reject`, payload);
     return response.data.data;
 };
 
@@ -70,5 +70,30 @@ export const summarizeReviewsApi = async (eventId) => {
 
 export const generateEventFromAIApi = async (prompt) => {
     const response = await axiosInstance.post('/ai/generate-event', { prompt });
+    return response.data.data;
+};
+
+export const getGrafikEventsApi = async () => {
+    const response = await axiosInstance.get('/events/grafik/all');
+    return response.data.data;
+};
+
+export const getGrafikEventByIdApi = async (id) => {
+    const response = await axiosInstance.get(`/events/grafik/${id}`);
+    return response.data.data;
+};
+
+export const generateBannerApi = async (id) => {
+    const response = await axiosInstance.post(`/events/${id}/banner/generate`);
+    return response.data.data;
+};
+
+export const uploadCustomBannerApi = async (id, imageBase64) => {
+    const response = await axiosInstance.post(`/events/${id}/banner/upload`, { imageBase64 });
+    return response.data.data;
+};
+
+export const approveBannerApi = async (id) => {
+    const response = await axiosInstance.patch(`/events/${id}/banner/approve`);
     return response.data.data;
 };

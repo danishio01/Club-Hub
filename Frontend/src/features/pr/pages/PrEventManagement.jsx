@@ -18,7 +18,6 @@ const PrEventManagement = () => {
 
         const initializeSessionData = async () => {
             try {
-                setIsLoading(true);
                 const evData = await getEventByIdApi(eventId);
                 const regData = await getEventRegistrationsApi(eventId);
                 
@@ -61,7 +60,7 @@ const PrEventManagement = () => {
     };
 
     if (isLoading) return <div className="loading-state">Loading Session Data...</div>;
-    if (!event) return null;
+    if (!event) return <div className="loading-state">Event not found.</div>;
 
     return (
         <div className="pr-event-management">
@@ -78,6 +77,13 @@ const PrEventManagement = () => {
                     {registrations.length} / {event.maxParticipants} Registered
                 </div>
             </div>
+
+            {event.bannerUrl && (
+                <div className="full-event-banner-container">
+                    <img src={event.bannerUrl} alt="Approved Event Poster" className="full-event-banner" />
+                    <div className="banner-label-overlay"><i className="ri-verified-badge-line"></i> Approved Promotional Material</div>
+                </div>
+            )}
 
             <div className="management-grid">
                 <div className="qr-panel">

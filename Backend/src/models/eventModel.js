@@ -11,9 +11,11 @@ const eventSchema = new mongoose.Schema({
     price: { type: Number, default: 0 },
     maxParticipants: { type: Number, required: true },
     tags: [{ type: String }],
+    bannerUrl: { type: String, default: null },
+    bannerFileId: { type: String, default: null },
     status: { 
         type: String, 
-        enum: ['review', 'approved', 'rejected', 'completed'], 
+        enum: ['review', 'pending_admin', 'approved', 'rejected', 'banner_rejected', 'completed'], 
         default: 'review' 
     },
     rejectedReason: { type: String, default: null },

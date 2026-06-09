@@ -19,36 +19,42 @@ const EventTable = ({ data, navigate }) => (
                 </tr>
             </thead>
             <tbody>
-                {data.map(event => (
-                    <tr key={event._id}>
-                        <td>
-                            <span style={{ 
-                                padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase',
-                                backgroundColor: event.status === 'approved' ? '#dcfce7' : event.status === 'review' ? '#fef08a' : event.status === 'rejected' ? '#fee2e2' : '#f1f5f9',
-                                color: event.status === 'approved' ? '#166534' : event.status === 'review' ? '#854d0e' : event.status === 'rejected' ? '#991b1b' : '#475569',
-                                border: `1px solid ${event.status === 'approved' ? '#bbf7d0' : event.status === 'review' ? '#fde047' : event.status === 'rejected' ? '#fecaca' : '#cbd5e1'}`
-                            }}>
-                                {event.status}
-                            </span>
-                        </td>
-                        <td>
-                            <div style={{ fontWeight: 500 }}>{new Date(event.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</div>
-                            <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{event.time}</div>
-                        </td>
-                        <td style={{ fontWeight: 600, color: '#0f172a' }}>{event.title}</td>
-                        <td>{event.venue}</td>
-                        <td>
-                            <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600, backgroundColor: event.eventType === 'Free' ? '#eff6ff' : '#f1f5f9', color: event.eventType === 'Free' ? '#1d4ed8' : '#0f172a' }}>
-                                {event.eventType === 'Paid' ? `₹${event.price}` : 'Free'}
-                            </span>
-                        </td>
-                        <td>
-                            <button className="btn-primary" style={{ padding: '6px 12px', fontSize: '0.85rem', background: '#0f172a' }} onClick={() => navigate(`/president/events/${event._id}`)}>
-                                View Details
-                            </button>
-                        </td>
-                    </tr>
-                ))}
+                {data.map(event => {
+                    const statusLabel = event.status === 'review' ? 'Waiting on Grafik' : 
+                                        event.status === 'pending_admin' ? 'Waiting on Admin' : 
+                                        event.status === 'banner_rejected' ? 'Banner Rejected' :
+                                        event.status;
+                    return (
+                        <tr key={event._id}>
+                            <td>
+                                <span style={{ 
+                                    padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', whiteSpace: 'nowrap',
+                                    backgroundColor: event.status === 'approved' ? '#dcfce7' : (event.status === 'review' || event.status === 'pending_admin' || event.status === 'banner_rejected') ? '#fef08a' : event.status === 'rejected' ? '#fee2e2' : '#f1f5f9',
+                                    color: event.status === 'approved' ? '#166534' : (event.status === 'review' || event.status === 'pending_admin' || event.status === 'banner_rejected') ? '#854d0e' : event.status === 'rejected' ? '#991b1b' : '#475569',
+                                    border: `1px solid ${event.status === 'approved' ? '#bbf7d0' : (event.status === 'review' || event.status === 'pending_admin' || event.status === 'banner_rejected') ? '#fde047' : event.status === 'rejected' ? '#fecaca' : '#cbd5e1'}`
+                                }}>
+                                    {statusLabel}
+                                </span>
+                            </td>
+                            <td>
+                                <div style={{ fontWeight: 500 }}>{new Date(event.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{event.time}</div>
+                            </td>
+                            <td style={{ fontWeight: 600, color: '#0f172a' }}>{event.title}</td>
+                            <td>{event.venue}</td>
+                            <td>
+                                <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600, backgroundColor: event.eventType === 'Free' ? '#eff6ff' : '#f1f5f9', color: event.eventType === 'Free' ? '#1d4ed8' : '#0f172a' }}>
+                                    {event.eventType === 'Paid' ? `₹${event.price}` : 'Free'}
+                                </span>
+                            </td>
+                            <td>
+                                <button className="btn-primary" style={{ padding: '6px 12px', fontSize: '0.85rem', background: '#0f172a' }} onClick={() => navigate(`/president/events/${event._id}`)}>
+                                    View Details
+                                </button>
+                            </td>
+                        </tr>
+                    );
+                })}
             </tbody>
         </table>
     </div>
@@ -80,7 +86,7 @@ const Events = () => {
         return (
             <div className="students-page">
                 <div style={{ padding: '40px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#991b1b', textAlign: 'center' }}>
-                    <i className="ri-error-warning-line" style={{ fontSize: '2rem', display: 'block', marginBottom: '10px' }}></i>
+                    <i className="ri-error-warning-line" style={{ fontSize: '2rem', display: 'block', marginbottom: '10px' }}></i>
                     <h2>Club is not assigned</h2>
                     <p>You cannot view or manage events until a system administrator links you to an active club.</p>
                 </div>
@@ -90,7 +96,9 @@ const Events = () => {
 
     if (isLoading) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading your events...</div>;
 
-    const reviewEvents = events.filter(e => e.status === 'review');
+    const pendingGrafikEvents = events.filter(e => e.status === 'review');
+    const bannerRejectedEvents = events.filter(e => e.status === 'banner_rejected');
+    const pendingAdminEvents = events.filter(e => e.status === 'pending_admin');
     const upcomingEvents = events.filter(e => e.status === 'approved');
     const rejectedEvents = events.filter(e => e.status === 'rejected');
     const completedEvents = events.filter(e => e.status === 'completed' || e.status === 'Completed');
@@ -123,10 +131,24 @@ const Events = () => {
                 </div>
             )}
 
-            {reviewEvents.length > 0 && (
+            {bannerRejectedEvents.length > 0 && (
                 <div>
-                    <h2 style={{ fontSize: '1.25rem', color: '#854d0e', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}><i className="ri-time-fill"></i> Pending Review</h2>
-                    <EventTable data={reviewEvents} navigate={navigate} />
+                    <h2 style={{ fontSize: '1.25rem', color: '#c026d3', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}><i className="ri-image-edit-line"></i> Banner Rejected (Grafik Fix Required)</h2>
+                    <EventTable data={bannerRejectedEvents} navigate={navigate} />
+                </div>
+            )}
+
+            {pendingGrafikEvents.length > 0 && (
+                <div>
+                    <h2 style={{ fontSize: '1.25rem', color: '#c026d3', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}><i className="ri-image-edit-fill"></i> Pending Banner Design (Grafik)</h2>
+                    <EventTable data={pendingGrafikEvents} navigate={navigate} />
+                </div>
+            )}
+
+            {pendingAdminEvents.length > 0 && (
+                <div>
+                    <h2 style={{ fontSize: '1.25rem', color: '#854d0e', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}><i className="ri-time-fill"></i> Pending Admin Approval</h2>
+                    <EventTable data={pendingAdminEvents} navigate={navigate} />
                 </div>
             )}
 

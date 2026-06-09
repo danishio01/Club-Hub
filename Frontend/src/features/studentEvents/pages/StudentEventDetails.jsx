@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { getStudentEventByIdApi, registerForEventApi, createPaymentOrderApi, verifyPaymentApi, submitReviewApi, markAttendanceApi } from '../service/studentEventsService';
@@ -26,24 +26,31 @@ const StudentEventDetails = () => {
     const [reviewText, setReviewText] = useState('');
     const [isReviewSubmitted, setIsReviewSubmitted] = useState(false);
 
-    const loadEvent = useCallback(async () => {
+    useEffect(() => {
+        let isMounted = true;
+        const fetchEventData = async () => {
+            try {
+                const data = await getStudentEventByIdApi(eventId);
+                if (isMounted) setEvent(data);
+            } catch (error) {
+                console.error("Load Event Details Failed:", error);
+                if (isMounted) navigate('/student/dashboard');
+            } finally {
+                if (isMounted) setIsLoading(false);
+            }
+        };
+        fetchEventData();
+        return () => { isMounted = false; };
+    }, [eventId, navigate]);
+
+    const reloadEvent = async () => {
         try {
             const data = await getStudentEventByIdApi(eventId);
             setEvent(data);
         } catch (error) {
-            console.error("Load Event Details Failed:", error);
-            navigate('/student/dashboard');
-        } finally {
-            setIsLoading(false);
+            console.error(error);
         }
-    }, [eventId, navigate]);
-
-    useEffect(() => {
-        const fetchInitialData = async () => {
-            await loadEvent();
-        };
-        fetchInitialData();
-    }, [loadEvent]);
+    };
 
     const handleRegister = async () => {
         if(!window.confirm('Do you want to register for this event?')) return;
@@ -53,7 +60,7 @@ const StudentEventDetails = () => {
             if (event.eventType === 'Free') {
                 await registerForEventApi(eventId);
                 alert('Registered successfully!');
-                await loadEvent();
+                await reloadEvent();
                 setIsRegistering(false);
             } else {
                 const res = await loadRazorpayScript();
@@ -82,7 +89,7 @@ const StudentEventDetails = () => {
                             
                             await registerForEventApi(eventId);
                             alert('Payment successful and registered!');
-                            await loadEvent();
+                            await reloadEvent();
                         } catch (err) {
                             console.error("Payment Verification Event Error:", err);
                             alert('Payment verification failed. Please contact admin.');
@@ -120,7 +127,7 @@ const StudentEventDetails = () => {
 
                 await markAttendanceApi(eventId, token);
                 alert('QR Scanned! Please submit a review below to finalize your attendance.');
-                await loadEvent(); 
+                await reloadEvent(); 
             } catch (error) {
                 alert(error.response?.data?.message || 'Failed to mark attendance.');
             }
@@ -132,14 +139,14 @@ const StudentEventDetails = () => {
             await submitReviewApi(eventId, { rating, review: reviewText });
             setIsReviewSubmitted(true);
             alert('Review submitted! Attendance marked and points awarded.');
-            await loadEvent();
+            await reloadEvent();
         } catch (error) {
             console.error("Review Upload Error:", error);
             alert('Failed to submit review.');
         }
     };
 
-    if (isLoading) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading event details...</div>;
+    if (isLoading) return <div className="loading-state">Loading event details...</div>;
     if (!event) return null;
 
     const isFull = event.currentRegistrations >= event.maxParticipants;
@@ -151,11 +158,17 @@ const StudentEventDetails = () => {
                 <i className="ri-arrow-left-line"></i> Back to Events
             </button>
 
+            {event.bannerUrl && (
+                <div className="full-event-banner-container">
+                    <img src={event.bannerUrl} alt="Event Banner" className="full-event-banner" />
+                </div>
+            )}
+
             <div className="event-banner">
                 <div className="event-banner-info">
                     <div className="club-name">{event?.club?.name || 'Campus Club'}</div>
                     <h1>{event?.title}</h1>
-                    <div style={{ display: 'flex', gap: '16px', color: '#64748b', fontSize: '0.95rem', marginTop: '12px' }}>
+                    <div className="meta-details">
                         <span><i className="ri-calendar-line"></i> {formattedDate}</span>
                         <span><i className="ri-time-line"></i> {event.time}</span>
                         <span><i className="ri-map-pin-line"></i> {event.venue}</span>
@@ -164,11 +177,11 @@ const StudentEventDetails = () => {
                 <div>
                     {event.attendanceStatus === 'Attended' ? (
                         <div className="status-badge status-attended">
-                            <i className="ri-checkbox-circle-fill" style={{ fontSize: '1.2rem' }}></i> Attendance Marked
+                            <i className="ri-checkbox-circle-fill"></i> Attendance Marked
                         </div>
                     ) : event.attendanceStatus === 'Scanned' ? (
-                        <div className="status-badge" style={{ background: '#fef08a', color: '#854d0e', border: '1px solid #fde047' }}>
-                            <i className="ri-error-warning-fill" style={{ fontSize: '1.2rem' }}></i> Pending Review
+                        <div className="status-badge pending-review">
+                            <i className="ri-error-warning-fill"></i> Pending Review
                         </div>
                     ) : event.isRegistered ? (
                         <button className="btn-registered" disabled>
@@ -191,36 +204,32 @@ const StudentEventDetails = () => {
                     <h2>About the Event</h2>
                     <p className="description-text">{event.description}</p>
                     
-                    <h3 style={{ marginTop: '24px', fontSize: '1rem', color: '#0f172a' }}>Event Tags</h3>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
+                    <h3 className="tags-title">Event Tags</h3>
+                    <div className="tag-list">
                         {event?.tags?.map(tag => (
-                            <span key={tag} style={{ background: '#f1f5f9', padding: '6px 12px', borderRadius: '4px', fontSize: '0.85rem', color: '#475569' }}>
-                                {tag}
-                            </span>
+                            <span key={tag} className="tag">{tag}</span>
                         ))}
                     </div>
                 </div>
 
                 <div className="action-card">
                     <div>
-                        <span style={{ display: 'block', fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600, marginBottom: '4px' }}>Entry Fee</span>
-                        <span style={{ fontSize: '1.25rem', fontWeight: 700, color: event.eventType === 'Free' ? '#16a34a' : '#0f172a' }}>
+                        <span className="action-label">Entry Fee</span>
+                        <span className={`action-value ${event.eventType === 'Free' ? 'free' : 'paid'}`}>
                             {event.eventType === 'Free' ? 'Free' : `₹${event.price}`}
                         </span>
                     </div>
                     
                     <div>
-                        <span style={{ display: 'block', fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600, marginBottom: '4px' }}>Capacity</span>
-                        <span style={{ fontSize: '1rem', fontWeight: 500, color: '#0f172a' }}>
+                        <span className="action-label">Capacity</span>
+                        <span className="action-value capacity">
                             {event.currentRegistrations} / {event.maxParticipants} Spots Filled
                         </span>
                     </div>
 
                     {event.isRegistered && event.attendanceStatus !== 'Attended' && event.attendanceStatus !== 'Scanned' && (
-                        <div style={{ marginTop: '16px', paddingTop: '20px', borderTop: '1px solid #f1f5f9' }}>
-                            <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '12px', textAlign: 'center' }}>
-                                At the venue? Scan the QR code displayed by the PR officer.
-                            </p>
+                        <div className="scanner-trigger-section">
+                            <p>At the venue? Scan the QR code displayed by the PR officer.</p>
                             <button className="btn-scan" onClick={() => setIsScannerOpen(true)}>
                                 <i className="ri-qr-scan-2-line"></i> Scan Attendance QR
                             </button>
@@ -230,15 +239,11 @@ const StudentEventDetails = () => {
             </div>
 
             {event.attendanceStatus === 'Scanned' && !isReviewSubmitted && (
-                <div className="review-section" style={{ marginTop: '30px', padding: '24px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                    <h3 style={{ marginTop: 0, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <i className="ri-star-smile-fill" style={{ color: '#eab308' }}></i> Complete Your Attendance
-                    </h3>
-                    <p style={{ color: '#475569', fontSize: '0.95rem', marginBottom: '20px' }}>
-                        You have successfully scanned the QR code. Please rate the event and provide a short review to finalize your attendance and earn 100 points!
-                    </p>
+                <div className="review-section">
+                    <h3><i className="ri-star-smile-fill"></i> Complete Your Attendance</h3>
+                    <p>You have successfully scanned the QR code. Please rate the event and provide a short review to finalize your attendance and earn 100 points!</p>
                     
-                    <select value={rating} onChange={(e) => setRating(Number(e.target.value))} style={{ padding: '10px 14px', marginBottom: '16px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '1rem', outline: 'none' }}>
+                    <select value={rating} onChange={(e) => setRating(Number(e.target.value))}>
                         <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
                         <option value="4">⭐⭐⭐⭐ Good</option>
                         <option value="3">⭐⭐⭐ Average</option>
@@ -250,10 +255,9 @@ const StudentEventDetails = () => {
                         placeholder="Write a short review about the event..." 
                         value={reviewText} 
                         onChange={(e) => setReviewText(e.target.value)}
-                        style={{ width: '100%', height: '100px', padding: '12px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '16px', fontFamily: 'inherit', resize: 'vertical', outline: 'none' }}
                     />
                     
-                    <button className="btn-primary" onClick={handleReviewSubmit} style={{ padding: '12px 24px', fontSize: '1rem' }}>
+                    <button className="btn-primary" onClick={handleReviewSubmit}>
                         Submit Review & Get Points
                     </button>
                 </div>
@@ -268,10 +272,10 @@ const StudentEventDetails = () => {
                                 <i className="ri-close-line"></i>
                             </button>
                         </div>
-                        <div style={{ borderRadius: '8px', overflow: 'hidden' }}>
+                        <div className="scanner-wrapper">
                             <Scanner onScan={handleScan} />
                         </div>
-                        <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#64748b', marginTop: '16px' }}>
+                        <p className="scanner-instructions">
                             Point your camera at the QR code displayed by the PR officer.
                         </p>
                     </div>

@@ -17,9 +17,10 @@ const AdminEventReviews = () => {
         loadEvents();
     }, [loadEvents]);
 
-    const reviewEvents = events.filter(e => e.status === 'review');
+    const reviewEvents = events.filter(e => e.status === 'pending_admin');
+    const inProgressEvents = events.filter(e => e.status === 'review');
     const approvedEvents = events.filter(e => e.status === 'approved' || e.status === 'completed' || e.status === 'Completed');
-    const rejectedEvents = events.filter(e => e.status === 'rejected');
+    const rejectedEvents = events.filter(e => e.status === 'rejected' || e.status === 'banner_rejected');
 
     const renderEventGrid = (data, emptyText, highlightClass = '') => {
         if (data.length === 0) return <div className="empty-state">{emptyText}</div>;
@@ -28,16 +29,25 @@ const AdminEventReviews = () => {
             <div className="reviews-grid">
                 {data.map(event => {
                     const formattedDate = new Date(event.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+                    
+                    let displayStatus = event.status;
+                    if (event.status === 'pending_admin') displayStatus = 'Pending Admin Review';
+                    if (event.status === 'review') displayStatus = 'Waiting For Grafik Banner';
+                    if (event.status === 'banner_rejected') displayStatus = 'Banner Rejected (Needs Fix)';
+                    if (event.status === 'rejected') displayStatus = 'Event Rejected (Needs Fix)';
+
                     return (
                         <div key={event._id} className={`review-card ${highlightClass}`}>
                             <div className="card-header">
                                 <span className="club-badge">{event.club?.name || 'Deleted Club'}</span>
-                                <span className={`status-badge ${event.status.toLowerCase()}`}>{event.status}</span>
+                                <span className={`status-badge ${event.status.toLowerCase()}`}>
+                                    {displayStatus}
+                                </span>
                             </div>
                             <h3 className="event-title">{event.title}</h3>
                             <p className="event-desc">{event.description}</p>
                             
-                            {event.status === 'rejected' && event.rejectedReason && (
+                            {(event.status === 'rejected' || event.status === 'banner_rejected') && event.rejectedReason && (
                                 <div className="rejection-reason">
                                     <strong>Rejection Reason:</strong> {event.rejectedReason}
                                 </div>
@@ -46,11 +56,11 @@ const AdminEventReviews = () => {
                             <div className="meta-grid">
                                 <div><i className="ri-calendar-line"></i> {formattedDate}</div>
                                 <div><i className="ri-time-line"></i> {event.time}</div>
-                                <div><i className="ri-map-pin-line"></i> {event.venue}</div>
+                                <div style={{ gridColumn: 'span 2' }}><i className="ri-map-pin-line"></i> {event.venue}</div>
                             </div>
 
                             <button className="btn-primary full-width" onClick={() => navigate(`/admin/events/${event._id}`)}>
-                                <i className="ri-eye-line"></i> View Details
+                                <i className="ri-eye-line"></i> View Lifecycle Details
                             </button>
                         </div>
                     );
@@ -64,28 +74,35 @@ const AdminEventReviews = () => {
     return (
         <div className="admin-reviews-page">
             <div className="page-header">
-                <h1>Event Approval History</h1>
-                <p>Review incoming requests and track previously approved or rejected events.</p>
+                <h1>Event Approval History & Tracker</h1>
+                <p>Track all institutional events through their entire lifecycle from creation to approval.</p>
             </div>
 
             {reviewEvents.length > 0 && (
                 <div className="section-block">
-                    <h2><i className="ri-time-line"></i> Pending Reviews</h2>
+                    <h2><i className="ri-time-line"></i> Pending Admin Final Approval</h2>
                     {renderEventGrid(reviewEvents, "No pending events.", "highlight-pending")}
                 </div>
             )}
 
-            {approvedEvents.length > 0 && (
+            {inProgressEvents.length > 0 && (
                 <div className="section-block">
-                    <h2><i className="ri-check-double-line"></i> Approved Events</h2>
-                    {renderEventGrid(approvedEvents, "No approved events.")}
+                    <h2><i className="ri-loader-4-line"></i> In Progress (President / Grafik Working)</h2>
+                    {renderEventGrid(inProgressEvents, "No events in progress.", "highlight-in-progress")}
                 </div>
             )}
 
             {rejectedEvents.length > 0 && (
                 <div className="section-block">
-                    <h2><i className="ri-close-circle-line"></i> Rejected Events</h2>
+                    <h2><i className="ri-close-circle-line"></i> Rejected (Waiting For Fixes)</h2>
                     {renderEventGrid(rejectedEvents, "No rejected events.", "highlight-rejected")}
+                </div>
+            )}
+
+            {approvedEvents.length > 0 && (
+                <div className="section-block">
+                    <h2><i className="ri-check-double-line"></i> Approved / Published Events</h2>
+                    {renderEventGrid(approvedEvents, "No approved events.")}
                 </div>
             )}
 
@@ -93,7 +110,7 @@ const AdminEventReviews = () => {
                 <div className="empty-state">
                     <i className="ri-inbox-line" style={{ fontSize: '3rem', display: 'block', marginBottom: '12px' }}></i>
                     <h3>No Event History</h3>
-                    <p>No events have been submitted by presidents yet.</p>
+                    <p>No events have been submitted into the system yet.</p>
                 </div>
             )}
         </div>

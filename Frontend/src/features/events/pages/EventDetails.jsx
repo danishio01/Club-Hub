@@ -23,7 +23,6 @@ const EventDetails = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
 
-    // Initial Load - Isolated from state toggles to satisfy React Hooks ESLint Rules
     useEffect(() => {
         let isMounted = true;
 
@@ -64,7 +63,6 @@ const EventDetails = () => {
         };
     }, [eventId, navigate, user?.role]);
 
-    // Manual Refresh - Safely triggers state updates via user action
     const handleManualRefresh = async () => {
         setIsLoading(true);
         try {
@@ -104,9 +102,9 @@ const EventDetails = () => {
         }
     };
 
-    const handleReject = async (reason) => {
+    const handleReject = async (payload) => {
         try {
-            await rejectEventApi(eventId, reason);
+            await rejectEventApi(eventId, payload);
             alert('Event successfully rejected.');
             setIsRejectModalOpen(false);
             navigate('/admin/event-approvals');
@@ -160,18 +158,27 @@ const EventDetails = () => {
     const isCompleted = event.status === 'completed' || event.status === 'Completed';
     const isApproved = event.status === 'approved';
     const isReview = event.status === 'review';
+    const isPendingAdmin = event.status === 'pending_admin';
     const isRejected = event.status === 'rejected';
+    const isBannerRejected = event.status === 'banner_rejected';
     const canManage = user?.role === 'admin' || !!user?.clubName;
+
+    const statusLabel = isReview ? 'Pending Grafik' : isPendingAdmin ? 'Pending Admin' : isBannerRejected ? 'Banner Rejected' : event.status;
 
     return (
         <div className="event-details-page">
-            {user?.role === 'admin' && isReview && (
+            <div className="page-header" style={{ marginBottom: '8px' }}>
+                <h1 style={{ margin: 0, fontSize: '1.75rem', color: '#0f172a' }}>Event Details Workspace</h1>
+                <p style={{ margin: 0, color: '#64748b' }}>Manage event status, view analytics, and control event lifecycle.</p>
+            </div>
+
+            {user?.role === 'admin' && isPendingAdmin && (
                 <div className="admin-review-bar">
                     <div className="review-info">
                         <i className="ri-shield-check-fill"></i>
                         <div>
                             <h3>Pending Admin Review</h3>
-                            <p>Review the event specifications below. You must approve or reject this submission to proceed.</p>
+                            <p>Review the event specifications and poster below. You must approve or reject this submission to proceed.</p>
                         </div>
                     </div>
                     <div className="review-actions">
@@ -189,9 +196,20 @@ const EventDetails = () => {
                 <div className="rejection-banner">
                     <i className="ri-error-warning-fill banner-icon"></i>
                     <div className="banner-text">
-                        <h3>Event Submission Rejected</h3>
+                        <h3>Event Details Rejected</h3>
                         <p><strong>Admin Feedback:</strong> {event.rejectedReason}</p>
-                        <span>Please edit the event details below to resolve the issue. Upon saving, it will automatically be resubmitted for review.</span>
+                        <span>Please edit the event details below to resolve the issue. Upon saving, it will automatically be sent to Grafik for banner regeneration.</span>
+                    </div>
+                </div>
+            )}
+
+            {isBannerRejected && user?.role === 'president' && (
+                <div className="warning-banner">
+                    <i className="ri-image-edit-line banner-icon"></i>
+                    <div className="banner-text">
+                        <h3>Banner Rejected By Admin</h3>
+                        <p><strong>Reason:</strong> {event.rejectedReason}</p>
+                        <span>Event details are accepted. The Grafik team has been notified and is currently working on a replacement banner. No action required from you at this time.</span>
                     </div>
                 </div>
             )}
@@ -201,7 +219,7 @@ const EventDetails = () => {
                     <div className="title-row">
                         <h1 style={{ margin: 0 }}>{event.title}</h1>
                         <span className={`status-badge ${event.status.toLowerCase()}`}>
-                            {event.status}
+                            {statusLabel}
                         </span>
                     </div>
                     <p>Organized by {event?.club?.name || 'Unknown/Deleted Club'}</p>
@@ -211,7 +229,7 @@ const EventDetails = () => {
                     <button className="btn-secondary" onClick={() => navigate(-1)}>Back</button>
 
                     {user?.role === 'president' && isCompleted && (
-                        <button className="btn-primary" style={{ backgroundColor: '#9333ea' }} onClick={() => navigate(`/president/reports/write/${event._id}`)}>
+                        <button className="btn-primary report-btn" onClick={() => navigate(`/president/reports/write/${event._id}`)}>
                             <i className="ri-file-text-line"></i> Manage Event Report
                         </button>
                     )}
@@ -219,11 +237,11 @@ const EventDetails = () => {
                     {user?.role === 'president' && canManage && (
                         <>
                             {isApproved && (
-                                <button className="btn-primary" style={{ backgroundColor: '#3b82f6' }} onClick={handleMarkCompleted}>
+                                <button className="btn-primary complete-btn" onClick={handleMarkCompleted}>
                                     <i className="ri-flag-2-line"></i> Mark Completed
                                 </button>
                             )}
-                            <button className="btn-primary" onClick={() => setIsEditModalOpen(true)}>
+                            <button className="btn-primary edit-btn" onClick={() => setIsEditModalOpen(true)}>
                                 <i className="ri-pencil-line"></i> Edit Event
                             </button>
                             <button className="btn-danger-outline" onClick={handleDelete}>
@@ -233,6 +251,12 @@ const EventDetails = () => {
                     )}
                 </div>
             </div>
+
+            {event.bannerUrl && (
+                <div className="full-event-banner-container">
+                    <img src={event.bannerUrl} alt="Event Banner" className="full-event-banner" />
+                </div>
+            )}
 
             <div className="info-panel">
                 <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '1.25rem' }}>Event Specifications</h2>

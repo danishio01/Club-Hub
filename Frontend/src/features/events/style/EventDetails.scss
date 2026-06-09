@@ -29,6 +29,12 @@
   .banner-text { h3 { margin: 0 0 8px 0; color: #991b1b; font-size: 1.2rem; } p { margin: 0 0 8px 0; color: #b91c1c; font-size: 1rem; line-height: 1.4; } span { font-size: 0.9rem; color: #7f1d1d; display: block; margin-top: 4px; line-height: 1.4; } }
 }
 
+.warning-banner {
+  background: #fffbeb; border: 1px solid #fef08a; border-left: 6px solid #eab308; padding: 20px; border-radius: 12px; display: flex; gap: 16px; align-items: flex-start;
+  .banner-icon { font-size: 2rem; color: #eab308; margin-top: 2px; }
+  .banner-text { h3 { margin: 0 0 8px 0; color: #854d0e; font-size: 1.2rem; } p { margin: 0 0 8px 0; color: #a16207; font-size: 1rem; line-height: 1.4; } span { font-size: 0.9rem; color: #ca8a04; display: block; margin-top: 4px; line-height: 1.4; } }
+}
+
 .details-header {
   display: flex; justify-content: space-between; align-items: flex-start; background: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; flex-wrap: wrap; gap: 16px;
   
@@ -41,15 +47,44 @@
   padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; white-space: nowrap;
   &.approved { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
   &.review { background: #fef08a; color: #854d0e; border: 1px solid #fde047; }
+  &.pending_admin { background: #fef08a; color: #854d0e; border: 1px solid #fde047; }
   &.rejected { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+  &.banner_rejected { background: #fef08a; color: #854d0e; border: 1px solid #fde047; }
   &.completed { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
 }
 
 .details-header h1 { margin: 0; font-size: 1.75rem; color: #0f172a; word-break: break-word; }
 .details-header p { color: #64748b; margin: 0; }
 
+.full-event-banner-container {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto 12px auto;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f8fafc;
+  box-shadow: 0 4px 10px -2px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  .full-event-banner {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+  }
+}
+
 .details-actions {
   display: flex; gap: 12px; flex-wrap: wrap;
+}
+
+.btn-primary {
+  &.report-btn { background-color: #9333ea; &:hover { background-color: #7e22ce; } }
+  &.complete-btn { background-color: #3b82f6; &:hover { background-color: #2563eb; } }
+  &.edit-btn { background-color: #0f172a; &:hover { background-color: #1e293b; } }
 }
 
 .btn-danger-outline {
@@ -121,6 +156,10 @@
 
 @media (max-width: 768px) {
   .details-actions button, .admin-review-bar .review-actions button { flex: 1; justify-content: center; }
+
+  .full-event-banner-container {
+    max-width: 100%;
+  }
 
   .registrations-panel .registrations-table {
     min-width: unset; display: block;

@@ -35,8 +35,8 @@ const PrDashboard = () => {
     return (
         <div className="pr-dashboard-page">
             <div className="header-section">
-                <h1>Attendance Operations</h1>
-                <p>Select an ongoing approved event to generate the QR code and manage student attendance.</p>
+                <h1>Attendance Operations & Promotion</h1>
+                <p>View approved promotional materials and manage student attendance for active events.</p>
             </div>
 
             {isLoading ? (
@@ -47,14 +47,27 @@ const PrDashboard = () => {
                 <div className="events-grid">
                     {events.map(event => (
                         <div key={event._id} className="pr-event-card">
-                            <div className="card-info">
-                                <h3>{event.title}</h3>
-                                <p><i className="ri-map-pin-line"></i> {event.venue}</p>
-                                <p><i className="ri-time-line"></i> {event.time}</p>
+                            {event.bannerUrl ? (
+                                <div className="card-banner">
+                                    <img src={event.bannerUrl} alt="Event Promotion" />
+                                </div>
+                            ) : (
+                                <div className="card-banner placeholder">
+                                    <i className="ri-image-line"></i>
+                                    <span>No Promotional Banner</span>
+                                </div>
+                            )}
+                            
+                            <div className="card-content-wrapper">
+                                <div className="card-info">
+                                    <h3>{event.title}</h3>
+                                    <p><i className="ri-map-pin-line"></i> {event.venue}</p>
+                                    <p><i className="ri-time-line"></i> {event.time}</p>
+                                </div>
+                                <button className="btn-manage-trigger" onClick={() => navigate(`/pr/events/${event._id}`)}>
+                                    <i className="ri-group-line"></i> Open Ops Dashboard
+                                </button>
                             </div>
-                            <button className="btn-manage-trigger" onClick={() => navigate(`/pr/events/${event._id}`)}>
-                                <i className="ri-group-line"></i> Manage Attendance Session
-                            </button>
                         </div>
                     ))}
                 </div>

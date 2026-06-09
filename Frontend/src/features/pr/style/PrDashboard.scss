@@ -17,13 +17,53 @@
   .events-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
+    gap: 24px;
   }
 
   .pr-event-card {
-    background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; gap: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: transform 0.2s;
+    background: #ffffff; 
+    border: 1px solid #e2e8f0; 
+    border-radius: 12px; 
+    display: flex; 
+    flex-direction: column; 
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); 
+    transition: transform 0.2s;
+    overflow: hidden;
     
     &:hover { transform: translateY(-3px); }
+
+    .card-banner {
+      width: 100%;
+      height: 250px;
+      background: #f1f5f9;
+      border-bottom: 1px solid #e2e8f0;
+      
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      
+      &.placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #94a3b8;
+        gap: 8px;
+        i { font-size: 2rem; }
+        span { font-size: 0.85rem; font-weight: 500; }
+      }
+    }
+
+    .card-content-wrapper {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      flex-grow: 1;
+      gap: 20px;
+    }
 
     .card-info {
       h3 { margin: 0 0 12px 0; font-size: 1.25rem; color: #0f172a; }

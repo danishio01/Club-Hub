@@ -10,7 +10,12 @@ import {
     markEventCompleted,
     getPresidentEvents,
     approveEvent,
-    rejectEvent
+    rejectEvent,
+    getGrafikEvents,
+    getGrafikEventById,
+    generateEventBanner,
+    uploadCustomEventBanner,
+    approveEventBanner
 } from '../controllers/eventController.js';
 import { 
     registerForEvent, 
@@ -25,7 +30,7 @@ import {
     summarizeReviews
 } from '../controllers/registrationController.js';
 import { getLeaderboard, resetLeaderboard } from '../controllers/leaderboardController.js';
-import { protect, presidentOnly, prOnly, adminOnly, presidentOrAdmin } from '../middleware/authMiddleware.js';
+import { protect, presidentOnly, prOnly, adminOnly, presidentOrAdmin, grafikOnly } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -38,28 +43,29 @@ router.get('/student/certificates', protect, getAttendedEvents);
 router.get('/student/attendance-report', protect, getStudentAttendanceReport);
 router.get('/admin/attendance-report', getAdminAttendanceReport);
 
-// Event Management
 router.get('/president/all', protect, presidentOnly, getPresidentEvents);
 router.post('/', protect, presidentOnly, createEvent);
 router.patch('/:id/complete', protect, presidentOnly, markEventCompleted);
 router.put('/:id', protect, presidentOnly, updateEvent);
 router.delete('/:id', protect, presidentOnly, deleteEvent);
 
-// AI Features mapped for both President & Admin
 router.post('/:eventId/reviews/summary', protect, presidentOrAdmin, summarizeReviews);
 
-// Admin Event Approvals
 router.patch('/:id/approve', protect, adminOnly, approveEvent);
 router.patch('/:id/reject', protect, adminOnly, rejectEvent);
+
+router.get('/grafik/all', protect, grafikOnly, getGrafikEvents);
+router.get('/grafik/:id', protect, grafikOnly, getGrafikEventById);
+router.post('/:id/banner/generate', protect, grafikOnly, generateEventBanner);
+router.post('/:id/banner/upload', protect, grafikOnly, uploadCustomEventBanner);
+router.patch('/:id/banner/approve', protect, grafikOnly, approveEventBanner);
 
 router.get('/', getEvents);
 router.get('/:id', getEventById);
 
-// Attendance Management (PR Only)
 router.get('/:eventId/registrations', protect, getEventRegistrations); 
 router.get('/:eventId/qr-token', protect, prOnly, generateAttendanceToken);
 
-// Student Actions
 router.post('/:eventId/register', protect, registerForEvent);
 router.post('/:eventId/attendance', protect, markAttendance);
 router.post('/:eventId/review', protect, submitReview);

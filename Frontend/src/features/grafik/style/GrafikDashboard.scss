@@ -2,12 +2,20 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto;
 
   .header-section {
+    background: #ffffff;
+    padding: 24px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
     h1 { margin: 0 0 8px 0; font-size: 1.75rem; color: #0f172a; }
     p { margin: 0; color: #64748b; }
+  }
+
+  .loading-state {
+    padding: 40px; text-align: center; color: #64748b; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 8px;
   }
 
   .placeholder-container {
@@ -26,21 +34,107 @@
 
     .placeholder-icon {
       font-size: 4rem;
-      color: #c026d3; // Fuchsia accent for Grafik
+      color: #c026d3; 
       opacity: 0.8;
     }
 
-    h2 {
-      margin: 0;
-      color: #0f172a;
-      font-size: 1.5rem;
+    h2 { margin: 0; color: #0f172a; font-size: 1.5rem; }
+    p { margin: 0; font-size: 1.05rem; max-width: 400px; line-height: 1.5; }
+  }
+
+  .dashboard-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  .section-block {
+    .section-title {
+      font-size: 1.25rem;
+      margin: 0 0 16px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      
+      &.error { color: #dc2626; }
+      &.primary { color: #c026d3; }
+      &.warning { color: #854d0e; }
+      &.success { color: #16a34a; }
+    }
+  }
+
+  .grafik-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+  }
+
+  .grafik-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+
+    .card-info {
+      .club-badge { font-size: 0.75rem; font-weight: 700; color: #c026d3; text-transform: uppercase; }
+      .status-badge {
+        padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+        &.rejected { background: #fee2e2; color: #991b1b; }
+        &.pending { background: #fdf4ff; color: #a21caf; }
+        &.waiting { background: #fef08a; color: #854d0e; }
+        &.success { background: #dcfce7; color: #166534; }
+      }
+      h3 { margin: 0 0 8px 0; font-size: 1.25rem; color: #0f172a; line-height: 1.4; }
+      p { margin: 0; color: #64748b; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
     }
 
-    p {
-      margin: 0;
-      font-size: 1.05rem;
-      max-width: 400px;
-      line-height: 1.5;
+    .banner-preview {
+      width: 100%;
+      height: 250px;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #f1f5f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #e2e8f0;
+
+      img { width: 100%; height: 100%; object-fit: contain; }
+
+      &.empty {
+        border: 1px dashed #cbd5e1;
+        color: #94a3b8;
+        i { font-size: 2rem; margin-bottom: 8px; }
+        span { font-size: 0.85rem; font-weight: 500; }
+      }
+    }
+
+    .card-actions {
+      display: flex;
+      flex-direction: column;
+      margin-top: auto;
+
+      .btn-manage {
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        border: none;
+        transition: all 0.2s;
+        background: #0f172a;
+        color: white;
+
+        &:hover { background: #1e293b; }
+      }
     }
   }
 }

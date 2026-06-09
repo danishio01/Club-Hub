@@ -5,7 +5,7 @@ import AdminLayout from "../components/layout/AdminLayout";
 import StudentLayout from "../components/layout/StudentLayout";
 import PresidentLayout from "../components/layout/PresidentLayout";
 import PrLayout from "../components/layout/PrLayout";
-import GrafikLayout from "../components/layout/GrafikLayout"; // NEW
+import GrafikLayout from "../components/layout/GrafikLayout";
 import ErrorBoundary from "../components/common/ErrorBoundary";
 
 import Dashboard from "../features/dashboard/pages/Dashboard";
@@ -26,7 +26,8 @@ import AdminAiAgent from "../features/ai/pages/AdminAiAgent";
 import PresidentDashboard from "../features/president/pages/PresidentDashboard";
 import PrDashboard from "../features/pr/pages/PrDashboard";
 import PrEventManagement from "../features/pr/pages/PrEventManagement";
-import GrafikDashboard from "../features/grafik/pages/GrafikDashboard"; // NEW
+import GrafikDashboard from "../features/grafik/pages/GrafikDashboard";
+import GrafikEventBanner from "../features/grafik/pages/GrafikEventBanner"; // NEW
 
 import ReportEditor from "../features/reports/pages/ReportEditor";
 import AdminReportReview from "../features/reports/pages/AdminReportReview";
@@ -83,7 +84,8 @@ export const routes = createBrowserRouter([
         element: <GrafikLayout />,
         errorElement: <ErrorBoundary />,
         children: [
-            { path: "dashboard", element: <GrafikDashboard /> }
+            { path: "dashboard", element: <GrafikDashboard /> },
+            { path: "events/:eventId/banner", element: <GrafikEventBanner /> } // NEW
         ]
     },
     {
