@@ -64,6 +64,7 @@ const AddStudentModal = ({ onClose, onSuccess }) => {
                                     <option value="student">Student</option>
                                     <option value="president">President</option>
                                     <option value="pr">PR</option>
+                                    <option value="grafik">Grafik Team</option>
                                 </select>
                             </div>
                         </div>

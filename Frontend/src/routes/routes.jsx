@@ -5,6 +5,7 @@ import AdminLayout from "../components/layout/AdminLayout";
 import StudentLayout from "../components/layout/StudentLayout";
 import PresidentLayout from "../components/layout/PresidentLayout";
 import PrLayout from "../components/layout/PrLayout";
+import GrafikLayout from "../components/layout/GrafikLayout"; // NEW
 import ErrorBoundary from "../components/common/ErrorBoundary";
 
 import Dashboard from "../features/dashboard/pages/Dashboard";
@@ -25,8 +26,8 @@ import AdminAiAgent from "../features/ai/pages/AdminAiAgent";
 import PresidentDashboard from "../features/president/pages/PresidentDashboard";
 import PrDashboard from "../features/pr/pages/PrDashboard";
 import PrEventManagement from "../features/pr/pages/PrEventManagement";
+import GrafikDashboard from "../features/grafik/pages/GrafikDashboard"; // NEW
 
-// New Report Imports
 import ReportEditor from "../features/reports/pages/ReportEditor";
 import AdminReportReview from "../features/reports/pages/AdminReportReview";
 
@@ -53,7 +54,7 @@ export const routes = createBrowserRouter([
             { path: "events/:eventId", element: <EventDetails /> },
             { path: "leaderboard", element: <Leaderboard isAdmin={true} /> },
             { path: "attendance", element: <AdminAttendance /> },
-            { path: "reports", element: <AdminReportReview /> } // NEW
+            { path: "reports", element: <AdminReportReview /> } 
         ]
     },
     {
@@ -65,7 +66,7 @@ export const routes = createBrowserRouter([
             { path: "events", element: <Events /> },
             { path: "events/:eventId", element: <EventDetails /> },
             { path: "ai-agent", element: <AdminAiAgent /> },
-            { path: "reports/write/:eventId", element: <ReportEditor /> } // NEW
+            { path: "reports/write/:eventId", element: <ReportEditor /> } 
         ]
     },
     {
@@ -75,6 +76,14 @@ export const routes = createBrowserRouter([
         children: [
             { path: "dashboard", element: <PrDashboard /> },
             { path: "events/:eventId", element: <PrEventManagement /> }
+        ]
+    },
+    {
+        path: "/grafik",
+        element: <GrafikLayout />,
+        errorElement: <ErrorBoundary />,
+        children: [
+            { path: "dashboard", element: <GrafikDashboard /> }
         ]
     },
     {

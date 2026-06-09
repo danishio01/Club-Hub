@@ -68,7 +68,7 @@ const BulkImportModal = ({ onClose, onSuccess }) => {
                 
             } catch (error) {
                 console.error(error);
-                alert('Import failed. Please check your data formatting or ensure there are no duplicate USNs/Emails. Ensure role is one of: student, president, pr.');
+                alert('Import failed. Please check your data formatting or ensure there are no duplicate USNs/Emails. Ensure role is one of: student, president, pr, grafik.');
             } finally {
                 setIsLoading(false);
             }
@@ -89,7 +89,7 @@ const BulkImportModal = ({ onClose, onSuccess }) => {
                         <p style={{ fontSize: '0.875rem', color: '#64748b', lineHeight: '1.5' }}>
                             Upload an Excel file (.xlsx or .xls). Ensure the first row of your sheet contains these exact headers (lowercase): <br/><br/>
                             <strong>name, usn, email, department, semester, section, role, password</strong><br/><br/>
-                            <em>Note: 'role' must be exactly 'student', 'president', or 'pr'.</em>
+                            <em>Note: 'role' must be exactly 'student', 'president', 'pr', or 'grafik'.</em>
                         </p>
                         
                         <div className="form-group" style={{ marginTop: '16px' }}>

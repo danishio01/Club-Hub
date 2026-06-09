@@ -22,6 +22,7 @@ const PrLayout = () => {
                 const role = user.role?.toLowerCase();
                 if (role === 'student') navigate('/student/dashboard', { replace: true });
                 else if (role === 'president') navigate('/president/dashboard', { replace: true });
+                else if (role === 'grafik') navigate('/grafik/dashboard', { replace: true });
                 else if (role === 'admin') navigate('/admin/dashboard', { replace: true });
                 else navigate('/', { replace: true });
             }

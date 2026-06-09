@@ -23,6 +23,7 @@ const StudentLayout = () => {
                 const role = user.role?.toLowerCase();
                 if (role === 'president') navigate('/president/dashboard', { replace: true });
                 else if (role === 'pr') navigate('/pr/dashboard', { replace: true });
+                else if (role === 'grafik') navigate('/grafik/dashboard', { replace: true });
                 else if (role === 'admin') navigate('/admin/dashboard', { replace: true });
                 else navigate('/', { replace: true });
             }

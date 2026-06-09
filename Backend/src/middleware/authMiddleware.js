@@ -50,6 +50,14 @@ export const prOnly = (req, res, next) => {
     }
 };
 
+export const grafikOnly = (req, res, next) => {
+    if (req.user && req.user.role === 'grafik') {
+        next();
+    } else {
+        res.status(403).json({ success: false, message: 'Not authorized as Grafik Team' });
+    }
+};
+
 export const presidentOrAdmin = (req, res, next) => {
     if (req.user && (req.user.role === 'president' || req.user.role === 'admin')) {
         next();

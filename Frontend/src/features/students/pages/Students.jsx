@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getStudentsList, deleteStudentService } from '../service/studentService';
 import AddStudentModal from '../components/AddStudentModal';
@@ -22,19 +22,19 @@ const Students = () => {
     
     const [editingStudent, setEditingStudent] = useState(null);
 
-    const loadStudents = () => {
+    const loadStudents = useCallback(() => {
         dispatch(getStudentsList(semesterFilter, sectionFilter, departmentFilter, searchQuery));
-    };
+    }, [dispatch, semesterFilter, sectionFilter, departmentFilter, searchQuery]);
 
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
             loadStudents();
         }, 300);
         return () => clearTimeout(delayDebounceFn);
-    }, [dispatch, semesterFilter, sectionFilter, departmentFilter, searchQuery]);
+    }, [loadStudents]);
 
     const handleDelete = async (id) => {
-        if(window.confirm('Are you sure you want to delete this student?')) {
+        if(window.confirm('Are you sure you want to delete this user?')) {
             await deleteStudentService(id);
             loadStudents();
         }
@@ -121,7 +121,7 @@ const Students = () => {
                         {isLoading ? (
                             <tr><td colSpan="8" style={{textAlign: 'center'}}>Loading data...</td></tr>
                         ) : students.length === 0 ? (
-                            <tr><td colSpan="8" style={{textAlign: 'center'}}>No students found.</td></tr>
+                            <tr><td colSpan="8" style={{textAlign: 'center'}}>No users found.</td></tr>
                         ) : (
                             students.map(student => (
                                 <tr key={student._id}>
@@ -131,8 +131,8 @@ const Students = () => {
                                     <td>
                                         <span style={{ 
                                             padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, textTransform: 'capitalize',
-                                            backgroundColor: student.role === 'president' ? '#fef08a' : student.role === 'pr' ? '#e9d5ff' : '#f1f5f9',
-                                            color: student.role === 'president' ? '#854d0e' : student.role === 'pr' ? '#6b21a8' : '#475569'
+                                            backgroundColor: student.role === 'president' ? '#fef08a' : student.role === 'pr' ? '#e9d5ff' : student.role === 'grafik' ? '#fbcfe8' : '#f1f5f9',
+                                            color: student.role === 'president' ? '#854d0e' : student.role === 'pr' ? '#6b21a8' : student.role === 'grafik' ? '#831843' : '#475569'
                                         }}>
                                             {student.role}
                                         </span>
