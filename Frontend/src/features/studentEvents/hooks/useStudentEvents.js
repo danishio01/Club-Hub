@@ -11,8 +11,9 @@ export const useStudentEvents = () => {
         dispatch(getStudentEventsList());
     }, [dispatch]);
 
-    // Safe fallback to prevent crash if events is undefined
-    const safeEvents = Array.isArray(events) ? events : [];
+    const safeEvents = useMemo(() => {
+        return Array.isArray(events) ? events : [];
+    }, [events]);
 
     const { recommendedEvents, otherEvents } = useMemo(() => {
         if (safeEvents.length === 0) return { recommendedEvents: [], otherEvents: [] };
@@ -22,7 +23,6 @@ export const useStudentEvents = () => {
         const others = [];
 
         safeEvents.forEach(event => {
-            // Added safe check on event.tags
             const hasMatch = event.tags && Array.isArray(event.tags) 
                 ? event.tags.some(tag => userInterests.includes(tag))
                 : false;

@@ -70,7 +70,6 @@ export const getFeedbackAnalytics = async (req, res) => {
         registrations.forEach(reg => {
             reg.feedbackResponses.forEach(res => {
                 if (!questionStats[res.questionId]) {
-                    // Try to map back to original type from event template if possible to classify correctly
                     const templateQ = event.feedbackQuestions?.find(q => q.id === res.questionId);
                     const qType = templateQ ? templateQ.type : (typeof res.answer === 'number' ? 'rating' : (Array.isArray(res.answer) || ['Yes', 'No'].includes(res.answer) ? 'mcq' : 'paragraph'));
                     

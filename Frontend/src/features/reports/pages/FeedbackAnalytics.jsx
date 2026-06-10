@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../../api/axiosInstance';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import '../style/FeedbackAnalytics.scss';
 
 const FeedbackAnalytics = () => {
@@ -45,6 +43,75 @@ const FeedbackAnalytics = () => {
         }
     };
 
+    const parseMarkdownToNormalText = (text) => {
+        if (!text) return null;
+        const lines = text.split('\n');
+        let currentList = [];
+        const components = [];
+
+        const formatBoldText = (rawText) => {
+            let cleanText = rawText.replace(/^[-*•]\s*/, '').trim();
+            const boldRegex = /\*\*(.*?)\*\*/g;
+            const parts = [];
+            let lastIndex = 0;
+            let match;
+            
+            while ((match = boldRegex.exec(cleanText)) !== null) {
+                if (match.index > lastIndex) {
+                    parts.push(cleanText.substring(lastIndex, match.index));
+                }
+                parts.push(<strong key={`bold-${match.index}`}>{match[1]}</strong>);
+                lastIndex = boldRegex.lastIndex;
+            }
+            if (lastIndex < cleanText.length) {
+                parts.push(cleanText.substring(lastIndex));
+            }
+            return parts.length > 0 ? parts : cleanText;
+        };
+
+        lines.forEach((line, index) => {
+            const trimmed = line.trim();
+            if (!trimmed) return;
+
+            const isHeader = trimmed.startsWith('###') || 
+                             trimmed.startsWith('🌟') || 
+                             trimmed.startsWith('📈') || 
+                             trimmed.startsWith('💡') || 
+                             trimmed.startsWith('🗣️') || 
+                             trimmed.startsWith('📊') ||
+                             trimmed.toLowerCase().includes('strengths') ||
+                             trimmed.toLowerCase().includes('weaknesses') ||
+                             trimmed.toLowerCase().includes('suggestions') ||
+                             trimmed.toLowerCase().includes('praises') ||
+                             trimmed.toLowerCase().includes('sentiment');
+
+            if (isHeader) {
+                if (currentList.length > 0) {
+                    components.push(<ul key={`list-${index}`} style={{ paddingLeft: '20px', margin: '8px 0' }}>{currentList}</ul>);
+                    currentList = [];
+                }
+                const headingText = trimmed.replace(/^###\s*/, '').replace(/\*\*/g, '').trim();
+                components.push(<h3 key={`h3-${index}`} style={{ margin: '18px 0 8px 0', fontSize: '1.15rem', color: '#0f172a', fontWeight: '700' }}>{headingText}</h3>);
+            } else if (trimmed.startsWith('-') || trimmed.startsWith('*') || trimmed.startsWith('•')) {
+                const formatted = formatBoldText(trimmed);
+                currentList.push(<li key={`li-${index}`} style={{ marginBottom: '6px', fontSize: '0.95rem', color: '#475569', lineHeight: '1.5' }}>{formatted}</li>);
+            } else {
+                if (currentList.length > 0) {
+                    components.push(<ul key={`list-${index}`} style={{ paddingLeft: '20px', margin: '8px 0' }}>{currentList}</ul>);
+                    currentList = [];
+                }
+                const formatted = formatBoldText(trimmed);
+                components.push(<p key={`p-${index}`} style={{ margin: '0 0 8px 0', fontSize: '0.95rem', color: '#475569', lineHeight: '1.5' }}>{formatted}</p>);
+            }
+        });
+
+        if (currentList.length > 0) {
+            components.push(<ul key={`list-final`} style={{ paddingLeft: '20px', margin: '8px 0' }}>{currentList}</ul>);
+        }
+
+        return components;
+    };
+
     if (isLoading) return <div className="loading-state">Loading Feedback Analytics...</div>;
 
     if (!analytics || analytics.total === 0) {
@@ -80,8 +147,8 @@ const FeedbackAnalytics = () => {
                 </div>
                 
                 <div className="ai-trigger-box">
-                    <h3>AI Feedback Synthesis</h3>
-                    <p>Generate actionable insights from all responses combined.</p>
+                    <h3>AI Feedback Summary</h3>
+                    <p>Generate actionable insights holistically from all responses combined.</p>
                     <button className="btn-ai" onClick={handleSummarize} disabled={isSummarizing}>
                         {isSummarizing ? <><i className="ri-loader-4-line spin"></i> Processing...</> : <><i className="ri-magic-line"></i> Generate Insights</>}
                     </button>
@@ -94,9 +161,7 @@ const FeedbackAnalytics = () => {
                         <i className="ri-sparkling-fill"></i> AI Generated Synthesis
                     </div>
                     <div className="ai-content">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {aiSummary}
-                        </ReactMarkdown>
+                        {parseMarkdownToNormalText(aiSummary)}
                     </div>
                 </div>
             )}

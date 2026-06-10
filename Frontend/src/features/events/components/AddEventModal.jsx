@@ -234,18 +234,22 @@ const AddEventModal = ({ onClose, onSuccess }) => {
         }
     }, [dispatch, user]);
 
-    useEffect(() => {
-        if (formData.feedbackTemplateType === 'default') {
-            setFormData(prev => ({ ...prev, feedbackQuestions: JSON.parse(JSON.stringify(DEFAULT_FEEDBACK_QUESTIONS)) }));
-        } else {
-            setFormData(prev => ({ ...prev, feedbackQuestions: [] }));
-        }
-    }, [formData.feedbackTemplateType]);
-
     const activeClubs = clubs.filter(c => c.isActive);
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        if (name === 'feedbackTemplateType') {
+            const initialQuestions = value === 'default'
+                ? JSON.parse(JSON.stringify(DEFAULT_FEEDBACK_QUESTIONS))
+                : [];
+            setFormData(prev => ({
+                ...prev,
+                feedbackTemplateType: value,
+                feedbackQuestions: initialQuestions
+            }));
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
     };
 
     const handleTagChange = (tag) => {
@@ -432,7 +436,7 @@ const AddEventModal = ({ onClose, onSuccess }) => {
 
                         <FeedbackBuilder 
                             questions={formData.feedbackQuestions}
-                            setQuestions={(newQ) => setFormData({ ...formData, feedbackQuestions: newQ })}
+                            setQuestions={(newQ) => setFormData(prev => ({ ...prev, feedbackQuestions: newQ }))}
                         />
                         
                         <div className="modal-footer" style={{ padding: '20px 0 0 0', marginTop: '20px', borderTop: '1px solid #e2e8f0', background: 'transparent' }}>

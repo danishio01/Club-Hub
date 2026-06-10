@@ -13,6 +13,7 @@ const ReportEditor = () => {
     const [event, setEvent] = useState(null);
     const [registrations, setRegistrations] = useState([]);
     const [analytics, setAnalytics] = useState(null);
+    const [aiSummary, setAiSummary] = useState(null);
 
     const [content, setContent] = useState({
         activityName: '', thrustArea: '', level: '', semester: '', quarter: '', date: '', duration: '',
@@ -35,11 +36,15 @@ const ReportEditor = () => {
                 const regData = await getEventRegistrationsApi(eventId);
                 
                 let analyticsData = null;
+                let summaryText = null;
                 try {
                     const res = await axiosInstance.get(`/feedback/analytics/${eventId}`);
                     analyticsData = res.data.data;
+                    
+                    const summaryRes = await axiosInstance.post(`/feedback/analytics/${eventId}/summary`);
+                    summaryText = summaryRes.data.data;
                 } catch (e) {
-                    console.error("No analytics found", e);
+                    console.error("No feedback data compiled for report preview", e);
                 }
 
                 if (isMounted) {
@@ -47,6 +52,7 @@ const ReportEditor = () => {
                     setEvent(evData);
                     setRegistrations(regData);
                     setAnalytics(analyticsData);
+                    setAiSummary(summaryText);
 
                     if (data.content) {
                         setContent(prev => ({
@@ -127,6 +133,75 @@ const ReportEditor = () => {
                 setIsSaving(false);
             }
         }
+    };
+
+    const parseMarkdownToNormalText = (text) => {
+        if (!text) return null;
+        const lines = text.split('\n');
+        let currentList = [];
+        const components = [];
+
+        const formatBoldText = (rawText) => {
+            let cleanText = rawText.replace(/^[-*•]\s*/, '').trim();
+            const boldRegex = /\*\*(.*?)\*\*/g;
+            const parts = [];
+            let lastIndex = 0;
+            let match;
+            
+            while ((match = boldRegex.exec(cleanText)) !== null) {
+                if (match.index > lastIndex) {
+                    parts.push(cleanText.substring(lastIndex, match.index));
+                }
+                parts.push(<strong key={`bold-${match.index}`}>{match[1]}</strong>);
+                lastIndex = boldRegex.lastIndex;
+            }
+            if (lastIndex < cleanText.length) {
+                parts.push(cleanText.substring(lastIndex));
+            }
+            return parts.length > 0 ? parts : cleanText;
+        };
+
+        lines.forEach((line, index) => {
+            const trimmed = line.trim();
+            if (!trimmed) return;
+
+            const isHeader = trimmed.startsWith('###') || 
+                             trimmed.startsWith('🌟') || 
+                             trimmed.startsWith('📈') || 
+                             trimmed.startsWith('💡') || 
+                             trimmed.startsWith('🗣️') || 
+                             trimmed.startsWith('📊') ||
+                             trimmed.toLowerCase().includes('strengths') ||
+                             trimmed.toLowerCase().includes('weaknesses') ||
+                             trimmed.toLowerCase().includes('suggestions') ||
+                             trimmed.toLowerCase().includes('praises') ||
+                             trimmed.toLowerCase().includes('sentiment');
+
+            if (isHeader) {
+                if (currentList.length > 0) {
+                    components.push(<ul key={`list-${index}`} style={{ paddingLeft: '20px', margin: '8px 0' }}>{currentList}</ul>);
+                    currentList = [];
+                }
+                const headingText = trimmed.replace(/^###\s*/, '').replace(/\*\*/g, '').trim();
+                components.push(<h3 key={`h3-${index}`} style={{ margin: '14px 0 8px 0', fontSize: '1.1rem', color: '#0f172a' }}>{headingText}</h3>);
+            } else if (trimmed.startsWith('-') || trimmed.startsWith('*') || trimmed.startsWith('•')) {
+                const formatted = formatBoldText(trimmed);
+                currentList.push(<li key={`li-${index}`} style={{ marginBottom: '4px', fontSize: '0.95rem' }}>{formatted}</li>);
+            } else {
+                if (currentList.length > 0) {
+                    components.push(<ul key={`list-${index}`}>{currentList}</ul>);
+                    currentList = [];
+                }
+                const formatted = formatBoldText(trimmed);
+                components.push(<p key={`p-${index}`} style={{ margin: '0 0 8px 0', fontSize: '0.95rem', lineHeight: '1.5' }}>{formatted}</p>);
+            }
+        });
+
+        if (currentList.length > 0) {
+            components.push(<ul key={`list-final`}>{currentList}</ul>);
+        }
+
+        return components;
     };
 
     if (isLoading) return <div className="loading-state">Initializing Report Platform...</div>;
@@ -224,86 +299,90 @@ const ReportEditor = () => {
                 {renderTextarea('13. Summary', 'summary', 'Describe the execution flow, sessions, and implementations...')}
                 {renderTextarea('14. Benefits', 'benefits', 'Explain knowledge gained, skills developed, innovation exposure...')}
 
-                <h3 className="section-title">C. Attachments & Proofs (Data Preview)</h3>
+                <h3 className="section-title">C. Attachments & Proofs Evidence Preview</h3>
                 
-                <div className="preview-block">
-                    <h4>1. Event Flyer</h4>
+                <div className="preview-block" style={{ marginBottom: '24px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '1rem', color: '#0f172a' }}>1. Event Flyer</h4>
                     {event.bannerUrl ? (
-                        <img src={event.bannerUrl} alt="Flyer" style={{ maxHeight: '200px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                        <img src={event.bannerUrl} alt="Flyer Evidence" style={{ maxHeight: '250px', maxWidth: '100%', borderRadius: '6px', border: '1px solid #e2e8f0' }} />
                     ) : (
-                        <div className="preview-empty">Not Uploaded</div>
+                        <div style={{ color: '#dc2626', fontWeight: 600 }}>Not Uploaded</div>
                     )}
                 </div>
 
-                <div className="preview-block">
-                    <h4>2. Post Event Photos (Gallery)</h4>
+                <div className="preview-block" style={{ marginBottom: '24px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '1rem', color: '#0f172a' }}>2. Photo Collage Gallery</h4>
                     {event.gallery && event.gallery.length > 0 ? (
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                             {event.gallery.map(img => (
-                                <img key={img.fileId} src={img.url} alt="Gallery" style={{ height: '80px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
+                                <img key={img.fileId} src={img.url} alt="Gallery Snapshot" style={{ height: '90px', width: '90px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
                             ))}
                         </div>
                     ) : (
-                        <div className="preview-empty">Post-event photos not uploaded.</div>
+                        <div style={{ color: '#dc2626', fontWeight: 600 }}>Post-event photos not uploaded.</div>
                     )}
                 </div>
 
-                <div className="preview-block">
-                    <h4>3. Attendance & Registration Sheet</h4>
-                    <div style={{ display: 'flex', gap: '16px', marginBottom: '12px' }}>
-                        <span style={{background: '#f1f5f9', padding: '4px 10px', borderRadius: '4px'}}>Total: <strong>{registrations.length}</strong></span>
-                        <span style={{background: '#dcfce7', padding: '4px 10px', borderRadius: '4px', color: '#166534'}}>Present: <strong>{presentCount}</strong></span>
-                        <span style={{background: '#fee2e2', padding: '4px 10px', borderRadius: '4px', color: '#991b1b'}}>Absent: <strong>{absentCount}</strong></span>
+                <div className="preview-block" style={{ marginBottom: '24px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '1rem', color: '#0f172a' }}>3. Attendance Sheet Sync</h4>
+                    <div style={{ display: 'flex', gap: '16px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                        <span style={{background: 'white', padding: '6px 12px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.9rem'}}>Registered Count: <strong>{registrations.length}</strong></span>
+                        <span style={{background: '#dcfce7', padding: '6px 12px', borderRadius: '4px', color: '#166534', fontSize: '0.9rem', fontWeight: 500}}>Present Count: <strong>{presentCount}</strong></span>
+                        <span style={{background: '#fee2e2', padding: '6px 12px', borderRadius: '4px', color: '#991b1b', fontSize: '0.9rem', fontWeight: 500}}>Absent Count: <strong>{absentCount}</strong></span>
                     </div>
                     {registrations.length > 0 ? (
-                        <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                        <div style={{ overflowX: 'auto', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                                <thead style={{ background: '#f8fafc' }}>
+                                <thead style={{ background: '#f1f5f9' }}>
                                     <tr>
-                                        <th style={{ padding: '8px', textAlign: 'left' }}>Student Name</th>
-                                        <th style={{ padding: '8px', textAlign: 'left' }}>USN</th>
-                                        <th style={{ padding: '8px', textAlign: 'left' }}>Dept</th>
-                                        <th style={{ padding: '8px', textAlign: 'left' }}>Registration</th>
-                                        <th style={{ padding: '8px', textAlign: 'left' }}>Attendance</th>
+                                        <th style={{ padding: '10px', textAlign: 'left' }}>Student Name</th>
+                                        <th style={{ padding: '10px', textAlign: 'left' }}>USN</th>
+                                        <th style={{ padding: '10px', textAlign: 'left' }}>Registration Status</th>
+                                        <th style={{ padding: '10px', textAlign: 'left' }}>Attendance Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {registrations.slice(0, 5).map(reg => (
+                                    {registrations.map(reg => (
                                         <tr key={reg._id} style={{ borderTop: '1px solid #e2e8f0' }}>
-                                            <td style={{ padding: '8px' }}>{reg.student?.name}</td>
-                                            <td style={{ padding: '8px' }}>{reg.student?.usn}</td>
-                                            <td style={{ padding: '8px' }}>{reg.student?.department}</td>
-                                            <td style={{ padding: '8px' }}>Registered</td>
-                                            <td style={{ padding: '8px', color: reg.status === 'Attended' ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
+                                            <td style={{ padding: '10px' }}>{reg.student?.name}</td>
+                                            <td style={{ padding: '10px', fontFamily: 'monospace' }}>{reg.student?.usn}</td>
+                                            <td style={{ padding: '10px' }}>Registered</td>
+                                            <td style={{ padding: '10px', color: reg.status === 'Attended' ? '#16a34a' : '#dc2626', fontWeight: 700 }}>
                                                 {reg.status === 'Attended' ? 'Present' : 'Absent'}
                                             </td>
                                         </tr>
                                     ))}
-                                    {registrations.length > 5 && <tr><td colSpan="5" style={{ padding: '8px', textAlign: 'center', color: '#64748b' }}>+{registrations.length - 5} more entries...</td></tr>}
                                 </tbody>
                             </table>
                         </div>
                     ) : (
-                        <div className="preview-empty">No registrations available.</div>
+                        <div style={{ color: '#64748b', fontStyle: 'italic' }}>No registrations available.</div>
                     )}
                 </div>
 
-                <div className="preview-block">
-                    <h4>4. Feedback Analytics</h4>
+                <div className="preview-block" style={{ marginBottom: '24px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '1rem', color: '#0f172a' }}>4. Feedback Analytics Overview</h4>
                     {analytics && analytics.total > 0 ? (
-                        <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                            <p style={{ margin: '0 0 8px 0', fontWeight: 600 }}>Total Feedback Submissions: {analytics.total}</p>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
                                 {analytics.analytics.filter(q => q.type === 'rating').map(q => (
-                                    <div key={q.id} style={{ background: 'white', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.85rem' }}>
-                                        <div style={{ color: '#475569', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{q.text}</div>
-                                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{q.average} ⭐</div>
+                                    <div key={q.id} style={{ background: 'white', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}>
+                                        <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>{q.text}</div>
+                                        <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a' }}>{q.average} ⭐</div>
                                     </div>
                                 ))}
                             </div>
+                            {aiSummary && (
+                                <div style={{ background: 'white', padding: '16px', border: '1px solid #cbd5e1', borderRadius: '6px', lineBreak: 'auto' }}>
+                                    <div style={{ fontWeight: 700, color: '#c026d3', marginBottom: '8px' }}><i className="ri-sparkling-fill"></i> AI Feedback Synthesis Preview</div>
+                                    <div style={{ fontSize: '0.95rem', color: '#334155', lineHeight: '1.6' }}>
+                                        {parseMarkdownToNormalText(aiSummary)}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ) : (
-                        <div className="preview-empty">No feedback submitted for this event.</div>
+                        <div style={{ color: '#64748b', fontStyle: 'italic' }}>No feedback submitted for this event.</div>
                     )}
                 </div>
 

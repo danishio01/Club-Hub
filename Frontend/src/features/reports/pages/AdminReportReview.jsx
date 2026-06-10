@@ -76,7 +76,7 @@ const AdminReportReview = () => {
 
                     <hr className="divider" />
                     <div className="report-block">
-                        <h4>Attachments & Proofs</h4>
+                        <h4>C. Attachments & Proofs Evidence Overview</h4>
                         <p className="no-data">Event Flyer, Photo Gallery, Attendance Sheet, and Feedback Analytics are automatically compiled and embedded in the generated PDF.</p>
                     </div>
 

@@ -11,6 +11,7 @@
   align-items: center;
   z-index: 1000;
   padding: 20px;
+  box-sizing: border-box;
 }
 
 .modal-container {
@@ -163,6 +164,46 @@
   gap: 16px;
 }
 
+.form-row {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
+  
+  label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #334155;
+  }
+  
+  input, select, textarea {
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+    
+    &:focus {
+      border-color: #2563eb;
+    }
+  }
+}
+
 .modal-footer {
   padding: 16px 24px;
   border-top: 1px solid #e2e8f0;
@@ -210,6 +251,8 @@
   padding: 20px;
   border-radius: 8px;
   border: 1px solid #cbd5e1;
+  width: 100%;
+  box-sizing: border-box;
 
   .question-card {
     background: #ffffff;
@@ -220,13 +263,17 @@
     flex-direction: column;
     gap: 12px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-    overflow-x: hidden;
+    overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
 
     .question-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 8px;
+      flex-wrap: wrap;
+      gap: 12px;
       
       span { font-weight: 600; color: #475569; font-size: 0.85rem; text-transform: uppercase; }
       
@@ -261,6 +308,8 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
+      box-sizing: border-box;
+      width: 100%;
 
       .threshold-row {
         display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
@@ -273,13 +322,15 @@
         border: 1px solid #cbd5e1;
         padding: 16px;
         border-radius: 6px;
+        box-sizing: border-box;
+        width: 100%;
 
         h4 { margin: 0 0 12px 0; font-size: 0.9rem; color: #0f172a; }
 
         .followup-item {
-          display: flex; gap: 8px; margin-bottom: 12px;
-          input { flex: 1; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px; outline: none; box-sizing: border-box; }
-          button { background: #f1f5f9; color: #dc2626; border: 1px solid #e2e8f0; padding: 0 10px; border-radius: 4px; cursor: pointer; }
+          display: flex; gap: 8px; margin-bottom: 12px; width: 100%;
+          input { flex: 1; min-width: 0; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px; outline: none; box-sizing: border-box; }
+          button { background: #f1f5f9; color: #dc2626; border: 1px solid #e2e8f0; padding: 0 10px; border-radius: 4px; cursor: pointer; flex-shrink: 0; }
         }
 
         .btn-add-followup {
@@ -290,12 +341,12 @@
     }
 
     .options-section {
-      display: flex; flex-direction: column; gap: 8px;
+      display: flex; flex-direction: column; gap: 8px; width: 100%; box-sizing: border-box;
       .option-row {
-        display: flex; gap: 8px;
-        .move-controls.small { display: flex; flex-direction: column; gap: 2px; button { background: none; border: none; font-size: 0.7rem; color: #94a3b8; cursor: pointer; padding: 0; &:hover:not(:disabled) { color: #0f172a; } &:disabled { opacity: 0.3; } } }
-        input { flex: 1; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; outline: none; }
-        button { background: #fee2e2; color: #dc2626; border: none; padding: 0 10px; border-radius: 4px; cursor: pointer; }
+        display: flex; gap: 8px; align-items: center; width: 100%;
+        .move-controls.small { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; button { background: none; border: none; font-size: 0.7rem; color: #94a3b8; cursor: pointer; padding: 0; &:hover:not(:disabled) { color: #0f172a; } &:disabled { opacity: 0.3; } } }
+        input { flex: 1; min-width: 0; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; outline: none; }
+        button { background: #fee2e2; color: #dc2626; border: none; padding: 0 10px; border-radius: 4px; cursor: pointer; height: 34px; flex-shrink: 0; }
       }
       .btn-add-option {
         align-self: flex-start; background: #eff6ff; color: #2563eb; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;
@@ -306,7 +357,7 @@
   .builder-actions {
     display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px;
     button {
-      background: #ffffff; border: 1px solid #cbd5e1; color: #0f172a; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 6px;
+      background: #ffffff; border: 1px solid #cbd5e1; color: #0f172a; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 6px;
       &:hover { background: #f1f5f9; }
     }
   }
@@ -345,7 +396,7 @@
     justify-content: center;
   }
   
-  .builder-actions button {
+  .builder-actions button, .modal-footer button {
     flex: 1;
     justify-content: center;
   }
