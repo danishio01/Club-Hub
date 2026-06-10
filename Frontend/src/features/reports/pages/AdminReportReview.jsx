@@ -48,7 +48,9 @@ const AdminReportReview = () => {
                 <div className="modal-header">
                     <div>
                         <h2>{selectedReport.event?.title}</h2>
-                        <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>Submitted by {selectedReport.president?.name} ({selectedReport.club?.name})</p>
+                        <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem', textTransform: 'capitalize' }}>
+                            Submitted by {selectedReport.president?.name} ({selectedReport.president?.role}) from {selectedReport.club?.name}
+                        </p>
                     </div>
                     <button className="close-btn" onClick={() => setSelectedReport(null)}><i className="ri-close-line"></i></button>
                 </div>
@@ -173,8 +175,8 @@ const AdminReportReview = () => {
                             <div className="meta-text">
                                 <i className="ri-team-line"></i> {report.club?.name}
                             </div>
-                            <div className="meta-text">
-                                <i className="ri-user-line"></i> {report.president?.name}
+                            <div className="meta-text" style={{ textTransform: 'capitalize' }}>
+                                <i className="ri-user-line"></i> Submitted by {report.president?.name} ({report.president?.role})
                             </div>
                             <button className="btn-primary outline" onClick={() => {
                                 setSelectedReport(report);

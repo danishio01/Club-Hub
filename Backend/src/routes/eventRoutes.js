@@ -50,13 +50,13 @@ router.get('/admin/attendance-report', getAdminAttendanceReport);
 
 router.get('/president/all', protect, presidentOrClubMember, getPresidentEvents);
 router.post('/', protect, presidentClubMemberOrAdmin, createEvent);
-router.patch('/:id/complete', protect, presidentOnly, markEventCompleted);
+router.patch('/:id/complete', protect, presidentOrClubMember, markEventCompleted);
 router.put('/:id', protect, presidentOrClubMember, updateEvent);
 router.delete('/:id', protect, presidentOrClubMember, deleteEvent);
 router.patch('/:id/proposal/approve', protect, presidentOnly, approveClubMemberProposal);
 router.patch('/:id/proposal/reject', protect, presidentOnly, rejectClubMemberProposal);
 
-router.post('/:eventId/reviews/summary', protect, presidentOrAdmin, summarizeReviews);
+router.post('/:eventId/reviews/summary', protect, presidentClubMemberOrAdmin, summarizeReviews);
 
 router.patch('/:id/approve', protect, adminOnly, approveEvent);
 router.patch('/:id/reject', protect, adminOnly, rejectEvent);

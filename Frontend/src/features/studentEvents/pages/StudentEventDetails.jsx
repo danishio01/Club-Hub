@@ -213,14 +213,14 @@ const StudentEventDetails = () => {
                 </div>
 
                 <div className="action-card">
-                    <div>
+                    <div className="action-row">
                         <span className="action-label">Entry Fee</span>
                         <span className={`action-value ${event.eventType === 'Free' ? 'free' : 'paid'}`}>
                             {event.eventType === 'Free' ? 'Free' : `₹${event.price}`}
                         </span>
                     </div>
                     
-                    <div>
+                    <div className="action-row">
                         <span className="action-label">Capacity</span>
                         <span className="action-value capacity">
                             {event.currentRegistrations} / {event.maxParticipants} Spots Filled
@@ -228,8 +228,8 @@ const StudentEventDetails = () => {
                     </div>
 
                     {event.isRegistered && event.attendanceStatus !== 'Attended' && event.attendanceStatus !== 'Scanned' && (
-                        <div className="scanner-trigger-section">
-                            <p>At the venue? Scan the QR code displayed by the PR officer.</p>
+                        <div className="action-row scanner-trigger-section">
+                            <p className="scanner-instruction">At the venue? Scan the QR code displayed by the PR officer.</p>
                             <button className="btn-scan" onClick={() => setIsScannerOpen(true)}>
                                 <i className="ri-qr-scan-2-line"></i> Scan Attendance QR
                             </button>

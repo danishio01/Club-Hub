@@ -130,7 +130,7 @@ const Clubs = () => {
                                 {club.members?.length > 0 ? (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                         {club.members.map(member => (
-                                            <div key={member._id} style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '8px' }}>
+                                            <div key={member._id} className="member-item">
                                                 <div>
                                                     <div style={{ fontWeight: 600, color: '#0f172a' }}>{member.name}</div>
                                                     <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{member.usn} - {member.department}</div>
@@ -144,14 +144,18 @@ const Clubs = () => {
                                 ) : (
                                     <div style={{ color: '#94a3b8', fontSize: '0.9rem' }}>No club members assigned.</div>
                                 )}
-                                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                                    <select value={selectedStudents[club._id] || ''} onChange={(e) => setSelectedStudents(prev => ({ ...prev, [club._id]: e.target.value }))} style={{ flex: 1, border: '1px solid #cbd5e1', borderRadius: '6px', padding: '8px' }}>
+                                <div className="add-member-container">
+                                    <select 
+                                        className="member-select"
+                                        value={selectedStudents[club._id] || ''} 
+                                        onChange={(e) => setSelectedStudents(prev => ({ ...prev, [club._id]: e.target.value }))}
+                                    >
                                         <option value="">Select student</option>
                                         {getAvailableStudents(club).map(student => (
                                             <option key={student._id} value={student._id}>{student.name} ({student.usn})</option>
                                         ))}
                                     </select>
-                                    <button className="btn-primary" onClick={() => handleAddMember(club._id)} style={{ padding: '8px 12px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>
+                                    <button className="btn-primary add-btn" onClick={() => handleAddMember(club._id)}>
                                         Add
                                     </button>
                                 </div>

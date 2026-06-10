@@ -147,10 +147,8 @@ export const updateEvent = async (req, res) => {
             if (!ownsCreatedEvent(eventToUpdate, req.user) || eventToUpdate.club._id.toString() !== req.memberClub._id.toString()) {
                 return res.status(403).json({ message: 'Unauthorized: You do not own this proposal.' });
             }
-            if (!['pending_president', 'president_rejected', 'rejected'].includes(eventToUpdate.status)) {
-                return res.status(400).json({ message: 'Only pending or rejected proposals can be edited.' });
-            }
             delete updateData.club;
+            
             updateData.status = 'pending_president';
             updateData.rejectedReason = null;
             updateData.rejectedBy = null;
@@ -180,9 +178,6 @@ export const deleteEvent = async (req, res) => {
             if (!eventToDelete) return res.status(404).json({ message: 'Event not found' });
             if (!ownsCreatedEvent(eventToDelete, req.user) || eventToDelete.club._id.toString() !== req.memberClub._id.toString()) {
                 return res.status(403).json({ message: 'Unauthorized: You do not own this proposal.' });
-            }
-            if (!['pending_president', 'president_rejected', 'rejected'].includes(eventToDelete.status)) {
-                return res.status(400).json({ message: 'Only pending or rejected proposals can be deleted.' });
             }
         }
 
@@ -268,6 +263,15 @@ export const markEventCompleted = async (req, res) => {
             const eventToComplete = await Event.findById(id).populate('club');
             if (!eventToComplete) return res.status(404).json({ message: 'Event not found' });
             if (!ownsClubEvent(eventToComplete, req.user)) {
+                return res.status(403).json({ message: 'Unauthorized.' });
+            }
+            if (eventToComplete.status !== 'approved') {
+                return res.status(400).json({ message: 'Only approved events can be marked as completed.' });
+            }
+        } else if (req.memberClub) {
+            const eventToComplete = await Event.findById(id).populate('club');
+            if (!eventToComplete) return res.status(404).json({ message: 'Event not found' });
+            if (!ownsCreatedEvent(eventToComplete, req.user) || eventToComplete.club._id.toString() !== req.memberClub._id.toString()) {
                 return res.status(403).json({ message: 'Unauthorized.' });
             }
             if (eventToComplete.status !== 'approved') {

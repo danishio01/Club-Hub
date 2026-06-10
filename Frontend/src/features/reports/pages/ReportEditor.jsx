@@ -156,6 +156,9 @@ const ReportEditor = () => {
                     <span className={`status-badge ${report.status}`}>{report.status}</span>
                     <h1>Institutional Event Report</h1>
                     <p>Documenting: <strong>{report.event?.title}</strong></p>
+                    <p style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '4px' }}>
+                        Last updated by: <strong>{report.president?.name}</strong> ({report.president?.usn}) - <span style={{textTransform: 'capitalize'}}>{report.president?.role}</span>
+                    </p>
                 </div>
                 <div className="header-actions">
                     <button className="btn-secondary" onClick={() => navigate(-1)}>Back</button>

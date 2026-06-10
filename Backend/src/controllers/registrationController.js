@@ -43,13 +43,17 @@ export const getEventRegistrations = async (req, res) => {
     try {
         const { eventId } = req.params;
 
+        const event = await Event.findById(eventId).populate('club');
+        if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+
         if (req.user?.isClubMember) {
-            return res.status(403).json({ success: false, message: 'Club members do not have access to attendance registrations.' });
-        }
-        
-        if (req.user.role === 'president') {
-            const event = await Event.findById(eventId).populate('club');
-            if (!event || event.club?.president?.toString() !== req.user._id.toString()) {
+            if (event.creator?.student?.toString() !== req.user._id.toString()) {
+                return res.status(403).json({ success: false, message: 'Club members can only view registrations for their own events.' });
+            }
+        } else if (req.user.role === 'student') {
+            return res.status(403).json({ success: false, message: 'Students do not have access to attendance registrations.' });
+        } else if (req.user.role === 'president') {
+            if (event.club?.president?.toString() !== req.user._id.toString()) {
                 return res.status(403).json({ success: false, message: 'Unauthorized: You do not have permission to view this club\'s registrations.' });
             }
         }
@@ -322,6 +326,13 @@ export const getEventReviews = async (req, res) => {
 
 export const summarizeReviews = async (req, res) => {
     try {
+        if (req.user?.isClubMember) {
+            const event = await Event.findById(req.params.eventId);
+            if (event && event.creator?.student?.toString() !== req.user._id.toString()) {
+                return res.status(403).json({ success: false, message: 'Unauthorized: You can only summarize reviews for your own events.' });
+            }
+        }
+
         const reviews = await Registration.find({ event: req.params.eventId, review: { $exists: true, $ne: "" } });
         if (reviews.length === 0) return res.status(400).json({ success: false, message: 'No written reviews to summarize.' });
 

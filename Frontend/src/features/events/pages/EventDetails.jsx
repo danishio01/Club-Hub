@@ -189,10 +189,11 @@ const EventDetails = () => {
     const isPendingAdmin = event.status === 'pending_admin';
     const isRejected = event.status === 'rejected' || event.status === 'president_rejected';
     const isBannerRejected = event.status === 'banner_rejected';
+    
     const creatorId = typeof event.creator?.student === 'object' ? event.creator?.student?._id : event.creator?.student;
     const isOwnClubMemberProposal = user?.isClubMember && creatorId === user?._id;
     const canManage = user?.role === 'admin' || user?.role === 'president' || isOwnClubMemberProposal;
-    const canEditDelete = user?.role === 'president' || (isOwnClubMemberProposal && ['pending_president', 'president_rejected', 'rejected'].includes(event.status));
+    const canEditDelete = user?.role === 'president' || isOwnClubMemberProposal;
 
     const statusLabel = isPendingPresident ? 'Pending President' : isReview ? 'Pending Grafik' : isPendingAdmin ? 'Pending Admin' : isBannerRejected ? 'Banner Rejected' : event.status === 'president_rejected' ? 'President Rejected' : event.status;
 
@@ -275,14 +276,14 @@ const EventDetails = () => {
                     </div>
                     <p>Organized by {event?.club?.name || 'Unknown/Deleted Club'}</p>
                     <p style={{ marginTop: '4px', color: '#475569' }}>
-                        Created by <strong>{event.creator?.name || 'Unknown'}</strong> ({event.creator?.usn || 'N/A'}) as <strong>{event.creator?.role || 'N/A'}</strong>
+                        Created by <strong>{event.creator?.name || 'Unknown'}</strong> ({event.creator?.usn || 'N/A'}) as <strong style={{ textTransform: 'capitalize' }}>{event.creator?.role || 'N/A'}</strong>
                     </p>
                 </div>
                 
                 <div className="details-actions">
                     <button className="btn-secondary" onClick={() => navigate(-1)}>Back</button>
 
-                    {user?.role === 'president' && isCompleted && (
+                    {(user?.role === 'president' || isOwnClubMemberProposal) && isCompleted && (
                         <button className="btn-primary report-btn" onClick={() => navigate(`/president/reports/write/${event._id}`)}>
                             <i className="ri-file-text-line"></i> Manage Event Report
                         </button>
@@ -290,7 +291,7 @@ const EventDetails = () => {
 
                     {canManage && user?.role !== 'admin' && canEditDelete && (
                         <>
-                            {user?.role === 'president' && isApproved && (
+                            {isApproved && (
                                 <button className="btn-primary complete-btn" onClick={handleMarkCompleted}>
                                     <i className="ri-flag-2-line"></i> Mark Completed
                                 </button>
@@ -362,7 +363,7 @@ const EventDetails = () => {
                 </div>
             )}
 
-            {(isApproved || isCompleted) && (user?.role === 'president' || user?.role === 'admin') && (
+            {(isApproved || isCompleted) && (user?.role === 'president' || user?.role === 'admin' || isOwnClubMemberProposal) && (
                 <>
                     <div className="registrations-panel">
                         <div className="panel-header">
