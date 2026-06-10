@@ -82,17 +82,7 @@ const AdminReportReview = () => {
 
                     <hr className="divider" />
                     <div className="report-block">
-                        <h4>19. Social Media Handles</h4>
-                        <ul style={{ margin: 0, paddingLeft: '20px', color: '#475569', fontSize: '0.95rem' }}>
-                            <li>Instagram: {selectedReport.content.socialMedia?.instagram || 'N/A'}</li>
-                            <li>Facebook: {selectedReport.content.socialMedia?.facebook || 'N/A'}</li>
-                            <li>Twitter: {selectedReport.content.socialMedia?.twitter || 'N/A'}</li>
-                        </ul>
-                    </div>
-
-                    <hr className="divider" />
-                    <div className="report-block">
-                        <h4>20. Resource Persons</h4>
+                        <h4>19. Resource Persons</h4>
                         {selectedReport.content.resourcePersons && selectedReport.content.resourcePersons.length > 0 ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {selectedReport.content.resourcePersons.map((rp, i) => (
@@ -110,8 +100,8 @@ const AdminReportReview = () => {
                     </div>
 
                     <hr className="divider" />
-                    {renderTextSection('21. Faculty Coordinators', selectedReport.content.facultyCoordinators)}
-                    {renderTextSection('22. Student Coordinators', selectedReport.content.studentCoordinators)}
+                    {renderTextSection('20. Faculty Coordinators', selectedReport.content.facultyCoordinators)}
+                    {renderTextSection('21. Student Coordinators', selectedReport.content.studentCoordinators)}
 
                     {selectedReport.pdfUrl && (
                         <div className="pdf-download-section" style={{ marginTop: '24px' }}>

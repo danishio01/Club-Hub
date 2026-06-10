@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { getEventByIdApi, deleteEventService, markEventCompletedApi, getEventReviewsApi, summarizeReviewsApi, getEventRegistrationsApi, approveEventApi, rejectEventApi, approveProposalApi, rejectProposalApi } from '../service/eventService';
+import { getEventByIdApi, deleteEventService, markEventCompletedApi, approveEventApi, rejectEventApi, approveProposalApi, rejectProposalApi } from '../service/eventService';
 import EditEventModal from '../components/EditEventModal';
 import RejectEventModal from '../components/RejectEventModal';
 import ImageLightbox from '../../../components/common/ImageLightbox';
@@ -15,11 +13,7 @@ const EventDetails = () => {
     const { user } = useSelector((state) => state.auth);
     
     const [event, setEvent] = useState(null);
-    const [registrations, setRegistrations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [reviewData, setReviewData] = useState({ reviews: [], averageRating: 0, total: 0 });
-    const [aiSummary, setAiSummary] = useState(null);
-    const [isSummarizing, setIsSummarizing] = useState(false);
     
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
@@ -31,22 +25,7 @@ const EventDetails = () => {
         const initializeEventData = async () => {
             try {
                 const evData = await getEventByIdApi(eventId);
-                
                 if (isMounted) setEvent(evData);
-                
-                if (evData.status === 'approved' || evData.status === 'completed' || evData.status === 'Completed') {
-                    const regData = await getEventRegistrationsApi(eventId);
-                    if (isMounted) setRegistrations(regData);
-                    
-                    if (evData.status === 'completed' || evData.status === 'Completed') {
-                        try {
-                            const rData = await getEventReviewsApi(eventId);
-                            if (isMounted && rData) setReviewData(rData);
-                        } catch (error) {
-                            console.error("Reviews load failed:", error);
-                        }
-                    }
-                }
             } catch (error) {
                 console.error("Failed to load event:", error);
                 if (isMounted) {
@@ -70,20 +49,6 @@ const EventDetails = () => {
         try {
             const evData = await getEventByIdApi(eventId);
             setEvent(evData);
-            
-            if (evData.status === 'approved' || evData.status === 'completed' || evData.status === 'Completed') {
-                const regData = await getEventRegistrationsApi(eventId);
-                setRegistrations(regData);
-                
-                if (evData.status === 'completed' || evData.status === 'Completed') {
-                    try {
-                        const rData = await getEventReviewsApi(eventId);
-                        if (rData) setReviewData(rData);
-                    } catch (error) {
-                        console.error("Reviews refresh failed:", error);
-                    }
-                }
-            }
         } catch (error) {
             console.error("Refresh Error:", error);
         } finally {
@@ -162,19 +127,6 @@ const EventDetails = () => {
                 console.error("Mark Complete Error:", error);
                 alert('Failed to mark event as completed.');
             }
-        }
-    };
-
-    const handleSummarize = async () => {
-        setIsSummarizing(true);
-        try {
-            const summary = await summarizeReviewsApi(eventId);
-            setAiSummary(summary);
-        } catch (error) {
-            console.error("Summary Gen Error:", error);
-            alert('Failed to generate AI summary.');
-        } finally {
-            setIsSummarizing(false);
         }
     };
 
@@ -307,6 +259,50 @@ const EventDetails = () => {
                 </div>
             </div>
 
+            {canManage && (
+                <div className="workflow-verification-panel">
+                    <div className="panel-header">
+                        <h2>Event Verification Status</h2>
+                        <button className="btn-secondary" onClick={handleManualRefresh}>
+                            <i className="ri-refresh-line"></i> Refresh
+                        </button>
+                    </div>
+                    <div className="status-grid">
+                        <div className="status-item">
+                            <span className="label">Flyer Status</span>
+                            <span className={`value ${event.bannerUrl ? 'success' : 'pending'}`}>
+                                {event.bannerUrl ? <><i className="ri-check-line"></i> Uploaded</> : <><i className="ri-time-line"></i> Not Uploaded</>}
+                            </span>
+                        </div>
+                        <div className="status-item">
+                            <span className="label">Gallery Status</span>
+                            <span className={`value ${event.gallery && event.gallery.length > 0 ? 'success' : 'pending'}`}>
+                                {event.gallery && event.gallery.length > 0 ? <><i className="ri-check-line"></i> Uploaded ({event.gallery.length})</> : <><i className="ri-time-line"></i> Not Uploaded</>}
+                            </span>
+                        </div>
+                        <div className="status-item">
+                            <span className="label">Registrations</span>
+                            <span className="value neutral">{event.currentRegistrations || 0}</span>
+                        </div>
+                        <div className="status-item">
+                            <span className="label">Feedback Submissions</span>
+                            <span className="value neutral">{event.feedbackCount || 0}</span>
+                        </div>
+                        <div className="status-item">
+                            <span className="label">Report Status</span>
+                            <span className={`value ${event.reportStatus === 'reviewed' ? 'success' : event.reportStatus === 'submitted' ? 'neutral' : 'pending'}`}>
+                                {event.reportStatus}
+                            </span>
+                        </div>
+                    </div>
+                    {event.status === 'completed' && (
+                        <button className="btn-primary" style={{ marginTop: '20px', width: '100%', justifyContent: 'center' }} onClick={() => navigate(`/${user?.role === 'admin' ? 'admin' : 'president'}/events/${event._id}/analytics`)}>
+                            <i className="ri-bar-chart-fill"></i> View Feedback Analytics
+                        </button>
+                    )}
+                </div>
+            )}
+
             {event.bannerUrl && (
                 <div className="full-event-banner-container">
                     <img src={event.bannerUrl} alt="Event Flyer" className="full-event-banner" onClick={() => setLightboxImage(event.bannerUrl)} style={{ cursor: 'pointer' }} />
@@ -347,94 +343,6 @@ const EventDetails = () => {
                     </div>
                 </div>
             </div>
-
-            {isCompleted && event.gallery && event.gallery.length > 0 && (
-                <div className="gallery-panel">
-                    <div className="panel-header">
-                        <h2><i className="ri-camera-lens-fill" style={{ color: '#0f172a' }}></i> Official Post-Event Gallery</h2>
-                    </div>
-                    <div className="gallery-grid">
-                        {event.gallery.map(img => (
-                            <div key={img.fileId} className="gallery-image-wrapper" onClick={() => setLightboxImage(img.url)} style={{ cursor: 'pointer' }}>
-                                <img src={img.url} alt="Event Moment" />
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {(isApproved || isCompleted) && (user?.role === 'president' || user?.role === 'admin' || isOwnClubMemberProposal) && (
-                <>
-                    <div className="registrations-panel">
-                        <div className="panel-header">
-                            <h2>Registrations Roll ({registrations.length})</h2>
-                            <button className="btn-secondary" onClick={handleManualRefresh}>
-                                <i className="ri-refresh-line"></i> Refresh
-                            </button>
-                        </div>
-
-                        {registrations.length === 0 ? (
-                            <div className="empty-state">No students are registered for this event yet.</div>
-                        ) : (
-                            <div className="table-container">
-                                <table className="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Student Name</th>
-                                            <th>USN</th>
-                                            <th>Department</th>
-                                            <th>Sem & Sec</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {registrations.map(reg => (
-                                            <tr key={reg._id}>
-                                                <td style={{ fontWeight: 600, color: '#0f172a' }}>{reg.student?.name || 'Unknown User'}</td>
-                                                <td style={{ fontFamily: 'monospace', color: '#475569' }}>{reg.student?.usn || 'N/A'}</td>
-                                                <td>{reg.student?.department || 'N/A'}</td>
-                                                <td>
-                                                    {reg.student ? `${reg.student.semester} - ${reg.student.section}` : 'N/A'}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </div>
-
-                    {isCompleted && (
-                        <div className="reviews-panel">
-                            <div className="panel-header">
-                                <h2 style={{ margin: 0 }}>Student Reviews ({reviewData.averageRating} ⭐)</h2>
-                                <button className="btn-secondary" onClick={handleSummarize} disabled={isSummarizing || reviewData.total === 0}>
-                                    {isSummarizing ? 'Generating...' : '✨ Summarize with AI'}
-                                </button>
-                            </div>
-                            
-                            {aiSummary && (
-                                <div className="ai-summary-box">
-                                    <strong>AI Summary:</strong> 
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                        {aiSummary}
-                                    </ReactMarkdown>
-                                </div>
-                            )}
-
-                            <div className="review-cards-container">
-                                {reviewData?.reviews?.map(r => (
-                                    <div key={r._id} className="review-card">
-                                        <div className="review-author">{r?.student?.name || 'Unknown Student'}</div>
-                                        <div className="review-rating">{r.rating} ⭐</div>
-                                        <div className="review-text">{r.review || 'No written feedback provided.'}</div>
-                                    </div>
-                                ))}
-                                {reviewData.total === 0 && <p style={{ color: '#94a3b8', margin: 0 }}>No reviews yet.</p>}
-                            </div>
-                        </div>
-                    )}
-                </>
-            )}
 
             {isEditModalOpen && <EditEventModal event={event} onClose={() => setIsEditModalOpen(false)} onSuccess={() => { setIsEditModalOpen(false); handleManualRefresh(); }} />}
             {isRejectModalOpen && <RejectEventModal onClose={() => setIsRejectModalOpen(false)} onConfirm={handleReject} />}

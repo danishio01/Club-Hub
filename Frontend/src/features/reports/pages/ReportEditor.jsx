@@ -12,7 +12,6 @@ const ReportEditor = () => {
         activityName: '', thrustArea: '', level: '', semester: '', quarter: '', date: '', duration: '',
         facultyCount: '', studentCount: '', fundsUtilized: '', department: '',
         objective: '', summary: '', benefits: '',
-        socialMedia: { instagram: '', facebook: '', twitter: '' },
         resourcePersons: [],
         facultyCoordinators: '', studentCoordinators: ''
     });
@@ -32,7 +31,6 @@ const ReportEditor = () => {
                         setContent(prev => ({
                             ...prev,
                             ...data.content,
-                            socialMedia: data.content.socialMedia || { instagram: '', facebook: '', twitter: '' },
                             resourcePersons: data.content.resourcePersons || []
                         }));
                     }
@@ -57,13 +55,6 @@ const ReportEditor = () => {
 
     const handleInputChange = (field, value) => {
         setContent(prev => ({ ...prev, [field]: value }));
-    };
-
-    const handleSocialMediaChange = (platform, value) => {
-        setContent(prev => ({
-            ...prev,
-            socialMedia: { ...prev.socialMedia, [platform]: value }
-        }));
     };
 
     const handleAddResourcePerson = () => {
@@ -221,24 +212,8 @@ const ReportEditor = () => {
                     </ul>
                 </div>
 
-                <h3 className="section-title">19. Social Media Handles</h3>
-                <div className="form-grid">
-                    <div className="editor-section">
-                        <label>Instagram Link</label>
-                        <input type="text" value={content.socialMedia.instagram} onChange={(e) => handleSocialMediaChange('instagram', e.target.value)} disabled={isLocked} />
-                    </div>
-                    <div className="editor-section">
-                        <label>Facebook Link</label>
-                        <input type="text" value={content.socialMedia.facebook} onChange={(e) => handleSocialMediaChange('facebook', e.target.value)} disabled={isLocked} />
-                    </div>
-                    <div className="editor-section">
-                        <label>Twitter Link</label>
-                        <input type="text" value={content.socialMedia.twitter} onChange={(e) => handleSocialMediaChange('twitter', e.target.value)} disabled={isLocked} />
-                    </div>
-                </div>
-
                 <div className="section-header-flex">
-                    <h3 className="section-title">20. Details of Resource Person(s) / Speakers</h3>
+                    <h3 className="section-title">19. Details of Resource Person(s) / Speakers</h3>
                     {!isLocked && (
                         <button className="btn-add-small" onClick={handleAddResourcePerson}>
                             <i className="ri-add-line"></i> Add Speaker
@@ -287,8 +262,8 @@ const ReportEditor = () => {
                 {content.resourcePersons.length === 0 && <p className="empty-hint">No resource persons added yet.</p>}
 
                 <h3 className="section-title" style={{ marginTop: '20px' }}>D. Coordination</h3>
-                {renderTextarea('21. Names of Faculty Coordinators', 'facultyCoordinators', 'List all faculty coordinators (comma-separated or line-by-line)...')}
-                {renderTextarea('22. Names of Student Coordinators', 'studentCoordinators', 'List all student coordinators (comma-separated or line-by-line)...')}
+                {renderTextarea('20. Names of Faculty Coordinators', 'facultyCoordinators', 'List all faculty coordinators (comma-separated or line-by-line)...')}
+                {renderTextarea('21. Names of Student Coordinators', 'studentCoordinators', 'List all student coordinators (comma-separated or line-by-line)...')}
             </div>
         </div>
     );

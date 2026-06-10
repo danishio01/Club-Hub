@@ -11,15 +11,22 @@ export const useStudentEvents = () => {
         dispatch(getStudentEventsList());
     }, [dispatch]);
 
+    // Safe fallback to prevent crash if events is undefined
+    const safeEvents = Array.isArray(events) ? events : [];
+
     const { recommendedEvents, otherEvents } = useMemo(() => {
-        if (!events || events.length === 0) return { recommendedEvents: [], otherEvents: [] };
+        if (safeEvents.length === 0) return { recommendedEvents: [], otherEvents: [] };
 
         const userInterests = user?.interests || [];
         const recommended = [];
         const others = [];
 
-        events.forEach(event => {
-            const hasMatch = event.tags.some(tag => userInterests.includes(tag));
+        safeEvents.forEach(event => {
+            // Added safe check on event.tags
+            const hasMatch = event.tags && Array.isArray(event.tags) 
+                ? event.tags.some(tag => userInterests.includes(tag))
+                : false;
+                
             if (hasMatch) {
                 recommended.push(event);
             } else {
@@ -28,14 +35,14 @@ export const useStudentEvents = () => {
         });
 
         return { recommendedEvents: recommended, otherEvents: others };
-    }, [events, user]);
+    }, [safeEvents, user]);
 
     const handleRegister = async (eventId) => {
         if(window.confirm('Do you want to register for this event?')) {
             try {
                 const data = await registerForEventApi(eventId);
                 alert(data.message);
-                dispatch(getStudentEventsList()); // Refresh the events list to update the button UI
+                dispatch(getStudentEventsList()); 
             } catch (error) {
                 alert(error.response?.data?.message || 'Failed to register. Please try again.');
             }
@@ -50,6 +57,7 @@ export const useStudentEvents = () => {
     return {
         isLoading,
         error,
+        events: safeEvents,
         recommendedEvents,
         otherEvents,
         handleRegister,

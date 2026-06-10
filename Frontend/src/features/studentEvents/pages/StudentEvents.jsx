@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStudentEvents } from '../hooks/useStudentEvents';
+import { useSelector } from 'react-redux';
 import '../style/StudentEvents.scss';
 
 const EventCard = ({ event, formatDate }) => {
@@ -47,13 +48,29 @@ const EventCard = ({ event, formatDate }) => {
 };
 
 const StudentEvents = () => {
-    const { isLoading, recommendedEvents, otherEvents, formatDate } = useStudentEvents();
+    // Correctly extract 'events' alongside the other properties
+    const { isLoading, events, formatDate } = useStudentEvents();
+    const { user } = useSelector((state) => state.auth);
 
     if (isLoading) {
         return <div style={{ padding: '40px', textAlign: 'center' }}>Loading campus events...</div>;
     }
 
-    if (recommendedEvents.length === 0 && otherEvents.length === 0) {
+    // Double safe check for crash prevention
+    const safeEvents = Array.isArray(events) ? events : [];
+
+    const registeredEvents = safeEvents.filter(e => e.isRegistered);
+    const nonRegisteredEvents = safeEvents.filter(e => !e.isRegistered);
+    
+    const userInterests = user?.interests || [];
+    const recommendedEvents = nonRegisteredEvents.filter(e => 
+        e.tags && Array.isArray(e.tags) && e.tags.some(tag => userInterests.includes(tag))
+    );
+    const otherEvents = nonRegisteredEvents.filter(e => 
+        !e.tags || !Array.isArray(e.tags) || !e.tags.some(tag => userInterests.includes(tag))
+    );
+
+    if (safeEvents.length === 0) {
         return (
             <div className="student-events-page">
                 <div style={{ padding: '60px 40px', textAlign: 'center', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
@@ -67,11 +84,25 @@ const StudentEvents = () => {
 
     return (
         <div className="student-events-page">
+            {registeredEvents.length > 0 && (
+                <section className="events-section">
+                    <div className="section-header">
+                        <h2><i className="ri-checkbox-circle-fill" style={{ color: '#16a34a' }}></i> Registered Events</h2>
+                        <p>Events you have successfully registered for. Don't forget to mark attendance!</p>
+                    </div>
+                    <div className="events-grid">
+                        {registeredEvents.map(event => (
+                            <EventCard key={event._id} event={event} formatDate={formatDate} />
+                        ))}
+                    </div>
+                </section>
+            )}
+
             {recommendedEvents.length > 0 && (
                 <section className="events-section">
                     <div className="section-header">
                         <h2><i className="ri-star-smile-line" style={{ color: '#eab308' }}></i> Recommended For You</h2>
-                        <p>Events matching your selected campus interests.</p>
+                        <p>Available events matching your selected campus interests.</p>
                     </div>
                     <div className="events-grid">
                         {recommendedEvents.map(event => (

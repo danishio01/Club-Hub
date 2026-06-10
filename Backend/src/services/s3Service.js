@@ -14,7 +14,8 @@ const s3 = new S3Client({
 
 const fetchImageBuffer = async (url) => {
     try {
-        const res = await fetch(url);
+        const jpgUrl = url + (url.includes('?') ? '&' : '?') + 'tr=f-jpg'; 
+        const res = await fetch(jpgUrl);
         if (res.ok) {
             const arrayBuffer = await res.arrayBuffer();
             return Buffer.from(arrayBuffer);
@@ -88,7 +89,6 @@ export const generateAndUploadReportPDF = async (reportData, event, clubName, pr
 
         addHeader();
 
-        // 1. Basic Text Content
         doc.fontSize(22).font('Helvetica-Bold').text('Institutional Event Post-Action Report', { align: 'center' });
         doc.moveDown(1.5);
         
@@ -129,58 +129,33 @@ export const generateAndUploadReportPDF = async (reportData, event, clubName, pr
             doc.moveDown(1);
         });
 
-        doc.fontSize(12).font('Helvetica-Bold').fillColor('#0f172a').text('15. Social Media Handles');
-        doc.moveDown(0.3);
-        doc.fontSize(11).font('Helvetica').fillColor('#475569')
-            .text(`Instagram: ${reportData.socialMedia?.instagram || 'N/A'}`)
-            .text(`Facebook: ${reportData.socialMedia?.facebook || 'N/A'}`)
-            .text(`Twitter: ${reportData.socialMedia?.twitter || 'N/A'}`);
-        doc.moveDown(1);
-
-        doc.fontSize(12).font('Helvetica-Bold').fillColor('#0f172a').text('16. Details of Resource Person / Speaker / Expert / Judge');
-        doc.moveDown(0.5);
-        if (reportData.resourcePersons && reportData.resourcePersons.length > 0) {
-            reportData.resourcePersons.forEach((rp, i) => {
-                doc.fontSize(11).font('Helvetica-Bold').fillColor('#0f172a').text(`Resource Person ${i + 1}`);
-                doc.font('Helvetica').fillColor('#475569')
-                    .text(`Name: ${rp.name || 'N/A'}`)
-                    .text(`Industry/Company/Organization: ${rp.industry || 'N/A'}`)
-                    .text(`Designation: ${rp.designation || 'N/A'}`)
-                    .text(`Mobile Number: ${rp.mobile || 'N/A'}`)
-                    .text(`Email ID: ${rp.email || 'N/A'}`)
-                    .text(`Address: ${rp.address || 'N/A'}`);
-                doc.moveDown(0.5);
-            });
-        } else {
-            doc.fontSize(11).font('Helvetica').fillColor('#475569').text('No resource persons added.');
-        }
-        doc.moveDown(1);
-
-        doc.fontSize(12).font('Helvetica-Bold').fillColor('#0f172a').text('17. Names of Faculty Coordinators');
-        doc.moveDown(0.3);
-        doc.fontSize(11).font('Helvetica').fillColor('#475569').text(reportData.facultyCoordinators || 'N/A');
-        doc.moveDown(1);
-
-        doc.fontSize(12).font('Helvetica-Bold').fillColor('#0f172a').text('18. Names of Student Coordinators');
-        doc.moveDown(0.3);
-        doc.fontSize(11).font('Helvetica').fillColor('#475569').text(reportData.studentCoordinators || 'N/A');
-        
-        // Ensure async fetching runs before ending document
+        // Async Document Processing for Images
         (async () => {
-            // 2. Attachments & Proofs
+            // C. Attachments & Proofs
             doc.addPage();
-            doc.fontSize(18).font('Helvetica-Bold').fillColor('#0f172a').text('Event Flyer', { align: 'center' });
+            doc.fontSize(18).font('Helvetica-Bold').fillColor('#0f172a').text('C. Attachments & Proofs', { align: 'center' });
+            doc.moveDown(2);
+
+            // 1. Event Flyer
+            doc.fontSize(14).text('1. Official Event Flyer');
             doc.moveDown();
             if (event.bannerUrl) {
                 const flyerBuf = await fetchImageBuffer(event.bannerUrl);
                 if (flyerBuf) {
-                    // Center the image dynamically
-                    doc.image(flyerBuf, (doc.page.width - 450) / 2, doc.y, { fit: [450, 600], align: 'center' });
+                    doc.image(flyerBuf, (doc.page.width - 400) / 2, doc.y, { fit: [400, 550], align: 'center' });
+                    doc.moveDown(20);
+                } else {
+                    doc.fontSize(11).font('Helvetica').fillColor('#475569').text('Flyer not uploaded.', { align: 'left' });
+                    doc.moveDown();
                 }
+            } else {
+                doc.fontSize(11).font('Helvetica').fillColor('#475569').text('Flyer not uploaded.', { align: 'left' });
+                doc.moveDown();
             }
 
+            // 2. Gallery
             doc.addPage();
-            doc.fontSize(18).font('Helvetica-Bold').fillColor('#0f172a').text('Photo Gallery Collage', { align: 'center' });
+            doc.fontSize(14).font('Helvetica-Bold').fillColor('#0f172a').text('2. Post Event Photos (Gallery)');
             doc.moveDown();
             if (event.gallery && event.gallery.length > 0) {
                 let x = 50;
@@ -195,11 +170,12 @@ export const generateAndUploadReportPDF = async (reportData, event, clubName, pr
                     }
                 }
             } else {
-                doc.fontSize(12).font('Helvetica').fillColor('#475569').text('No official photos were uploaded for this event.', { align: 'center' });
+                doc.fontSize(11).font('Helvetica').fillColor('#475569').text('Post-event photos not uploaded.', { align: 'left' });
             }
 
+            // 3. Registrations
             doc.addPage();
-            doc.fontSize(18).font('Helvetica-Bold').fillColor('#0f172a').text('Attendance & Registration Sheet', { align: 'center' });
+            doc.fontSize(14).font('Helvetica-Bold').fillColor('#0f172a').text('3. Attendance & Registration Sheet');
             doc.moveDown();
             
             let tableY = doc.y + 10;
@@ -207,7 +183,7 @@ export const generateAndUploadReportPDF = async (reportData, event, clubName, pr
             doc.text('Student Name', 50, tableY);
             doc.text('USN', 220, tableY);
             doc.text('Dept', 340, tableY);
-            doc.text('Status', 420, tableY);
+            doc.text('Reg Status', 420, tableY);
             doc.text('Attendance', 490, tableY);
             
             doc.moveTo(50, tableY + 15).lineTo(550, tableY + 15).strokeColor('#cbd5e1').stroke();
@@ -219,7 +195,7 @@ export const generateAndUploadReportPDF = async (reportData, event, clubName, pr
                     doc.addPage();
                     tableY = 50;
                     doc.font('Helvetica-Bold');
-                    doc.text('Student Name', 50, tableY); doc.text('USN', 220, tableY); doc.text('Dept', 340, tableY); doc.text('Status', 420, tableY); doc.text('Attendance', 490, tableY);
+                    doc.text('Student Name', 50, tableY); doc.text('USN', 220, tableY); doc.text('Dept', 340, tableY); doc.text('Reg Status', 420, tableY); doc.text('Attendance', 490, tableY);
                     doc.moveTo(50, tableY + 15).lineTo(550, tableY + 15).stroke();
                     tableY += 25;
                     doc.font('Helvetica');
@@ -236,32 +212,65 @@ export const generateAndUploadReportPDF = async (reportData, event, clubName, pr
             });
 
             if (registrations.length === 0) {
-                doc.fontSize(12).font('Helvetica').fillColor('#475569').text('No registrations recorded for this event.', { align: 'center' });
+                doc.fontSize(11).font('Helvetica').fillColor('#475569').text('No registrations available.', { align: 'left' });
             }
 
+            // 4. Feedback
             doc.addPage();
-            doc.fontSize(18).font('Helvetica-Bold').fillColor('#0f172a').text('Feedback Analytics', { align: 'center' });
+            doc.fontSize(14).font('Helvetica-Bold').fillColor('#0f172a').text('4. Feedback Analytics');
             doc.moveDown();
             
-            doc.fontSize(14).font('Helvetica-Bold').text(`Average Rating: ${feedbackData.averageRating} / 5.0 ⭐`, { align: 'center' });
-            doc.fontSize(12).font('Helvetica').text(`Total Reviews Submitted: ${feedbackData.total}`, { align: 'center' });
+            doc.fontSize(12).text(`Average Rating: ${feedbackData.averageRating} / 5.0 ⭐`, { align: 'left' });
+            doc.fontSize(12).font('Helvetica').text(`Total Feedback Submissions: ${feedbackData.total}`, { align: 'left' });
             doc.moveDown(2);
 
             if (feedbackData.reviews && feedbackData.reviews.length > 0) {
-                doc.fontSize(14).font('Helvetica-Bold').text('Recent Student Reviews:');
+                doc.fontSize(12).font('Helvetica-Bold').text('Recent Student Reviews:');
                 doc.moveDown();
-                doc.fontSize(11).font('Helvetica');
+                doc.fontSize(10).font('Helvetica');
                 
-                // Show up to 10 latest reviews
-                feedbackData.reviews.slice(0, 10).forEach(r => {
-                    const stars = '⭐'.repeat(r.rating);
+                feedbackData.reviews.slice(0, 15).forEach(r => {
+                    const stars = '⭐'.repeat(r.rating || 5);
                     doc.font('Helvetica-Bold').text(`${r.student?.name || 'Anonymous'} - ${stars}`);
-                    doc.font('Helvetica').text(`"${r.review}"`);
+                    doc.font('Helvetica').text(`"${r.review || 'No written comment'}"`);
                     doc.moveDown();
                 });
             } else {
-                doc.fontSize(12).font('Helvetica').fillColor('#475569').text('No written feedback provided yet.', { align: 'center' });
+                doc.fontSize(11).font('Helvetica').fillColor('#475569').text('No feedback provided yet.', { align: 'left' });
             }
+
+            // D. Coordination
+            doc.addPage();
+            doc.fontSize(18).font('Helvetica-Bold').fillColor('#0f172a').text('D. Coordination', { align: 'center' });
+            doc.moveDown();
+            
+            doc.fontSize(12).font('Helvetica-Bold').fillColor('#0f172a').text('19. Details of Resource Person / Speaker / Expert / Judge');
+            doc.moveDown(0.5);
+            if (reportData.resourcePersons && reportData.resourcePersons.length > 0) {
+                reportData.resourcePersons.forEach((rp, i) => {
+                    doc.fontSize(11).font('Helvetica-Bold').fillColor('#0f172a').text(`Resource Person ${i + 1}`);
+                    doc.font('Helvetica').fillColor('#475569')
+                        .text(`Name: ${rp.name || 'N/A'}`)
+                        .text(`Industry/Company/Organization: ${rp.industry || 'N/A'}`)
+                        .text(`Designation: ${rp.designation || 'N/A'}`)
+                        .text(`Mobile Number: ${rp.mobile || 'N/A'}`)
+                        .text(`Email ID: ${rp.email || 'N/A'}`)
+                        .text(`Address: ${rp.address || 'N/A'}`);
+                    doc.moveDown(0.5);
+                });
+            } else {
+                doc.fontSize(11).font('Helvetica').fillColor('#475569').text('No resource persons added.');
+            }
+            doc.moveDown(1);
+
+            doc.fontSize(12).font('Helvetica-Bold').fillColor('#0f172a').text('20. Names of Faculty Coordinators');
+            doc.moveDown(0.3);
+            doc.fontSize(11).font('Helvetica').fillColor('#475569').text(reportData.facultyCoordinators || 'N/A');
+            doc.moveDown(1);
+
+            doc.fontSize(12).font('Helvetica-Bold').fillColor('#0f172a').text('21. Names of Student Coordinators');
+            doc.moveDown(0.3);
+            doc.fontSize(11).font('Helvetica').fillColor('#475569').text(reportData.studentCoordinators || 'N/A');
 
             doc.end();
         })();

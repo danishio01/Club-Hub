@@ -5,6 +5,32 @@ const galleryImageSchema = new mongoose.Schema({
     fileId: { type: String, required: true }
 });
 
+const feedbackQuestionSchema = new mongoose.Schema({
+    id: { type: String, required: true },
+    type: { type: String, enum: ['rating', 'mcq', 'paragraph'], required: true },
+    text: { type: String, required: true },
+    options: [{ type: String }], 
+    allowMultiple: { type: Boolean, default: false },
+    order: { type: Number, default: 0 },
+    conditionalLogic: {
+        threshold: { type: Number, default: 3 }, 
+        ifLessOrEqual: [{
+            id: { type: String },
+            type: { type: String, enum: ['mcq', 'paragraph'] },
+            text: { type: String },
+            options: [{ type: String }],
+            allowMultiple: { type: Boolean, default: false }
+        }],
+        ifGreater: [{
+            id: { type: String },
+            type: { type: String, enum: ['mcq', 'paragraph'] },
+            text: { type: String },
+            options: [{ type: String }],
+            allowMultiple: { type: Boolean, default: false }
+        }]
+    }
+});
+
 const eventSchema = new mongoose.Schema({
     title: { type: String, required: true },
     description: { type: String, required: true },
@@ -33,7 +59,10 @@ const eventSchema = new mongoose.Schema({
     rejectedReason: { type: String, default: null },
     rejectedBy: { type: mongoose.Schema.Types.ObjectId, refPath: 'rejectedByModel', default: null },
     rejectedByModel: { type: String, enum: ['Admin', 'Student'], default: 'Admin' },
-    rejectedAt: { type: Date, default: null }
+    rejectedAt: { type: Date, default: null },
+    
+    feedbackTemplateType: { type: String, enum: ['default', 'custom'], default: 'default' },
+    feedbackQuestions: [feedbackQuestionSchema]
 }, { timestamps: true });
 
 export default mongoose.model('Event', eventSchema);

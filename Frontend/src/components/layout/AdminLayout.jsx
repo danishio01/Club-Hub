@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginSuccess, setAuthChecked } from '../../features/auth/state/authSlice';
 import axiosInstance from '../../api/axiosInstance';
@@ -9,6 +9,7 @@ const AdminLayout = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const location = useLocation();
     const { user, isCheckingAuth } = useSelector((state) => state.auth);
 
     useEffect(() => {
@@ -40,6 +41,14 @@ const AdminLayout = () => {
     const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
     const closeMenu = () => setIsMobileMenuOpen(false);
 
+    // Keep active highlight for child routes like analytics
+    const isActiveLink = (path) => {
+        if (path === '/admin/event-approvals' && location.pathname.includes('/events/')) {
+            return true;
+        }
+        return location.pathname === path;
+    };
+
     const navItems = [
         { path: '/admin/dashboard', icon: 'ri-dashboard-line', label: 'Dashboard' },
         { path: '/admin/students', icon: 'ri-group-line', label: 'Students' },
@@ -64,7 +73,7 @@ const AdminLayout = () => {
 
                 <div className="desktop-nav">
                     {navItems.map((item) => (
-                        <NavLink key={item.path} to={item.path} className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                        <NavLink key={item.path} to={item.path} className={`nav-link ${isActiveLink(item.path) ? 'active' : ''}`}>
                             <i className={item.icon}></i>
                             {item.label}
                         </NavLink>
@@ -90,7 +99,7 @@ const AdminLayout = () => {
                 </div>
                 <div className="sidebar-scrollable-nav">
                     {navItems.map((item) => (
-                        <NavLink key={item.path} to={item.path} onClick={closeMenu} className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
+                        <NavLink key={item.path} to={item.path} onClick={closeMenu} className={`nav-link ${isActiveLink(item.path) ? 'active' : ''}`}>
                             <i className={item.icon}></i>
                             {item.label}
                         </NavLink>

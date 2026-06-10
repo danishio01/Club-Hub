@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Scanner } from '@yudiel/react-qr-scanner';
-import { getStudentEventByIdApi, registerForEventApi, createPaymentOrderApi, verifyPaymentApi, submitReviewApi, markAttendanceApi } from '../service/studentEventsService';
+import { getStudentEventByIdApi, registerForEventApi, createPaymentOrderApi, verifyPaymentApi, markAttendanceApi } from '../service/studentEventsService';
 import '../style/StudentEventDetails.scss';
 
 const loadRazorpayScript = () => {
@@ -22,9 +22,6 @@ const StudentEventDetails = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isRegistering, setIsRegistering] = useState(false);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
-    const [rating, setRating] = useState(5);
-    const [reviewText, setReviewText] = useState('');
-    const [isReviewSubmitted, setIsReviewSubmitted] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
@@ -126,23 +123,11 @@ const StudentEventDetails = () => {
                 if (!token) return alert('Invalid QR code format.');
 
                 await markAttendanceApi(eventId, token);
-                alert('QR Scanned! Please submit a review below to finalize your attendance.');
+                alert('QR Scanned! Please click Provide Feedback below to finalize your attendance.');
                 await reloadEvent(); 
             } catch (error) {
                 alert(error.response?.data?.message || 'Failed to mark attendance.');
             }
-        }
-    };
-
-    const handleReviewSubmit = async () => {
-        try {
-            await submitReviewApi(eventId, { rating, review: reviewText });
-            setIsReviewSubmitted(true);
-            alert('Review submitted! Attendance marked and points awarded.');
-            await reloadEvent();
-        } catch (error) {
-            console.error("Review Upload Error:", error);
-            alert('Failed to submit review.');
         }
     };
 
@@ -180,9 +165,9 @@ const StudentEventDetails = () => {
                             <i className="ri-checkbox-circle-fill"></i> Attendance Marked
                         </div>
                     ) : event.attendanceStatus === 'Scanned' ? (
-                        <div className="status-badge pending-review">
-                            <i className="ri-error-warning-fill"></i> Pending Review
-                        </div>
+                        <button className="btn-primary" style={{background: '#9333ea'}} onClick={() => navigate(`/student/feedback/${eventId}`)}>
+                            <i className="ri-star-smile-fill"></i> Provide Feedback
+                        </button>
                     ) : event.isRegistered ? (
                         <button className="btn-registered" disabled>
                             <i className="ri-check-double-line"></i> Registered
@@ -237,31 +222,6 @@ const StudentEventDetails = () => {
                     )}
                 </div>
             </div>
-
-            {event.attendanceStatus === 'Scanned' && !isReviewSubmitted && (
-                <div className="review-section">
-                    <h3><i className="ri-star-smile-fill"></i> Complete Your Attendance</h3>
-                    <p>You have successfully scanned the QR code. Please rate the event and provide a short review to finalize your attendance and earn 100 points!</p>
-                    
-                    <select value={rating} onChange={(e) => setRating(Number(e.target.value))}>
-                        <option value="5">⭐⭐⭐⭐⭐ Excellent</option>
-                        <option value="4">⭐⭐⭐⭐ Good</option>
-                        <option value="3">⭐⭐⭐ Average</option>
-                        <option value="2">⭐⭐ Poor</option>
-                        <option value="1">⭐ Terrible</option>
-                    </select>
-                    
-                    <textarea 
-                        placeholder="Write a short review about the event..." 
-                        value={reviewText} 
-                        onChange={(e) => setReviewText(e.target.value)}
-                    />
-                    
-                    <button className="btn-primary" onClick={handleReviewSubmit}>
-                        Submit Review & Get Points
-                    </button>
-                </div>
-            )}
 
             {isScannerOpen && (
                 <div className="scanner-modal-overlay">

@@ -27,7 +27,7 @@ import PresidentDashboard from "../features/president/pages/PresidentDashboard";
 import PrDashboard from "../features/pr/pages/PrDashboard";
 import PrEventManagement from "../features/pr/pages/PrEventManagement";
 import PrEventGallery from "../features/pr/pages/PrEventGallery"; 
-import PrSocialShare from "../features/pr/pages/PrSocialShare"; // NEW
+import PrSocialShare from "../features/pr/pages/PrSocialShare";
 import GrafikDashboard from "../features/grafik/pages/GrafikDashboard";
 import GrafikGalleriesList from "../features/grafik/pages/GrafikGalleriesList";
 import GrafikEventBanner from "../features/grafik/pages/GrafikEventBanner"; 
@@ -35,6 +35,9 @@ import GrafikEventGallery from "../features/grafik/pages/GrafikEventGallery";
 
 import ReportEditor from "../features/reports/pages/ReportEditor";
 import AdminReportReview from "../features/reports/pages/AdminReportReview";
+
+import StudentFeedback from "../features/feedback/pages/StudentFeedback";
+import FeedbackAnalytics from "../features/reports/pages/FeedbackAnalytics";
 
 export const routes = createBrowserRouter([
     {
@@ -57,6 +60,7 @@ export const routes = createBrowserRouter([
             { path: "clubs", element: <Clubs /> },
             { path: "event-approvals", element: <AdminEventReviews /> },
             { path: "events/:eventId", element: <EventDetails /> },
+            { path: "events/:eventId/analytics", element: <FeedbackAnalytics /> },
             { path: "leaderboard", element: <Leaderboard isAdmin={true} /> },
             { path: "attendance", element: <AdminAttendance /> },
             { path: "reports", element: <AdminReportReview /> } 
@@ -70,6 +74,7 @@ export const routes = createBrowserRouter([
             { path: "dashboard", element: <PresidentDashboard /> },
             { path: "events", element: <Events /> },
             { path: "events/:eventId", element: <EventDetails /> },
+            { path: "events/:eventId/analytics", element: <FeedbackAnalytics /> },
             { path: "club", element: <Clubs /> },
             { path: "ai-agent", element: <AdminAiAgent /> },
             { path: "reports/write/:eventId", element: <ReportEditor /> } 
@@ -83,7 +88,7 @@ export const routes = createBrowserRouter([
             { path: "dashboard", element: <PrDashboard /> },
             { path: "events/:eventId", element: <PrEventManagement /> },
             { path: "galleries", element: <PrEventGallery /> },
-            { path: "events/:eventId/share", element: <PrSocialShare /> } // NEW
+            { path: "events/:eventId/share", element: <PrSocialShare /> }
         ]
     },
     {
@@ -104,6 +109,7 @@ export const routes = createBrowserRouter([
         children: [
             { path: "dashboard", element: <StudentEvents /> },
             { path: "events/:eventId", element: <StudentEventDetails /> },
+            { path: "feedback/:eventId", element: <StudentFeedback /> },
             { path: "attendance/:eventId", element: <MarkAttendance /> },
             { path: "leaderboard", element: <Leaderboard isAdmin={false} /> },
             { path: "attendance-report", element: <StudentAttendance /> },

@@ -1,6 +1,7 @@
 import Event from '../models/eventModel.js';
 import Registration from '../models/registrationModel.js';
 import Club from '../models/clubModel.js';
+import Report from '../models/reportModel.js';
 import { generatePosterBuffer } from '../services/bannerService.js';
 import { uploadBannerToImageKit, deleteBannerFromImageKit } from '../services/imagekitService.js';
 
@@ -12,11 +13,9 @@ const getClubForUser = async (user, memberClub = null) => {
     if (user.role === 'president') {
         return await Club.findOne({ president: user._id });
     }
-
     if (memberClub) {
         return memberClub;
     }
-
     return await Club.findOne({ members: user._id });
 };
 
@@ -107,7 +106,18 @@ export const getEventById = async (req, res) => {
         if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
         
         const currentRegistrations = await Registration.countDocuments({ event: event._id });
-        return res.status(200).json({ success: true, data: { ...event, currentRegistrations } });
+        const feedbackCount = await Registration.countDocuments({ event: event._id, feedbackSubmittedAt: { $ne: null } });
+        const report = await Report.findOne({ event: event._id }).select('status');
+
+        return res.status(200).json({ 
+            success: true, 
+            data: { 
+                ...event, 
+                currentRegistrations, 
+                feedbackCount,
+                reportStatus: report ? report.status : 'Not Started'
+            } 
+        });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to fetch event details' });
     }

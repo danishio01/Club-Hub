@@ -19,11 +19,6 @@ const reportSchema = new mongoose.Schema({
         objective: { type: String, default: '' },
         summary: { type: String, default: '' },
         benefits: { type: String, default: '' },
-        socialMedia: {
-            instagram: { type: String, default: '' },
-            facebook: { type: String, default: '' },
-            twitter: { type: String, default: '' }
-        },
         resourcePersons: [{
             name: { type: String, default: '' },
             industry: { type: String, default: '' },
