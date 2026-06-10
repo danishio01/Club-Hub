@@ -130,7 +130,6 @@ export const generateAndUploadReportPDF = async (reportData, event, clubName, pr
         });
 
         (async () => {
-            // C. Attachments & Proofs
             doc.addPage();
             doc.fontSize(18).font('Helvetica-Bold').fillColor('#0f172a').text('C. Attachments & Proofs', { align: 'center' });
             doc.moveDown(2);
@@ -215,10 +214,10 @@ export const generateAndUploadReportPDF = async (reportData, event, clubName, pr
             doc.fontSize(14).font('Helvetica-Bold').fillColor('#0f172a').text('4. Feedback Analytics');
             doc.moveDown();
             
-            if (feedbackData.total === 0) {
+            // Safe execution check preventing crash
+            if (!feedbackData || feedbackData.total === 0 || !feedbackData.analytics) {
                 doc.fontSize(11).font('Helvetica').fillColor('#475569').text('No feedback submitted for this event.', { align: 'left' });
             } else {
-                // Map the graph data to text format
                 feedbackData.analytics.forEach((q, i) => {
                     doc.fontSize(11).font('Helvetica-Bold').fillColor('#0f172a').text(`Q${i+1}. ${q.text}`);
                     if (q.type === 'rating') {
@@ -238,8 +237,8 @@ export const generateAndUploadReportPDF = async (reportData, event, clubName, pr
                 doc.fontSize(12).font('Helvetica-Bold').fillColor('#0f172a').text('AI Feedback Synthesis');
                 doc.moveDown(0.5);
                 if (feedbackData.aiSummary) {
-                    // Split the markdown into parts to render
-                    const lines = feedbackData.aiSummary.split('\n');
+                    let cleanSummary = feedbackData.aiSummary.replace(/```markdown/gi, '').replace(/```/g, '').trim();
+                    const lines = cleanSummary.split('\n');
                     lines.forEach(line => {
                         if (line.startsWith('###')) {
                             doc.fontSize(11).font('Helvetica-Bold').fillColor('#0f172a').text(line.replace(/#/g, '').trim());

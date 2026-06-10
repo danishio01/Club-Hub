@@ -65,9 +65,12 @@ export const getFeedbackAnalytics = async (req, res) => {
             return res.status(200).json({ success: true, data: { total: 0 } });
         }
 
+        let totalScore = 0;
         const questionStats = {};
 
         registrations.forEach(reg => {
+            if (reg.rating) totalScore += reg.rating;
+
             reg.feedbackResponses.forEach(res => {
                 if (!questionStats[res.questionId]) {
                     const templateQ = event.feedbackQuestions?.find(q => q.id === res.questionId);
@@ -83,6 +86,8 @@ export const getFeedbackAnalytics = async (req, res) => {
                 }
             });
         });
+
+        const averageRating = (totalScore / totalResponses).toFixed(1);
 
         const analytics = Object.keys(questionStats).map(qId => {
             const data = questionStats[qId];
@@ -111,6 +116,7 @@ export const getFeedbackAnalytics = async (req, res) => {
             data: { 
                 eventDetails: { title: event.title, date: event.date, venue: event.venue },
                 total: totalResponses, 
+                averageRating, 
                 analytics,
                 rawRegistrations: registrations
             } 
@@ -150,17 +156,20 @@ export const generateFeedbackSummary = async (req, res) => {
         const promptText = `Analyze all the following event feedback from students (which includes ratings, multiple choice answers, and text):
         "${reviewTexts}"
         
-        Provide a structured summary in Markdown format with exactly these headings:
+        Provide a structured summary with exactly these headings:
         ### 🌟 Strengths
         ### 📈 Weaknesses
         ### 💡 Common Suggestions
         ### 🗣️ Common Praises
         ### 📊 Overall Sentiment
         
-        Be concise, professional, and actionable. Only use the provided feedback. Analyze everything holistically. Do not hallucinate.`;
+        Be concise, professional, and actionable. Only use the provided feedback. Analyze everything holistically. Do not hallucinate. Do not wrap your response in markdown code blocks (\`\`\`markdown). Return plain formatted text.`;
 
         const response = await model.invoke([new HumanMessage(promptText)]);
-        return res.status(200).json({ success: true, data: response.content });
+        
+        let cleanContent = response.content.replace(/```markdown/gi, '').replace(/```/g, '').trim();
+
+        return res.status(200).json({ success: true, data: cleanContent });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to generate summary' });
     }

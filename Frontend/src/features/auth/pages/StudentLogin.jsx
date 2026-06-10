@@ -54,7 +54,7 @@ const StudentLogin = () => {
         <div className="login-container">
             <div className="login-card">
                 <div className="college-header">
-                    <img src="https://ik.imagekit.io/p4nbkerbz/ClubHub/image.png?updatedAt=1776478146181" alt="ClubHub Logo" className="logo" />
+                    <img src="https://ik.imagekit.io/p4nbkerbz/ClubHub/applogo.png" alt="ClubHub Logo" className="logo" />
                     <h1 className="college-name">Gopalan College of Engineering and Management</h1>
                     <h2 className="portal-title">Student Activity Portal</h2>
                 </div>

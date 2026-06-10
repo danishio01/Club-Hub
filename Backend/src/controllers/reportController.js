@@ -56,22 +56,70 @@ export const saveDraft = async (req, res) => {
 export const submitReport = async (req, res) => {
     try {
         const { eventId } = req.params;
-        const { content } = req.body;
+        const { content, aiSummary } = req.body; 
 
         const event = await Event.findById(eventId).populate('club');
         const registrations = await Registration.find({ event: eventId }).populate('student', 'name usn department');
         
-        const reviews = registrations.filter(r => r.rating);
-        const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0);
-        const averageRating = reviews.length > 0 ? (totalRating / reviews.length).toFixed(1) : 0;
-        const feedbackData = { averageRating, total: reviews.length, reviews };
+        // Build correct feedback analytics payload for the PDF generator
+        const feedbackRegistrations = registrations.filter(r => r.feedbackResponses && r.feedbackResponses.length > 0);
+        const totalResponses = feedbackRegistrations.length;
+        
+        let totalScore = 0;
+        const questionStats = {};
+
+        feedbackRegistrations.forEach(reg => {
+            if (reg.rating) totalScore += reg.rating;
+
+            reg.feedbackResponses.forEach(res => {
+                if (!questionStats[res.questionId]) {
+                    const templateQ = event.feedbackQuestions?.find(q => q.id === res.questionId);
+                    const qType = templateQ ? templateQ.type : (typeof res.answer === 'number' ? 'rating' : (Array.isArray(res.answer) || ['Yes', 'No'].includes(res.answer) ? 'mcq' : 'paragraph'));
+                    questionStats[res.questionId] = { text: res.questionText, type: qType, answers: [] };
+                }
+                
+                if (Array.isArray(res.answer)) {
+                    questionStats[res.questionId].answers.push(...res.answer);
+                } else {
+                    questionStats[res.questionId].answers.push(res.answer);
+                }
+            });
+        });
+
+        const averageRating = totalResponses > 0 ? (totalScore / totalResponses).toFixed(1) : 0;
+
+        const analytics = Object.keys(questionStats).map(qId => {
+            const data = questionStats[qId];
+            if (data.type === 'rating') {
+                const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+                data.answers.forEach(a => { if (typeof a === 'number') counts[a] += 1; });
+                const sum = data.answers.reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0);
+                const avg = data.answers.length > 0 ? (sum / data.answers.length).toFixed(1) : 0;
+                return { id: qId, text: data.text, type: 'rating', average: avg, breakdown: counts };
+            } 
+            else if (data.type === 'mcq') {
+                const counts = {};
+                data.answers.forEach(a => { if (a) { counts[a] = (counts[a] || 0) + 1; } });
+                return { id: qId, text: data.text, type: 'mcq', breakdown: counts };
+            } 
+            else {
+                return { id: qId, text: data.text, type: 'paragraph', rawAnswers: data.answers.filter(a => typeof a === 'string' && a.trim() !== '') };
+            }
+        });
+
+        const feedbackData = { 
+            total: totalResponses, 
+            averageRating, 
+            analytics, 
+            aiSummary: aiSummary || null 
+        };
 
         let pdfUrl = null;
         try {
             const submitterInfo = `${req.user.name} (${req.user.role === 'president' ? 'President' : 'Club Member'})`;
             pdfUrl = await generateAndUploadReportPDF(content, event, event.club.name, submitterInfo, registrations, feedbackData);
         } catch (s3Error) {
-            console.error(s3Error);
+            console.error("PDF Generation/Upload Error:", s3Error);
         }
 
         const report = await Report.findOneAndUpdate(

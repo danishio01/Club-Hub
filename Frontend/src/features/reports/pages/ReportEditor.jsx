@@ -123,7 +123,7 @@ const ReportEditor = () => {
         if(window.confirm("Submit final report? You will not be able to edit it after submission.")) {
             setIsSaving(true);
             try {
-                await submitReportApi(eventId, content);
+                await submitReportApi(eventId, { content, aiSummary });
                 alert("Report successfully generated and submitted to Admin.");
                 navigate('/president/events');
             } catch (error) {
@@ -137,28 +137,29 @@ const ReportEditor = () => {
 
     const parseMarkdownToNormalText = (text) => {
         if (!text) return null;
-        const lines = text.split('\n');
+        const cleanText = text.replace(/```markdown/gi, '').replace(/```/g, '').trim();
+        const lines = cleanText.split('\n');
         let currentList = [];
         const components = [];
 
         const formatBoldText = (rawText) => {
-            let cleanText = rawText.replace(/^[-*•]\s*/, '').trim();
+            let cleanString = rawText.replace(/^[-*•]\s*/, '').trim();
             const boldRegex = /\*\*(.*?)\*\*/g;
             const parts = [];
             let lastIndex = 0;
             let match;
             
-            while ((match = boldRegex.exec(cleanText)) !== null) {
+            while ((match = boldRegex.exec(cleanString)) !== null) {
                 if (match.index > lastIndex) {
-                    parts.push(cleanText.substring(lastIndex, match.index));
+                    parts.push(cleanString.substring(lastIndex, match.index));
                 }
                 parts.push(<strong key={`bold-${match.index}`}>{match[1]}</strong>);
                 lastIndex = boldRegex.lastIndex;
             }
-            if (lastIndex < cleanText.length) {
-                parts.push(cleanText.substring(lastIndex));
+            if (lastIndex < cleanString.length) {
+                parts.push(cleanString.substring(lastIndex));
             }
-            return parts.length > 0 ? parts : cleanText;
+            return parts.length > 0 ? parts : cleanString;
         };
 
         lines.forEach((line, index) => {
@@ -179,7 +180,7 @@ const ReportEditor = () => {
 
             if (isHeader) {
                 if (currentList.length > 0) {
-                    components.push(<ul key={`list-${index}`} style={{ paddingLeft: '20px', margin: '8px 0' }}>{currentList}</ul>);
+                    components.push(<ul key={`list-${index}`}>{currentList}</ul>);
                     currentList = [];
                 }
                 const headingText = trimmed.replace(/^###\s*/, '').replace(/\*\*/g, '').trim();

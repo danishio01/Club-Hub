@@ -11,8 +11,8 @@ export const saveReportDraftApi = async (eventId, content) => {
     return response.data.data;
 };
 
-export const submitReportApi = async (eventId, content) => {
-    const response = await axiosInstance.post(`/reports/event/${eventId}/submit`, { content });
+export const submitReportApi = async (eventId, payload) => {
+    const response = await axiosInstance.post(`/reports/event/${eventId}/submit`, payload);
     return response.data.data;
 };
 

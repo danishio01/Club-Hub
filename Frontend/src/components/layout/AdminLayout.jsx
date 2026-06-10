@@ -67,7 +67,7 @@ const AdminLayout = () => {
         <div className="admin-layout">
             <nav className="top-navbar">
                 <div className="nav-brand">
-                    <img src="https://ik.imagekit.io/p4nbkerbz/ClubHub/image.png?updatedAt=1776478146181" alt="Logo" className="nav-logo" />
+                    <img src="https://ik.imagekit.io/p4nbkerbz/ClubHub/applogo.png" alt="Logo" className="nav-logo" />
                     ClubHub Admin
                 </div>
 

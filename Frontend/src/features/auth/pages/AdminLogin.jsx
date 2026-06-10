@@ -45,7 +45,7 @@ const AdminLogin = () => {
             <div className="login-card">
                 <div className="college-header">
                     <img 
-                        src="https://ik.imagekit.io/p4nbkerbz/ClubHub/image.png?updatedAt=1776478146181" 
+                        src="https://ik.imagekit.io/p4nbkerbz/ClubHub/applogo.png" 
                         alt="ClubHub Logo" 
                         className="logo" 
                     />
