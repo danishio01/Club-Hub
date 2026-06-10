@@ -18,7 +18,7 @@ const PresidentLayout = () => {
         if (!isCheckingAuth) {
             if (!user) {
                 navigate('/', { replace: true });
-            } else if (user.role?.toLowerCase() !== 'president') {
+            } else if (user.role?.toLowerCase() !== 'president' && !user.isClubMember) {
                 const role = user.role?.toLowerCase();
                 if (role === 'student') navigate('/student/dashboard', { replace: true });
                 else if (role === 'pr') navigate('/pr/dashboard', { replace: true });
@@ -44,6 +44,7 @@ const PresidentLayout = () => {
     if (isCheckingAuth || !user) return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Authenticating President...</div>;
 
     const clubLabel = user.clubName ? user.clubName : 'Unassigned';
+    const userRoleLabel = user.isClubMember ? 'Club Member' : 'President';
 
     return (
         <div className="president-layout">
@@ -63,6 +64,11 @@ const PresidentLayout = () => {
                     <NavLink to="/president/events" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
                         <i className="ri-calendar-event-line"></i> Event Management
                     </NavLink>
+                    {user?.role === 'president' && (
+                        <NavLink to="/president/club" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
+                            <i className="ri-team-line"></i> Club Members
+                        </NavLink>
+                    )}
                     <NavLink to="/president/ai-agent" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'} onClick={closeSidebar}>
                         <i className="ri-robot-2-line"></i> AI Assistant
                     </NavLink>
@@ -82,7 +88,7 @@ const PresidentLayout = () => {
                         </button>
                     </div>
                     <div className="user-info">
-                        <span className="club-chip">{clubLabel} President</span>
+                        <span className="club-chip">{clubLabel} {userRoleLabel}</span>
                         <span>{user.name}</span>
                         <div className="avatar">{user.name.charAt(0)}</div>
                     </div>

@@ -41,6 +41,7 @@ const GrafikDashboard = () => {
                     <span className={`status-badge ${badgeClass}`}>{statusLabel}</span>
                 </div>
                 <h3>{event.title}</h3>
+                <p><i className="ri-user-line"></i> {event.creator?.name || 'Unknown'} ({event.creator?.role || 'N/A'})</p>
                 <p><i className="ri-calendar-line"></i> {new Date(event.date).toLocaleDateString()}</p>
             </div>
             

@@ -70,6 +70,7 @@ export const routes = createBrowserRouter([
             { path: "dashboard", element: <PresidentDashboard /> },
             { path: "events", element: <Events /> },
             { path: "events/:eventId", element: <EventDetails /> },
+            { path: "club", element: <Clubs /> },
             { path: "ai-agent", element: <AdminAiAgent /> },
             { path: "reports/write/:eventId", element: <ReportEditor /> } 
         ]

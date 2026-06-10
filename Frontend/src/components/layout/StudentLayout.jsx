@@ -19,6 +19,8 @@ const StudentLayout = () => {
         if (!isCheckingAuth) {
             if (!user) {
                 navigate('/', { replace: true });
+            } else if (user.isClubMember) {
+                navigate('/president/dashboard', { replace: true });
             } else if (user.role?.toLowerCase() !== 'student') {
                 const role = user.role?.toLowerCase();
                 if (role === 'president') navigate('/president/dashboard', { replace: true });

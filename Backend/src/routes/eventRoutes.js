@@ -18,7 +18,9 @@ import {
     approveEventBanner,
     uploadGalleryImage,
     deleteGalleryImage,
-    getPrCompletedEvents
+    getPrCompletedEvents,
+    approveClubMemberProposal,
+    rejectClubMemberProposal
 } from '../controllers/eventController.js';
 import { 
     registerForEvent, 
@@ -33,7 +35,7 @@ import {
     summarizeReviews
 } from '../controllers/registrationController.js';
 import { getLeaderboard, resetLeaderboard } from '../controllers/leaderboardController.js';
-import { protect, presidentOnly, prOnly, adminOnly, presidentOrAdmin, grafikOnly } from '../middleware/authMiddleware.js';
+import { protect, presidentOnly, prOnly, adminOnly, presidentOrAdmin, grafikOnly, presidentOrClubMember, presidentClubMemberOrAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -46,11 +48,13 @@ router.get('/student/certificates', protect, getAttendedEvents);
 router.get('/student/attendance-report', protect, getStudentAttendanceReport);
 router.get('/admin/attendance-report', getAdminAttendanceReport);
 
-router.get('/president/all', protect, presidentOnly, getPresidentEvents);
-router.post('/', protect, presidentOnly, createEvent);
+router.get('/president/all', protect, presidentOrClubMember, getPresidentEvents);
+router.post('/', protect, presidentClubMemberOrAdmin, createEvent);
 router.patch('/:id/complete', protect, presidentOnly, markEventCompleted);
-router.put('/:id', protect, presidentOnly, updateEvent);
-router.delete('/:id', protect, presidentOnly, deleteEvent);
+router.put('/:id', protect, presidentOrClubMember, updateEvent);
+router.delete('/:id', protect, presidentOrClubMember, deleteEvent);
+router.patch('/:id/proposal/approve', protect, presidentOnly, approveClubMemberProposal);
+router.patch('/:id/proposal/reject', protect, presidentOnly, rejectClubMemberProposal);
 
 router.post('/:eventId/reviews/summary', protect, presidentOrAdmin, summarizeReviews);
 

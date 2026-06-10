@@ -23,3 +23,11 @@ export const updateClubService = async (id, clubData) => {
 export const deleteClubService = async (id) => {
     return await axiosInstance.delete(`/clubs/${id}`);
 };
+
+export const addClubMemberService = async (clubId, studentId) => {
+    return await axiosInstance.post(`/clubs/${clubId}/members`, { studentId });
+};
+
+export const removeClubMemberService = async (clubId, studentId) => {
+    return await axiosInstance.delete(`/clubs/${clubId}/members/${studentId}`);
+};

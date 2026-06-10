@@ -58,7 +58,7 @@ const EditEventModal = ({ event, onClose, onSuccess }) => {
         setIsLoading(true);
         try {
             const dataToSubmit = { ...formData };
-            if (user?.role === 'president') {
+            if (user?.role === 'president' || user?.isClubMember) {
                 delete dataToSubmit.club;
             }
             await updateEventService(event._id, dataToSubmit);

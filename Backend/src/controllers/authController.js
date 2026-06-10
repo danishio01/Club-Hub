@@ -2,6 +2,45 @@ import Student from '../models/studentModel.js';
 import Club from '../models/clubModel.js';
 import jwt from 'jsonwebtoken';
 
+const buildStudentSession = async (student) => {
+    let clubName = null;
+    let clubId = null;
+    let isClubMember = false;
+    let clubMemberRole = null;
+
+    if (student.role === 'president') {
+        const club = await Club.findOne({ president: student._id });
+        if (club) {
+            clubName = club.name;
+            clubId = club._id;
+        }
+    } else {
+        const club = await Club.findOne({ members: student._id });
+        if (club) {
+            clubName = club.name;
+            clubId = club._id;
+            isClubMember = true;
+            clubMemberRole = 'clubMember';
+        }
+    }
+
+    return {
+        _id: student._id,
+        name: student.name,
+        usn: student.usn,
+        email: student.email,
+        department: student.department,
+        semester: student.semester,
+        section: student.section,
+        interests: student.interests,
+        role: student.role,
+        clubName,
+        clubId,
+        isClubMember,
+        clubMemberRole
+    };
+};
+
 export const studentLogin = async (req, res) => {
     try {
         const { identifier, password } = req.body;
@@ -20,12 +59,6 @@ export const studentLogin = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Invalid password.' });
         }
 
-        let clubName = null;
-        if (student.role === 'president') {
-            const club = await Club.findOne({ president: student._id });
-            if (club) clubName = club.name;
-        }
-
         const token = jwt.sign(
             { id: student._id, role: student.role }, 
             'clubhub_super_secret_key_123', 
@@ -41,18 +74,7 @@ export const studentLogin = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            data: {
-                _id: student._id,
-                name: student.name,
-                usn: student.usn,
-                email: student.email,
-                department: student.department,
-                semester: student.semester,
-                section: student.section,
-                interests: student.interests,
-                role: student.role,
-                clubName
-            }
+            data: await buildStudentSession(student)
         });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Server error during login.' });
@@ -76,26 +98,9 @@ export const getMe = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        let clubName = null;
-        if (student.role === 'president') {
-            const club = await Club.findOne({ president: student._id });
-            if (club) clubName = club.name;
-        }
-
         return res.status(200).json({
             success: true,
-            data: {
-                _id: student._id,
-                name: student.name,
-                usn: student.usn,
-                email: student.email,
-                department: student.department,
-                semester: student.semester,
-                section: student.section,
-                interests: student.interests,
-                role: student.role,
-                clubName
-            }
+            data: await buildStudentSession(student)
         });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Server error retrieving user data.' });

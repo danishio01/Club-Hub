@@ -17,7 +17,11 @@ const clubSchema = new mongoose.Schema({
     president: { 
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'Student' 
-    }
+    },
+    members: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Student'
+    }]
 }, { timestamps: true });
 
 export default mongoose.model('Club', clubSchema);

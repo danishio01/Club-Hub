@@ -24,6 +24,8 @@ const StudentLogin = () => {
             
             if (role === 'president') {
                 navigate('/president/dashboard', { replace: true });
+            } else if (user.isClubMember) {
+                navigate('/president/dashboard', { replace: true });
             } else if (role === 'pr') {
                 navigate('/pr/dashboard', { replace: true });
             } else if (role === 'grafik') {

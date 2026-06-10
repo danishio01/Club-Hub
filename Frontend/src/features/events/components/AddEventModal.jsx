@@ -83,7 +83,7 @@ const AddEventModal = ({ onClose, onSuccess }) => {
         setIsLoading(true);
         try {
             const dataToSubmit = { ...formData };
-            if (user?.role === 'president') {
+            if (user?.role === 'president' || user?.isClubMember) {
                 delete dataToSubmit.club; 
             }
             await createEventService(dataToSubmit);
@@ -105,7 +105,7 @@ const AddEventModal = ({ onClose, onSuccess }) => {
                 </div>
                 
                 <div className="modal-body-scrollable">
-                    {user?.role === 'president' && (
+                    {(user?.role === 'president' || user?.isClubMember) && (
                         <div className="ai-assistant-card">
                             <div className="ai-header">
                                 <i className="ri-sparkling-fill"></i>

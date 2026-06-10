@@ -21,11 +21,18 @@ const eventSchema = new mongoose.Schema({
     gallery: [galleryImageSchema],
     status: { 
         type: String, 
-        enum: ['review', 'pending_admin', 'approved', 'rejected', 'banner_rejected', 'completed'], 
+        enum: ['pending_president', 'review', 'pending_admin', 'approved', 'rejected', 'president_rejected', 'banner_rejected', 'completed'], 
         default: 'review' 
     },
+    creator: {
+        student: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', default: null },
+        name: { type: String, default: null },
+        usn: { type: String, default: null },
+        role: { type: String, default: null }
+    },
     rejectedReason: { type: String, default: null },
-    rejectedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', default: null },
+    rejectedBy: { type: mongoose.Schema.Types.ObjectId, refPath: 'rejectedByModel', default: null },
+    rejectedByModel: { type: String, enum: ['Admin', 'Student'], default: 'Admin' },
     rejectedAt: { type: Date, default: null }
 }, { timestamps: true });
 

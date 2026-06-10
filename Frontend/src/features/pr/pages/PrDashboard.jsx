@@ -61,6 +61,7 @@ const PrDashboard = () => {
                             <div className="card-content-wrapper">
                                 <div className="card-info">
                                     <h3>{event.title}</h3>
+                                    <p><i className="ri-user-line"></i> {event.creator?.name || 'Unknown'} ({event.creator?.role || 'N/A'})</p>
                                     <p><i className="ri-map-pin-line"></i> {event.venue}</p>
                                     <p><i className="ri-time-line"></i> {event.time}</p>
                                 </div>

@@ -72,6 +72,7 @@ const PrEventManagement = () => {
                 <div>
                     <h1>{event.title}</h1>
                     <p>Attendance Session Control Panel</p>
+                    <p>Created by {event.creator?.name || 'Unknown'} ({event.creator?.usn || 'N/A'}) as {event.creator?.role || 'N/A'}</p>
                 </div>
                 <div className="stats-badge">
                     {registrations.length} / {event.maxParticipants} Registered

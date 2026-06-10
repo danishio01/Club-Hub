@@ -71,13 +71,12 @@ const PrSocialShare = () => {
         try {
             await navigator.clipboard.writeText(text);
             alert("Content copied to clipboard!");
-        } catch (err) {
+        } catch {
             alert("Failed to copy content. Please select and copy manually.");
         }
     };
 
     const handleNativeShare = async (platformText) => {
-        const eventUrl = `${window.location.origin}/student/events/${eventId}`;
         const fullText = `${platformText}`;
 
         try {

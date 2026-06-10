@@ -127,6 +127,10 @@ const GrafikEventBanner = () => {
                             <div className="value">{event.club?.name}</div>
                         </div>
                         <div className="info-item">
+                            <div className="label">Created By</div>
+                            <div className="value">{event.creator?.name || 'Unknown'} ({event.creator?.usn || 'N/A'}) - {event.creator?.role || 'N/A'}</div>
+                        </div>
+                        <div className="info-item">
                             <div className="label">Description</div>
                             <div className="value desc">{event.description}</div>
                         </div>

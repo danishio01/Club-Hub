@@ -4,13 +4,43 @@ import Club from '../models/clubModel.js';
 import { generatePosterBuffer } from '../services/bannerService.js';
 import { uploadBannerToImageKit, deleteBannerFromImageKit } from '../services/imagekitService.js';
 
+const populateEventQuery = (query) => query
+    .populate('club', 'name isActive president members')
+    .populate('creator.student', 'name usn email');
+
+const getClubForUser = async (user, memberClub = null) => {
+    if (user.role === 'president') {
+        return await Club.findOne({ president: user._id });
+    }
+
+    if (memberClub) {
+        return memberClub;
+    }
+
+    return await Club.findOne({ members: user._id });
+};
+
+const getCreatorPayload = (user, roleLabel) => ({
+    student: user._id,
+    name: user.name,
+    usn: user.usn,
+    role: roleLabel
+});
+
+const ownsClubEvent = (event, user) => event.club?.president?.toString() === user._id.toString();
+
+const ownsCreatedEvent = (event, user) => event.creator?.student?.toString() === user._id.toString();
+
 export const getPresidentEvents = async (req, res) => {
     try {
-        const club = await Club.findOne({ president: req.user._id });
+        const club = await getClubForUser(req.user, req.memberClub);
         if (!club) return res.status(200).json({ success: true, data: [] });
 
-        const events = await Event.find({ club: club._id })
-            .populate('club', 'name isActive')
+        const filter = req.user.role === 'president'
+            ? { club: club._id }
+            : { club: club._id, 'creator.student': req.user._id };
+
+        const events = await populateEventQuery(Event.find(filter))
             .sort({ date: 1 })
             .lean();
 
@@ -32,11 +62,22 @@ export const createEvent = async (req, res) => {
             if (!club) return res.status(403).json({ success: false, message: 'You are not assigned to any club.' });
             req.body.club = club._id; 
             req.body.status = 'review';
+            req.body.creator = getCreatorPayload(req.user, 'President');
+        } else if (req.memberClub) {
+            req.body.club = req.memberClub._id;
+            req.body.status = 'pending_president';
+            req.body.creator = getCreatorPayload(req.user, 'Club Member');
+        } else if (req.user.role === 'admin') {
+            req.body.creator = {
+                name: req.user.name || req.user.email || req.user.adminId || 'Admin',
+                usn: null,
+                role: 'Admin'
+            };
         }
 
         const event = new Event(req.body);
         await event.save();
-        const populatedEvent = await Event.findById(event._id).populate('club', 'name isActive');
+        const populatedEvent = await populateEventQuery(Event.findById(event._id));
         return res.status(201).json({ success: true, data: populatedEvent });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to create event' });
@@ -45,8 +86,7 @@ export const createEvent = async (req, res) => {
 
 export const getEvents = async (req, res) => {
     try {
-        const events = await Event.find()
-            .populate('club', 'name isActive')
+        const events = await populateEventQuery(Event.find())
             .sort({ date: 1 })
             .lean();
 
@@ -63,7 +103,7 @@ export const getEvents = async (req, res) => {
 
 export const getEventById = async (req, res) => {
     try {
-        const event = await Event.findById(req.params.id).populate('club', 'name isActive').lean();
+        const event = await populateEventQuery(Event.findById(req.params.id)).lean();
         if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
         
         const currentRegistrations = await Registration.countDocuments({ event: event._id });
@@ -75,7 +115,7 @@ export const getEventById = async (req, res) => {
 
 export const getGrafikEventById = async (req, res) => {
     try {
-        const event = await Event.findById(req.params.id).populate('club', 'name').lean();
+        const event = await populateEventQuery(Event.findById(req.params.id)).lean();
         if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
         return res.status(200).json({ success: true, data: event });
     } catch (error) {
@@ -91,7 +131,7 @@ export const updateEvent = async (req, res) => {
         if (req.user.role === 'president') {
             const eventToUpdate = await Event.findById(id).populate('club');
             if (!eventToUpdate) return res.status(404).json({ message: 'Event not found' });
-            if (eventToUpdate.club.president?.toString() !== req.user._id.toString()) {
+            if (!ownsClubEvent(eventToUpdate, req.user)) {
                 return res.status(403).json({ message: 'Unauthorized: You do not own this event.' });
             }
             delete updateData.club;
@@ -99,11 +139,26 @@ export const updateEvent = async (req, res) => {
             updateData.status = 'review';
             updateData.rejectedReason = null;
             updateData.rejectedBy = null;
+            updateData.rejectedByModel = 'Admin';
+            updateData.rejectedAt = null;
+        } else if (req.memberClub) {
+            const eventToUpdate = await Event.findById(id).populate('club');
+            if (!eventToUpdate) return res.status(404).json({ message: 'Event not found' });
+            if (!ownsCreatedEvent(eventToUpdate, req.user) || eventToUpdate.club._id.toString() !== req.memberClub._id.toString()) {
+                return res.status(403).json({ message: 'Unauthorized: You do not own this proposal.' });
+            }
+            if (!['pending_president', 'president_rejected', 'rejected'].includes(eventToUpdate.status)) {
+                return res.status(400).json({ message: 'Only pending or rejected proposals can be edited.' });
+            }
+            delete updateData.club;
+            updateData.status = 'pending_president';
+            updateData.rejectedReason = null;
+            updateData.rejectedBy = null;
+            updateData.rejectedByModel = 'Admin';
             updateData.rejectedAt = null;
         }
 
-        const event = await Event.findByIdAndUpdate(id, updateData, { new: true })
-            .populate('club', 'name isActive');
+        const event = await populateEventQuery(Event.findByIdAndUpdate(id, updateData, { new: true }));
         return res.status(200).json({ success: true, data: event });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to update event' });
@@ -117,8 +172,17 @@ export const deleteEvent = async (req, res) => {
         if (req.user.role === 'president') {
             const eventToDelete = await Event.findById(id).populate('club');
             if (!eventToDelete) return res.status(404).json({ message: 'Event not found' });
-            if (eventToDelete.club.president?.toString() !== req.user._id.toString()) {
+            if (!ownsClubEvent(eventToDelete, req.user)) {
                 return res.status(403).json({ message: 'Unauthorized: You do not own this event.' });
+            }
+        } else if (req.memberClub) {
+            const eventToDelete = await Event.findById(id).populate('club');
+            if (!eventToDelete) return res.status(404).json({ message: 'Event not found' });
+            if (!ownsCreatedEvent(eventToDelete, req.user) || eventToDelete.club._id.toString() !== req.memberClub._id.toString()) {
+                return res.status(403).json({ message: 'Unauthorized: You do not own this proposal.' });
+            }
+            if (!['pending_president', 'president_rejected', 'rejected'].includes(eventToDelete.status)) {
+                return res.status(400).json({ message: 'Only pending or rejected proposals can be deleted.' });
             }
         }
 
@@ -149,9 +213,9 @@ export const approveEvent = async (req, res) => {
         const { id } = req.params;
         const event = await Event.findByIdAndUpdate(
             id, 
-            { status: 'approved', rejectedReason: null, rejectedBy: null, rejectedAt: null }, 
+            { status: 'approved', rejectedReason: null, rejectedBy: null, rejectedByModel: 'Admin', rejectedAt: null }, 
             { new: true }
-        ).populate('club', 'name isActive');
+        ).populate('club', 'name isActive president members').populate('creator.student', 'name usn email');
         
         if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
         return res.status(200).json({ success: true, data: event, message: 'Event approved successfully' });
@@ -185,10 +249,11 @@ export const rejectEvent = async (req, res) => {
         eventToUpdate.status = targetStatus;
         eventToUpdate.rejectedReason = reason;
         eventToUpdate.rejectedBy = req.user._id;
+        eventToUpdate.rejectedByModel = 'Admin';
         eventToUpdate.rejectedAt = new Date();
         await eventToUpdate.save();
 
-        const populatedEvent = await Event.findById(id).populate('club', 'name isActive');
+        const populatedEvent = await populateEventQuery(Event.findById(id));
         return res.status(200).json({ success: true, data: populatedEvent, message: 'Rejection processed successfully' });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to reject event' });
@@ -202,7 +267,7 @@ export const markEventCompleted = async (req, res) => {
         if (req.user.role === 'president') {
             const eventToComplete = await Event.findById(id).populate('club');
             if (!eventToComplete) return res.status(404).json({ message: 'Event not found' });
-            if (eventToComplete.club.president?.toString() !== req.user._id.toString()) {
+            if (!ownsClubEvent(eventToComplete, req.user)) {
                 return res.status(403).json({ message: 'Unauthorized.' });
             }
             if (eventToComplete.status !== 'approved') {
@@ -272,7 +337,7 @@ export const getGrafikEvents = async (req, res) => {
     try {
         const events = await Event.find({ 
             status: { $in: ['review', 'pending_admin', 'banner_rejected', 'approved', 'completed'] } 
-        }).populate('club', 'name').sort({ createdAt: -1 });
+        }).populate('club', 'name isActive president members').populate('creator.student', 'name usn email').sort({ createdAt: -1 });
         
         return res.status(200).json({ success: true, data: events });
     } catch (error) {
@@ -338,7 +403,7 @@ export const approveEventBanner = async (req, res) => {
             req.params.id, 
             { status: 'pending_admin' }, 
             { new: true }
-        ).populate('club', 'name isActive');
+        ).populate('club', 'name isActive president members').populate('creator.student', 'name usn email');
         
         if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
         return res.status(200).json({ success: true, data: event, message: 'Banner approved. Event submitted to Admin.' });
@@ -399,11 +464,71 @@ export const deleteGalleryImage = async (req, res) => {
 export const getPrCompletedEvents = async (req, res) => {
     try {
         const events = await Event.find({ status: 'completed', 'gallery.0': { $exists: true } })
-            .populate('club', 'name')
+            .populate('club', 'name isActive president members')
+            .populate('creator.student', 'name usn email')
             .sort({ date: -1 })
             .lean();
         return res.status(200).json({ success: true, data: events });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to fetch PR galleries' });
+    }
+};
+
+export const approveClubMemberProposal = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const event = await Event.findById(id).populate('club');
+
+        if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+        if (!ownsClubEvent(event, req.user)) {
+            return res.status(403).json({ success: false, message: 'You cannot approve this proposal' });
+        }
+        if (event.status !== 'pending_president') {
+            return res.status(400).json({ success: false, message: 'Only pending club member proposals can be approved' });
+        }
+
+        event.status = 'review';
+        event.rejectedReason = null;
+        event.rejectedBy = null;
+        event.rejectedByModel = 'Admin';
+        event.rejectedAt = null;
+        await event.save();
+
+        const populatedEvent = await populateEventQuery(Event.findById(id));
+        return res.status(200).json({ success: true, data: populatedEvent, message: 'Proposal approved and sent to Grafik' });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to approve proposal' });
+    }
+};
+
+export const rejectClubMemberProposal = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+
+        if (!reason || reason.trim() === '') {
+            return res.status(400).json({ success: false, message: 'Rejection reason is required.' });
+        }
+
+        const event = await Event.findById(id).populate('club');
+        if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+        if (!ownsClubEvent(event, req.user)) {
+            return res.status(403).json({ success: false, message: 'You cannot reject this proposal' });
+        }
+        if (event.status !== 'pending_president') {
+            return res.status(400).json({ success: false, message: 'Only pending club member proposals can be rejected' });
+        }
+
+        event.status = 'president_rejected';
+        event.rejectedReason = reason;
+        event.rejectedBy = req.user._id;
+        event.rejectedByModel = 'Student';
+        event.rejectedAt = new Date();
+        await event.save();
+
+        const populatedEvent = await populateEventQuery(Event.findById(id));
+        return res.status(200).json({ success: true, data: populatedEvent, message: 'Proposal rejected' });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to reject proposal' });
     }
 };

@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import Student from '../models/studentModel.js';
 import Admin from '../models/adminModel.js';
+import Club from '../models/clubModel.js';
 
 export const protect = async (req, res, next) => {
     let token = req.cookies.jwt;
@@ -14,7 +15,14 @@ export const protect = async (req, res, next) => {
                 if(req.user) req.user.role = 'admin'; 
             } else {
                 req.user = await Student.findById(decoded.id).select('-password');
-                if(req.user) req.user.role = req.user.role;
+                if(req.user) {
+                    req.user = req.user.toObject();
+                    const memberClub = await Club.findOne({ members: req.user._id }).select('_id name');
+                    if (memberClub) {
+                        req.user.isClubMember = true;
+                        req.user.memberClub = memberClub;
+                    }
+                }
             }
             
             next();
@@ -42,6 +50,28 @@ export const presidentOnly = (req, res, next) => {
     }
 };
 
+export const presidentOrClubMember = async (req, res, next) => {
+    try {
+        if (!req.user) {
+            return res.status(403).json({ success: false, message: 'Not authorized' });
+        }
+
+        if (req.user.role === 'president') {
+            return next();
+        }
+
+        const club = await Club.findOne({ members: req.user._id }).select('_id name');
+        if (club) {
+            req.memberClub = club;
+            return next();
+        }
+
+        return res.status(403).json({ success: false, message: 'Not authorized as a club member' });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to verify club membership' });
+    }
+};
+
 export const prOnly = (req, res, next) => {
     if (req.user && req.user.role === 'pr') {
         next();
@@ -63,5 +93,27 @@ export const presidentOrAdmin = (req, res, next) => {
         next();
     } else {
         res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+};
+
+export const presidentClubMemberOrAdmin = async (req, res, next) => {
+    try {
+        if (!req.user) {
+            return res.status(403).json({ success: false, message: 'Not authorized' });
+        }
+
+        if (req.user.role === 'president' || req.user.role === 'admin') {
+            return next();
+        }
+
+        const club = await Club.findOne({ members: req.user._id }).select('_id name');
+        if (club) {
+            req.memberClub = club;
+            return next();
+        }
+
+        return res.status(403).json({ success: false, message: 'Not authorized' });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to verify permissions' });
     }
 };

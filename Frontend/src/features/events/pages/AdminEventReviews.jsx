@@ -18,9 +18,9 @@ const AdminEventReviews = () => {
     }, [loadEvents]);
 
     const reviewEvents = events.filter(e => e.status === 'pending_admin');
-    const inProgressEvents = events.filter(e => e.status === 'review');
+    const inProgressEvents = events.filter(e => e.status === 'review' || e.status === 'pending_president');
     const approvedEvents = events.filter(e => e.status === 'approved' || e.status === 'completed' || e.status === 'Completed');
-    const rejectedEvents = events.filter(e => e.status === 'rejected' || e.status === 'banner_rejected');
+    const rejectedEvents = events.filter(e => e.status === 'rejected' || e.status === 'banner_rejected' || e.status === 'president_rejected');
 
     const renderEventGrid = (data, emptyText, highlightClass = '') => {
         if (data.length === 0) return <div className="empty-state">{emptyText}</div>;
@@ -33,8 +33,10 @@ const AdminEventReviews = () => {
                     let displayStatus = event.status;
                     if (event.status === 'pending_admin') displayStatus = 'Pending Admin Review';
                     if (event.status === 'review') displayStatus = 'Waiting For Grafik Banner';
+                    if (event.status === 'pending_president') displayStatus = 'Pending President Review';
                     if (event.status === 'banner_rejected') displayStatus = 'Banner Rejected (Needs Fix)';
                     if (event.status === 'rejected') displayStatus = 'Event Rejected (Needs Fix)';
+                    if (event.status === 'president_rejected') displayStatus = 'Proposal Rejected By President';
 
                     return (
                         <div key={event._id} className={`review-card ${highlightClass}`}>
@@ -45,6 +47,9 @@ const AdminEventReviews = () => {
                                 </span>
                             </div>
                             <h3 className="event-title">{event.title}</h3>
+                            <div style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '10px' }}>
+                                <i className="ri-user-line"></i> Created by <strong>{event.creator?.name || 'Unknown'}</strong> ({event.creator?.usn || 'N/A'}) as {event.creator?.role || 'N/A'}
+                            </div>
                             <p className="event-desc">{event.description}</p>
                             
                             {(event.status === 'rejected' || event.status === 'banner_rejected') && event.rejectedReason && (

@@ -6,7 +6,7 @@ export const getEventsList = () => async (dispatch, getState) => {
     try {
         const { auth } = getState();
         const role = auth.user?.role;
-        const endpoint = role === 'president' ? '/events/president/all' : '/events';
+        const endpoint = role === 'president' || auth.user?.isClubMember ? '/events/president/all' : '/events';
         
         const response = await axiosInstance.get(endpoint);
         dispatch(fetchEventsSuccess(response.data.data));
@@ -45,6 +45,16 @@ export const approveEventApi = async (id) => {
 
 export const rejectEventApi = async (id, payload) => {
     const response = await axiosInstance.patch(`/events/${id}/reject`, payload);
+    return response.data.data;
+};
+
+export const approveProposalApi = async (id) => {
+    const response = await axiosInstance.patch(`/events/${id}/proposal/approve`);
+    return response.data.data;
+};
+
+export const rejectProposalApi = async (id, reason) => {
+    const response = await axiosInstance.patch(`/events/${id}/proposal/reject`, { reason });
     return response.data.data;
 };
 

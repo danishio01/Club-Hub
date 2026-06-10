@@ -1,12 +1,23 @@
 import Registration from '../models/registrationModel.js';
 import Event from '../models/eventModel.js';
 import Student from '../models/studentModel.js';
+import Club from '../models/clubModel.js';
 import jwt from 'jsonwebtoken';
 import { ChatMistralAI } from "@langchain/mistralai";
 import { HumanMessage } from "@langchain/core/messages";
 
+const blockClubMemberStudentFeature = (req, res) => {
+    if (req.user?.isClubMember) {
+        res.status(403).json({ success: false, message: 'Club members do not have access to student attendance or review features.' });
+        return true;
+    }
+    return false;
+};
+
 export const registerForEvent = async (req, res) => {
     try {
+        if (blockClubMemberStudentFeature(req, res)) return;
+
         const eventId = req.params.eventId;
         const studentId = req.user._id; 
 
@@ -31,6 +42,10 @@ export const registerForEvent = async (req, res) => {
 export const getEventRegistrations = async (req, res) => {
     try {
         const { eventId } = req.params;
+
+        if (req.user?.isClubMember) {
+            return res.status(403).json({ success: false, message: 'Club members do not have access to attendance registrations.' });
+        }
         
         if (req.user.role === 'president') {
             const event = await Event.findById(eventId).populate('club');
@@ -61,6 +76,8 @@ export const generateAttendanceToken = async (req, res) => {
 
 export const markAttendance = async (req, res) => {
     try {
+        if (blockClubMemberStudentFeature(req, res)) return;
+
         const { eventId } = req.params;
         const { token } = req.body;
         const studentId = req.user._id;
@@ -84,6 +101,8 @@ export const markAttendance = async (req, res) => {
 
 export const getAttendedEvents = async (req, res) => {
     try {
+        if (blockClubMemberStudentFeature(req, res)) return;
+
         const studentId = req.user._id;
         const attended = await Registration.find({ student: studentId, status: 'Attended' }).populate({ path: 'event', populate: { path: 'club', select: 'name' } });
 
@@ -104,6 +123,8 @@ export const getAttendedEvents = async (req, res) => {
 
 export const getStudentAttendanceReport = async (req, res) => {
     try {
+        if (blockClubMemberStudentFeature(req, res)) return;
+
         const events = await Event.find({ status: { $in: ['approved', 'completed', 'Completed'] } }).sort({ date: -1 }).lean();
         const uniqueDates = [];
         const eventDateMap = {};
@@ -192,7 +213,10 @@ export const getAdminAttendanceReport = async (req, res) => {
             eventDateMap[formattedDate].push(e);
         });
 
+        const clubs = await Club.find().select('members').lean();
+        const memberIds = new Set(clubs.flatMap(club => (club.members || []).map(member => member.toString())));
         const students = await Student.find({ role: 'student' }).select('name usn department section semester').lean();
+        const attendanceStudents = students.filter(student => !memberIds.has(student._id.toString()));
         const allRegs = await Registration.find().lean();
 
         const regMap = {};
@@ -204,7 +228,7 @@ export const getAdminAttendanceReport = async (req, res) => {
         });
 
         const report = [];
-        students.forEach(student => {
+        attendanceStudents.forEach(student => {
             uniqueDates.forEach(dateObj => {
                 const sId = student._id.toString();
                 const eventsOnDate = eventDateMap[dateObj.formatted];
@@ -257,6 +281,8 @@ export const getAdminAttendanceReport = async (req, res) => {
 
 export const submitReview = async (req, res) => {
     try {
+        if (blockClubMemberStudentFeature(req, res)) return;
+
         const { rating, review } = req.body;
         const registration = await Registration.findOne({ event: req.params.eventId, student: req.user._id });
         

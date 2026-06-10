@@ -3,9 +3,11 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import io from 'socket.io-client';
 import axiosInstance from '../../../api/axiosInstance';
+import { useSelector } from 'react-redux';
 import '../style/AdminAiAgent.scss';
 
 const AdminAiAgent = () => {
+    const { user } = useSelector((state) => state.auth);
     const [events, setEvents] = useState([]);
     const [mode, setMode] = useState('General Chat');
     const [selectedEventId, setSelectedEventId] = useState('');
@@ -37,7 +39,8 @@ const AdminAiAgent = () => {
 
         const fetchEvents = async () => {
             try {
-                const response = await axiosInstance.get('/events');
+                const endpoint = user?.role === 'president' || user?.isClubMember ? '/events/president/all' : '/events';
+                const response = await axiosInstance.get(endpoint);
                 setEvents(response.data.data);
             } catch (error) {
                 console.error(error);
@@ -48,7 +51,7 @@ const AdminAiAgent = () => {
         return () => {
             socket.disconnect();
         };
-    }, []);
+    }, [user]);
 
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
