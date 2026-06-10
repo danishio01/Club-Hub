@@ -47,12 +47,12 @@ const GrafikDashboard = () => {
             
             {event.bannerUrl ? (
                 <div className="banner-preview">
-                    <img src={event.bannerUrl} alt="Banner" />
+                    <img src={event.bannerUrl} alt="Flyer" />
                 </div>
             ) : (
                 <div className="banner-preview empty">
                     <i className="ri-image-line"></i>
-                    <span>No Banner</span>
+                    <span>No Flyer</span>
                 </div>
             )}
 
@@ -61,7 +61,7 @@ const GrafikDashboard = () => {
                     className="btn-manage" 
                     onClick={() => navigate(`/grafik/events/${event._id}/banner`)}
                 >
-                    <i className="ri-image-edit-line"></i> Manage Banner
+                    <i className="ri-image-edit-line"></i> Manage Flyer
                 </button>
             </div>
         </div>
@@ -76,7 +76,7 @@ const GrafikDashboard = () => {
         <div className="grafik-dashboard-page">
             <div className="header-section">
                 <h1>Grafik Operations Dashboard</h1>
-                <p>Track your assignments and manage upcoming event banners.</p>
+                <p>Track your assignments and manage upcoming event flyers.</p>
             </div>
             
             {isLoading ? (
@@ -85,13 +85,13 @@ const GrafikDashboard = () => {
                 <div className="placeholder-container">
                     <i className="ri-image-edit-fill placeholder-icon"></i>
                     <h2>All Caught Up!</h2>
-                    <p>No active events require banner management at this time.</p>
+                    <p>No active events require flyer management at this time.</p>
                 </div>
             ) : (
                 <div className="dashboard-sections">
                     {rejectedBanners.length > 0 && (
                         <div className="section-block">
-                            <h2 className="section-title error"><i className="ri-error-warning-fill"></i> Rejected Banners</h2>
+                            <h2 className="section-title error"><i className="ri-error-warning-fill"></i> Rejected Flyers</h2>
                             <div className="grafik-grid">
                                 {rejectedBanners.map(e => renderEventCard(e, 'rejected', 'Fix Required'))}
                             </div>
@@ -100,9 +100,9 @@ const GrafikDashboard = () => {
 
                     {pendingCreation.length > 0 && (
                         <div className="section-block">
-                            <h2 className="section-title primary"><i className="ri-magic-line"></i> Pending Banner Creation</h2>
+                            <h2 className="section-title primary"><i className="ri-magic-line"></i> Pending Flyer Creation</h2>
                             <div className="grafik-grid">
-                                {pendingCreation.map(e => renderEventCard(e, 'pending', 'Needs Banner'))}
+                                {pendingCreation.map(e => renderEventCard(e, 'pending', 'Needs Flyer'))}
                             </div>
                         </div>
                     )}

@@ -160,7 +160,7 @@ const StudentEventDetails = () => {
 
             {event.bannerUrl && (
                 <div className="full-event-banner-container">
-                    <img src={event.bannerUrl} alt="Event Banner" className="full-event-banner" />
+                    <img src={event.bannerUrl} alt="Event Flyer" className="full-event-banner" />
                 </div>
             )}
 

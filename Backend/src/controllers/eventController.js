@@ -370,7 +370,7 @@ export const generateEventBanner = async (req, res) => {
         
         return res.status(200).json({ success: true, data: uploadResult.url });
     } catch (error) {
-        return res.status(500).json({ success: false, message: 'Failed to generate banner' });
+        return res.status(500).json({ success: false, message: 'Failed to generate flyer' });
     }
 };
 
@@ -397,7 +397,7 @@ export const uploadCustomEventBanner = async (req, res) => {
 
         return res.status(200).json({ success: true, data: uploadResult.url });
     } catch (error) {
-        return res.status(500).json({ success: false, message: 'Failed to upload custom banner' });
+        return res.status(500).json({ success: false, message: 'Failed to upload custom flyer' });
     }
 };
 
@@ -410,9 +410,9 @@ export const approveEventBanner = async (req, res) => {
         ).populate('club', 'name isActive president members').populate('creator.student', 'name usn email');
         
         if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
-        return res.status(200).json({ success: true, data: event, message: 'Banner approved. Event submitted to Admin.' });
+        return res.status(200).json({ success: true, data: event, message: 'Flyer approved. Event submitted to Admin.' });
     } catch (error) {
-        return res.status(500).json({ success: false, message: 'Failed to approve banner' });
+        return res.status(500).json({ success: false, message: 'Failed to approve flyer' });
     }
 };
 

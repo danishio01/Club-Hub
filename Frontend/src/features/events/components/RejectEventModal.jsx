@@ -33,7 +33,7 @@ const RejectEventModal = ({ onClose, onConfirm }) => {
                                 onChange={(e) => setRejectType(e.target.value)}
                                 style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', marginBottom: '16px' }}
                             >
-                                <option value="banner">Reject Banner Design (Returns to Grafik)</option>
+                                <option value="banner">Reject Flyer Design (Returns to Grafik)</option>
                                 <option value="event">Reject Entire Event Details (Returns to President)</option>
                             </select>
                         </div>
@@ -48,7 +48,7 @@ const RejectEventModal = ({ onClose, onConfirm }) => {
                                 required 
                                 value={reason} 
                                 onChange={(e) => setReason(e.target.value)}
-                                placeholder={rejectType === 'banner' ? "E.g., The banner text is illegible, please upload a clearer version." : "E.g., The main auditorium is already booked. Reschedule."}
+                                placeholder={rejectType === 'banner' ? "E.g., The flyer text is illegible, please upload a clearer version." : "E.g., The main auditorium is already booked. Reschedule."}
                                 style={{ borderColor: '#fca5a5', width: '100%', resize: 'vertical' }}
                             ></textarea>
                         </div>

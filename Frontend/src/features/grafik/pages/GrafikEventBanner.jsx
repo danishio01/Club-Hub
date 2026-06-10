@@ -47,7 +47,7 @@ const GrafikEventBanner = () => {
             setEvent(prev => ({ ...prev, bannerUrl }));
         } catch (error) {
             console.error("Generation failed:", error);
-            alert("Failed to generate banner.");
+            alert("Failed to generate flyer.");
         } finally {
             setIsProcessing(false);
         }
@@ -64,7 +64,7 @@ const GrafikEventBanner = () => {
                 setEvent(prev => ({ ...prev, bannerUrl }));
             } catch (error) {
                 console.error("Upload failed:", error);
-                alert("Failed to upload custom banner.");
+                alert("Failed to upload custom flyer.");
             } finally {
                 setIsProcessing(false);
             }
@@ -76,11 +76,11 @@ const GrafikEventBanner = () => {
         setIsProcessing(true);
         try {
             await approveBannerApi(eventId);
-            alert("Banner Approved! Event passed to Admin.");
+            alert("Flyer Approved! Event passed to Admin.");
             navigate('/grafik/dashboard');
         } catch (error) {
             console.error("Approval failed:", error);
-            alert("Failed to submit banner.");
+            alert("Failed to submit flyer.");
         } finally {
             setIsProcessing(false);
         }
@@ -99,8 +99,8 @@ const GrafikEventBanner = () => {
                     <i className="ri-arrow-left-line"></i> Back to Dashboard
                 </button>
                 <div className="title-wrapper">
-                    <h1>Official Event Banner</h1>
-                    <p>Generate, preview, and assign promotional banners for this event.</p>
+                    <h1>Official Event Flyer</h1>
+                    <p>Generate, preview, and assign promotional flyers for this event.</p>
                 </div>
             </div>
 
@@ -108,7 +108,7 @@ const GrafikEventBanner = () => {
                 <div className="rejection-banner">
                     <i className="ri-error-warning-fill"></i>
                     <div className="rejection-content">
-                        <h3>Banner Design Rejected by Admin</h3>
+                        <h3>Flyer Design Rejected by Admin</h3>
                         <p>{event.rejectedReason}</p>
                     </div>
                 </div>
@@ -164,19 +164,19 @@ const GrafikEventBanner = () => {
                 </div>
 
                 <div className="banner-control-panel">
-                    <h2>Banner Management</h2>
+                    <h2>Flyer Management</h2>
                     <div className="preview-container">
                         {event.bannerUrl ? (
                             <img 
                                 src={event.bannerUrl} 
-                                alt="Event Banner" 
+                                alt="Event Flyer" 
                                 className="banner-image" 
                                 onClick={() => setLightboxImage(event.bannerUrl)} 
                             />
                         ) : (
                             <div className="empty-preview">
                                 <i className="ri-image-add-line"></i>
-                                <span>No Banner Set</span>
+                                <span>No Flyer Set</span>
                             </div>
                         )}
                     </div>
@@ -186,7 +186,7 @@ const GrafikEventBanner = () => {
                             <div className="generation-options">
                                 <button className="btn-ai" onClick={handleGenerate} disabled={isProcessing}>
                                     <i className={isProcessing ? "ri-loader-4-line spin" : "ri-magic-line"}></i> 
-                                    {event.bannerUrl ? 'Regenerate Automatic Banner' : 'Generate Automatic Banner'}
+                                    {event.bannerUrl ? 'Regenerate Automatic Flyer' : 'Generate Automatic Flyer'}
                                 </button>
                                 
                                 <button className="btn-upload" onClick={() => fileInputRef.current?.click()} disabled={isProcessing}>
@@ -204,7 +204,7 @@ const GrafikEventBanner = () => {
 
                             {event.bannerUrl && (
                                 <button className="btn-submit" onClick={handleSubmit} disabled={isProcessing}>
-                                    <i className="ri-check-double-line"></i> Submit Banner for Review
+                                    <i className="ri-check-double-line"></i> Submit Flyer for Review
                                 </button>
                             )}
                         </div>
@@ -212,7 +212,7 @@ const GrafikEventBanner = () => {
                     
                     {isReadOnly && (
                         <div className="readonly-notice">
-                            <i className="ri-lock-line"></i> This event banner is currently locked for review or has already been published.
+                            <i className="ri-lock-line"></i> This event flyer is currently locked for review or has already been published.
                         </div>
                     )}
                 </div>

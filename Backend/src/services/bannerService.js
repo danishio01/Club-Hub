@@ -1,8 +1,32 @@
-import { createCanvas } from 'canvas';
+import { createCanvas, loadImage } from 'canvas';
+
+const LOGO_URLS = {
+    left: 'https://ik.imagekit.io/p4nbkerbz/ClubHub/CSE%20logo.jpg.jpeg?updatedAt=1781065495986',
+    center: 'https://ik.imagekit.io/p4nbkerbz/ClubHub/Gopalan%20Foundation%20heraldic%20crest.png?updatedAt=1781065667478',
+    right: 'https://ik.imagekit.io/p4nbkerbz/ClubHub/cseaimllogo.png?updatedAt=1781065578612'
+};
+
+let cachedLogos = null;
+
+const loadLogos = async () => {
+    if (cachedLogos) return cachedLogos;
+    try {
+        const [left, center, right] = await Promise.all([
+            loadImage(LOGO_URLS.left),
+            loadImage(LOGO_URLS.center),
+            loadImage(LOGO_URLS.right)
+        ]);
+        cachedLogos = { left, center, right };
+        return cachedLogos;
+    } catch (err) {
+        console.error("Failed to load header logos", err);
+        return null;
+    }
+};
 
 const THEMES = [
     {
-        name: 'Modern Gradient',
+        name: 'Midnight Purple',
         bg: (ctx) => {
             const grad = ctx.createLinearGradient(0, 0, 1080, 1080);
             grad.addColorStop(0, '#0f172a');
@@ -11,103 +35,109 @@ const THEMES = [
         },
         primaryText: '#ffffff',
         accentText: '#f472b6',
-        boxBg: 'rgba(255, 255, 255, 0.05)',
-        boxBorder: 'rgba(244, 114, 182, 0.3)'
+        boxBg: 'rgba(0, 0, 0, 0.4)',
+        boxBorder: 'rgba(244, 114, 182, 0.5)',
+        logoBg: 'rgba(255, 255, 255, 0.05)'
     },
     {
-        name: 'Geometric',
+        name: 'Clean White',
+        bg: () => '#ffffff',
+        primaryText: '#0f172a',
+        accentText: '#2563eb',
+        boxBg: '#f8fafc',
+        boxBorder: '#cbd5e1',
+        logoBg: 'transparent'
+    },
+    {
+        name: 'Emerald Dark',
         bg: (ctx) => {
-            ctx.fillStyle = '#1e1b4b';
-            ctx.fillRect(0, 0, 1080, 1080);
-            ctx.fillStyle = '#312e81';
-            ctx.beginPath();
-            ctx.arc(1080, 0, 600, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#4338ca';
-            ctx.beginPath();
-            ctx.moveTo(0, 1080);
-            ctx.lineTo(500, 1080);
-            ctx.lineTo(0, 500);
-            ctx.fill();
-            return 'transparent';
+            const grad = ctx.createLinearGradient(0, 0, 1080, 1080);
+            grad.addColorStop(0, '#064e3b');
+            grad.addColorStop(1, '#022c22');
+            return grad;
         },
         primaryText: '#f8fafc',
-        accentText: '#fbcfe8',
+        accentText: '#34d399',
         boxBg: 'rgba(0, 0, 0, 0.4)',
-        boxBorder: '#8b5cf6'
+        boxBorder: '#10b981',
+        logoBg: 'rgba(255, 255, 255, 0.05)'
     },
     {
-        name: 'Corporate',
+        name: 'Crimson Slate',
         bg: (ctx) => {
-            ctx.fillStyle = '#f8fafc';
-            ctx.fillRect(0, 0, 1080, 1080);
-            const grad = ctx.createLinearGradient(0, 0, 0, 350);
+            const grad = ctx.createLinearGradient(0, 0, 1080, 1080);
             grad.addColorStop(0, '#1e293b');
-            grad.addColorStop(1, '#0f172a');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, 1080, 350);
-            return 'transparent';
+            grad.addColorStop(1, '#7f1d1d');
+            return grad;
         },
-        primaryText: '#0f172a',
-        accentText: '#e2e8f0',
-        boxBg: '#ffffff',
-        boxBorder: '#cbd5e1',
-        isCorporate: true
+        primaryText: '#ffffff',
+        accentText: '#fca5a5',
+        boxBg: 'rgba(0, 0, 0, 0.5)',
+        boxBorder: '#f87171',
+        logoBg: 'rgba(255, 255, 255, 0.05)'
     },
     {
-        name: 'Minimal',
-        bg: () => '#fafafa',
-        primaryText: '#171717',
-        accentText: '#db2777',
-        boxBg: '#ffffff',
-        boxBorder: '#e5e5e5'
-    },
-    {
-        name: 'Tech',
+        name: 'Ocean Blue',
         bg: (ctx) => {
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, 1080, 1080);
-            ctx.strokeStyle = '#166534';
-            ctx.lineWidth = 1;
-            for(let i=0; i<1080; i+=40) {
-                ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,1080); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(1080,i); ctx.stroke();
-            }
-            return 'transparent';
+            const grad = ctx.createLinearGradient(0, 0, 1080, 1080);
+            grad.addColorStop(0, '#1e3a8a');
+            grad.addColorStop(1, '#172554');
+            return grad;
         },
-        primaryText: '#4ade80',
-        accentText: '#ffffff',
-        boxBg: 'rgba(22, 101, 52, 0.2)',
-        boxBorder: '#22c55e'
+        primaryText: '#ffffff',
+        accentText: '#93c5fd',
+        boxBg: 'rgba(255, 255, 255, 0.1)',
+        boxBorder: '#60a5fa',
+        logoBg: 'rgba(255, 255, 255, 0.05)'
     }
 ];
 
-export const generatePosterBuffer = async (event) => {
-    const categoryText = event.tags && event.tags.length > 0 
-        ? event.tags.slice(0, 2).join(' | ').toUpperCase() 
-        : 'OFFICIAL CAMPUS EVENT';
+let lastThemeIndex = -1;
 
-    const themeIndex = Math.floor(Math.random() * THEMES.length);
+export const generatePosterBuffer = async (event) => {
+    const logos = await loadLogos();
+
+    let themeIndex;
+    do {
+        themeIndex = Math.floor(Math.random() * THEMES.length);
+    } while (themeIndex === lastThemeIndex && THEMES.length > 1);
+    lastThemeIndex = themeIndex;
+
     const theme = THEMES[themeIndex];
 
     const canvas = createCanvas(1080, 1080);
     const ctx = canvas.getContext('2d');
     
     const bgFill = theme.bg(ctx);
-    if (bgFill !== 'transparent') {
-        ctx.fillStyle = bgFill;
-        ctx.fillRect(0, 0, 1080, 1080);
+    ctx.fillStyle = bgFill;
+    ctx.fillRect(0, 0, 1080, 1080);
+
+    if (theme.logoBg !== 'transparent') {
+        ctx.fillStyle = theme.logoBg;
+        ctx.fillRect(0, 0, 1080, 220);
     }
 
-    const safeTop = 150;
+    if (logos) {
+        ctx.drawImage(logos.left, 60, 40, 140, 140);
+        
+        const centerWidth = 150;
+        const centerHeight = 150;
+        ctx.drawImage(logos.center, (1080 - centerWidth) / 2, 35, centerWidth, centerHeight);
+        
+        ctx.drawImage(logos.right, 1080 - 60 - 140, 40, 140, 140);
+    }
 
-    ctx.font = 'italic 36px Arial';
+    const categoryText = event.tags && event.tags.length > 0 
+        ? event.tags.slice(0, 2).join(' | ').toUpperCase() 
+        : 'OFFICIAL CAMPUS EVENT';
+
+    ctx.font = 'italic 32px Arial';
     ctx.fillStyle = theme.accentText;
     ctx.textAlign = 'center';
-    ctx.fillText(categoryText, 540, safeTop);
+    ctx.fillText(categoryText, 540, 270);
 
-    ctx.font = 'bold 70px Arial';
-    ctx.fillStyle = theme.isCorporate ? '#ffffff' : theme.primaryText;
+    ctx.font = 'bold 65px Arial';
+    ctx.fillStyle = theme.primaryText;
     
     const words = event.title.toUpperCase().split(' ');
     const lines = [];
@@ -125,38 +155,42 @@ export const generatePosterBuffer = async (event) => {
     }
     lines.push(currentLine.trim());
 
-    const lineHeight = 85;
-    let startY = 250;
+    const lineHeight = 80;
+    let startY = 350;
     
     for (const line of lines) {
         ctx.fillText(line, 540, startY);
         startY += lineHeight;
     }
 
-    ctx.font = '40px Arial';
-    ctx.fillStyle = theme.isCorporate ? '#0f172a' : (theme.primaryText === '#ffffff' ? '#94a3b8' : '#64748b');
-    ctx.fillText(`Presented by ${event.club.name}`, 540, startY + 40);
+    ctx.font = '36px Arial';
+    ctx.fillStyle = theme.primaryText === '#ffffff' ? '#cbd5e1' : '#475569';
+    ctx.fillText(`Presented by ${event.club.name}`, 540, startY + 20);
 
     ctx.fillStyle = theme.boxBg;
-    ctx.fillRect(90, 680, 900, 350);
+    ctx.fillRect(90, 640, 900, 390);
     ctx.strokeStyle = theme.boxBorder;
     ctx.lineWidth = 4;
-    ctx.strokeRect(90, 680, 900, 350);
+    ctx.strokeRect(90, 640, 900, 390);
 
-    ctx.font = '36px Arial';
+    ctx.font = '34px Arial';
     ctx.fillStyle = theme.primaryText;
-    ctx.fillText(`Date: ${new Date(event.date).toLocaleDateString()}`, 540, 740);
-    ctx.fillText(`Time: ${event.time}`, 540, 800);
-    ctx.fillText(`Venue: ${event.venue}`, 540, 860);
+    ctx.fillText(`Date: ${new Date(event.date).toLocaleDateString()}`, 540, 700);
+    ctx.fillText(`Time: ${event.time}`, 540, 760);
+    ctx.fillText(`Venue: ${event.venue}`, 540, 820);
 
     const feeText = event.eventType === 'Free' ? 'FREE ENTRY' : `ENTRY FEE: ₹${event.price}`;
-    ctx.font = 'bold 40px Arial';
-    ctx.fillStyle = theme.isCorporate ? '#2563eb' : theme.accentText;
-    ctx.fillText(feeText, 540, 930);
+    ctx.font = 'bold 36px Arial';
+    ctx.fillStyle = theme.accentText;
+    ctx.fillText(feeText, 540, 880);
 
-    ctx.font = 'bold 30px Arial';
+    ctx.font = '32px Arial';
     ctx.fillStyle = theme.primaryText;
-    ctx.fillText('REGISTER NOW ON CLUBHUB', 540, 990);
+    ctx.fillText(`Capacity: ${event.maxParticipants} Students`, 540, 940);
+
+    ctx.font = 'bold 28px Arial';
+    ctx.fillStyle = theme.primaryText;
+    ctx.fillText('REGISTER NOW ON CLUBHUB', 540, 1000);
 
     return canvas.toBuffer('image/png');
 };

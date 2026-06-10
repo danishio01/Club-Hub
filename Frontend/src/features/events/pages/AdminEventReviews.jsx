@@ -31,10 +31,10 @@ const AdminEventReviews = () => {
                     const formattedDate = new Date(event.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
                     
                     let displayStatus = event.status;
-                    if (event.status === 'pending_admin') displayStatus = 'Pending Admin Review';
-                    if (event.status === 'review') displayStatus = 'Waiting For Grafik Banner';
+                    if (event.status === 'pending_admin') displayStatus = 'Pending Admin Review (Flyer & Details)';
+                    if (event.status === 'review') displayStatus = 'Waiting For Grafik Flyer';
                     if (event.status === 'pending_president') displayStatus = 'Pending President Review';
-                    if (event.status === 'banner_rejected') displayStatus = 'Banner Rejected (Needs Fix)';
+                    if (event.status === 'banner_rejected') displayStatus = 'Flyer Rejected (Needs Fix)';
                     if (event.status === 'rejected') displayStatus = 'Event Rejected (Needs Fix)';
                     if (event.status === 'president_rejected') displayStatus = 'Proposal Rejected By President';
 
@@ -48,7 +48,7 @@ const AdminEventReviews = () => {
                             </div>
                             <h3 className="event-title">{event.title}</h3>
                             <div style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '10px' }}>
-                                <i className="ri-user-line"></i> Created by <strong>{event.creator?.name || 'Unknown'}</strong> ({event.creator?.usn || 'N/A'}) as {event.creator?.role || 'N/A'}
+                                <i className="ri-user-line"></i> Created by <strong>{event.creator?.name || 'Unknown'}</strong> ({event.creator?.usn || 'N/A'}) as <strong style={{ textTransform: 'capitalize' }}>{event.creator?.role || 'N/A'}</strong>
                             </div>
                             <p className="event-desc">{event.description}</p>
                             

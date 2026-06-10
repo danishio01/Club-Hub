@@ -195,7 +195,7 @@ const EventDetails = () => {
     const canManage = user?.role === 'admin' || user?.role === 'president' || isOwnClubMemberProposal;
     const canEditDelete = user?.role === 'president' || isOwnClubMemberProposal;
 
-    const statusLabel = isPendingPresident ? 'Pending President' : isReview ? 'Pending Grafik' : isPendingAdmin ? 'Pending Admin' : isBannerRejected ? 'Banner Rejected' : event.status === 'president_rejected' ? 'President Rejected' : event.status;
+    const statusLabel = isPendingPresident ? 'Pending President' : isReview ? 'Pending Grafik' : isPendingAdmin ? 'Pending Admin' : isBannerRejected ? 'Flyer Rejected' : event.status === 'president_rejected' ? 'President Rejected' : event.status;
 
     return (
         <div className="event-details-page">
@@ -210,7 +210,7 @@ const EventDetails = () => {
                         <i className="ri-shield-check-fill"></i>
                         <div>
                             <h3>Pending Admin Review</h3>
-                            <p>Review the event specifications and poster below. You must approve or reject this submission to proceed.</p>
+                            <p>Review the event specifications and flyer below. You must approve or reject this submission to proceed.</p>
                         </div>
                     </div>
                     <div className="review-actions">
@@ -250,7 +250,7 @@ const EventDetails = () => {
                     <div className="banner-text">
                         <h3>{event.status === 'president_rejected' ? 'Proposal Rejected' : 'Event Details Rejected'}</h3>
                         <p><strong>Feedback:</strong> {event.rejectedReason}</p>
-                        <span>{user?.isClubMember ? 'You can edit the proposal and resubmit it to the President.' : 'Please edit the event details below to resolve the issue. Upon saving, it will automatically be sent to Grafik for banner regeneration.'}</span>
+                        <span>{user?.isClubMember ? 'You can edit the proposal and resubmit it to the President.' : 'Please edit the event details below to resolve the issue. Upon saving, it will automatically be sent to Grafik for flyer regeneration.'}</span>
                     </div>
                 </div>
             )}
@@ -259,9 +259,9 @@ const EventDetails = () => {
                 <div className="warning-banner">
                     <i className="ri-image-edit-line banner-icon"></i>
                     <div className="banner-text">
-                        <h3>Banner Rejected By Admin</h3>
+                        <h3>Flyer Rejected By Admin</h3>
                         <p><strong>Reason:</strong> {event.rejectedReason}</p>
-                        <span>Event details are accepted. The Grafik team has been notified and is currently working on a replacement banner. No action required from you at this time.</span>
+                        <span>Event details are accepted. The Grafik team has been notified and is currently working on a replacement flyer. No action required from you at this time.</span>
                     </div>
                 </div>
             )}
@@ -309,7 +309,7 @@ const EventDetails = () => {
 
             {event.bannerUrl && (
                 <div className="full-event-banner-container">
-                    <img src={event.bannerUrl} alt="Event Banner" className="full-event-banner" onClick={() => setLightboxImage(event.bannerUrl)} style={{ cursor: 'pointer' }} />
+                    <img src={event.bannerUrl} alt="Event Flyer" className="full-event-banner" onClick={() => setLightboxImage(event.bannerUrl)} style={{ cursor: 'pointer' }} />
                 </div>
             )}
 
