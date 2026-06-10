@@ -66,23 +66,22 @@ const FeedbackAnalytics = () => {
                 <button className="btn-secondary" onClick={() => navigate(-1)}><i className="ri-arrow-left-line"></i> Back</button>
                 <div className="title-row">
                     <h1>Feedback Analytics Dashboard</h1>
-                    <span className="responses-badge">{analytics.total} Responses</span>
                 </div>
                 <p>Analyze quantitative and qualitative student feedback for <strong>{analytics.eventDetails?.title}</strong>.</p>
             </div>
 
             <div className="top-stats-row">
                 <div className="stat-box primary">
-                    <div className="icon"><i className="ri-star-smile-fill"></i></div>
+                    <div className="icon"><i className="ri-group-line"></i></div>
                     <div className="info">
-                        <span className="label">Overall Average Rating</span>
-                        <span className="value">{analytics.averageRating} <small>/ 5.0</small></span>
+                        <span className="label">Total Responses</span>
+                        <span className="value">{analytics.total} <small>Students</small></span>
                     </div>
                 </div>
                 
                 <div className="ai-trigger-box">
                     <h3>AI Feedback Synthesis</h3>
-                    <p>Generate actionable insights from all paragraph responses.</p>
+                    <p>Generate actionable insights from all responses combined.</p>
                     <button className="btn-ai" onClick={handleSummarize} disabled={isSummarizing}>
                         {isSummarizing ? <><i className="ri-loader-4-line spin"></i> Processing...</> : <><i className="ri-magic-line"></i> Generate Insights</>}
                     </button>
@@ -110,7 +109,7 @@ const FeedbackAnalytics = () => {
                         {q.type === 'rating' && (
                             <>
                                 <div className="rating-result">
-                                    <span className="score">{q.average} ⭐</span> Average Score
+                                    <span className="score">{q.average} ⭐</span> Average Rating
                                 </div>
                                 <div className="mcq-result">
                                     {[5, 4, 3, 2, 1].map(star => {
@@ -132,10 +131,9 @@ const FeedbackAnalytics = () => {
                             </>
                         )}
 
-                        {q.type === 'mcq_or_text' && q.breakdown && Object.keys(q.breakdown).length > 0 && (
+                        {q.type === 'mcq' && q.breakdown && Object.keys(q.breakdown).length > 0 && (
                             <div className="mcq-result">
                                 {Object.entries(q.breakdown).map(([opt, count]) => {
-                                    if (opt.length > 50) return null;
                                     const percentage = analytics.total > 0 ? Math.round((count / analytics.total) * 100) : 0;
                                     return (
                                         <div key={opt} className="mcq-bar-row">
@@ -152,10 +150,18 @@ const FeedbackAnalytics = () => {
                             </div>
                         )}
 
-                        {q.type === 'mcq_or_text' && q.rawAnswers && q.rawAnswers.some(a => typeof a === 'string' && a.length > 50) && (
-                            <div className="text-result">
-                                <span><i className="ri-align-left"></i> Contains written responses (View individual reviews below)</span>
+                        {q.type === 'paragraph' && q.rawAnswers && q.rawAnswers.length > 0 && (
+                            <div className="text-result-container">
+                                {q.rawAnswers.slice(0, 5).map((ans, idx) => (
+                                    <div key={idx} className="text-result">
+                                        <i className="ri-chat-1-line"></i> {ans}
+                                    </div>
+                                ))}
+                                {q.rawAnswers.length > 5 && <div className="text-result-more">+{q.rawAnswers.length - 5} more responses below.</div>}
                             </div>
+                        )}
+                        {q.type === 'paragraph' && (!q.rawAnswers || q.rawAnswers.length === 0) && (
+                            <div className="text-result-empty">No written responses.</div>
                         )}
                     </div>
                 ))}
@@ -174,8 +180,7 @@ const FeedbackAnalytics = () => {
                                 </div>
                                 <div className="usn-tag">{reg.student?.usn || 'N/A'}</div>
                                 <div className="card-bottom">
-                                    <span className="overall-rating">Overall: {reg.rating} ⭐</span>
-                                    <span className="view-btn">View Full <i className="ri-arrow-right-line"></i></span>
+                                    <span className="view-btn">View Full Submission <i className="ri-arrow-right-line"></i></span>
                                 </div>
                             </div>
                         );

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getReportByEventApi, saveReportDraftApi, submitReportApi } from '../service/reportService';
+import { getEventByIdApi, getEventRegistrationsApi } from '../../events/service/eventService';
+import axiosInstance from '../../../api/axiosInstance';
 import '../style/ReportEditor.scss';
 
 const ReportEditor = () => {
@@ -8,6 +10,10 @@ const ReportEditor = () => {
     const navigate = useNavigate();
     
     const [report, setReport] = useState(null);
+    const [event, setEvent] = useState(null);
+    const [registrations, setRegistrations] = useState([]);
+    const [analytics, setAnalytics] = useState(null);
+
     const [content, setContent] = useState({
         activityName: '', thrustArea: '', level: '', semester: '', quarter: '', date: '', duration: '',
         facultyCount: '', studentCount: '', fundsUtilized: '', department: '',
@@ -25,8 +31,23 @@ const ReportEditor = () => {
             try {
                 setIsLoading(true);
                 const data = await getReportByEventApi(eventId);
+                const evData = await getEventByIdApi(eventId);
+                const regData = await getEventRegistrationsApi(eventId);
+                
+                let analyticsData = null;
+                try {
+                    const res = await axiosInstance.get(`/feedback/analytics/${eventId}`);
+                    analyticsData = res.data.data;
+                } catch (e) {
+                    console.error("No analytics found", e);
+                }
+
                 if (isMounted) {
                     setReport(data);
+                    setEvent(evData);
+                    setRegistrations(regData);
+                    setAnalytics(analyticsData);
+
                     if (data.content) {
                         setContent(prev => ({
                             ...prev,
@@ -109,9 +130,11 @@ const ReportEditor = () => {
     };
 
     if (isLoading) return <div className="loading-state">Initializing Report Platform...</div>;
-    if (!report) return null;
+    if (!report || !event) return null;
 
     const isLocked = report.status === 'submitted' || report.status === 'reviewed';
+    const presentCount = registrations.filter(r => r.status === 'Attended').length;
+    const absentCount = registrations.length - presentCount;
 
     const renderInput = (title, field, placeholder, type = 'text') => (
         <div className="editor-section">
@@ -201,19 +224,91 @@ const ReportEditor = () => {
                 {renderTextarea('13. Summary', 'summary', 'Describe the execution flow, sessions, and implementations...')}
                 {renderTextarea('14. Benefits', 'benefits', 'Explain knowledge gained, skills developed, innovation exposure...')}
 
-                <h3 className="section-title">C. Attachments & Proofs (Auto-Generated)</h3>
-                <div className="auto-generated-notice" style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #cbd5e1', color: '#475569', fontSize: '0.95rem', lineHeight: '1.5' }}>
-                    <p><i className="ri-magic-line" style={{color: '#2563eb', marginRight: '6px'}}></i> The following items will be <strong>automatically fetched from the ClubHub system</strong> and embedded directly into your final PDF report:</p>
-                    <ul style={{ paddingLeft: '20px', marginTop: '10px' }}>
-                        <li><strong>Event Flyer:</strong> Pulled from the approved flyer designed by Grafik.</li>
-                        <li><strong>Photo Collage:</strong> Generated from the official event gallery uploaded by Grafik.</li>
-                        <li><strong>Attendance Sheet:</strong> Built from scanned QR registrations (Marked as Present/Absent).</li>
-                        <li><strong>Feedback Analytics:</strong> Compiled from student star ratings and post-event reviews.</li>
-                    </ul>
+                <h3 className="section-title">C. Attachments & Proofs (Data Preview)</h3>
+                
+                <div className="preview-block">
+                    <h4>1. Event Flyer</h4>
+                    {event.bannerUrl ? (
+                        <img src={event.bannerUrl} alt="Flyer" style={{ maxHeight: '200px', borderRadius: '8px', border: '1px solid #cbd5e1' }} />
+                    ) : (
+                        <div className="preview-empty">Not Uploaded</div>
+                    )}
                 </div>
 
-                <div className="section-header-flex">
-                    <h3 className="section-title">19. Details of Resource Person(s) / Speakers</h3>
+                <div className="preview-block">
+                    <h4>2. Post Event Photos (Gallery)</h4>
+                    {event.gallery && event.gallery.length > 0 ? (
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            {event.gallery.map(img => (
+                                <img key={img.fileId} src={img.url} alt="Gallery" style={{ height: '80px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="preview-empty">Post-event photos not uploaded.</div>
+                    )}
+                </div>
+
+                <div className="preview-block">
+                    <h4>3. Attendance & Registration Sheet</h4>
+                    <div style={{ display: 'flex', gap: '16px', marginBottom: '12px' }}>
+                        <span style={{background: '#f1f5f9', padding: '4px 10px', borderRadius: '4px'}}>Total: <strong>{registrations.length}</strong></span>
+                        <span style={{background: '#dcfce7', padding: '4px 10px', borderRadius: '4px', color: '#166534'}}>Present: <strong>{presentCount}</strong></span>
+                        <span style={{background: '#fee2e2', padding: '4px 10px', borderRadius: '4px', color: '#991b1b'}}>Absent: <strong>{absentCount}</strong></span>
+                    </div>
+                    {registrations.length > 0 ? (
+                        <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                                <thead style={{ background: '#f8fafc' }}>
+                                    <tr>
+                                        <th style={{ padding: '8px', textAlign: 'left' }}>Student Name</th>
+                                        <th style={{ padding: '8px', textAlign: 'left' }}>USN</th>
+                                        <th style={{ padding: '8px', textAlign: 'left' }}>Dept</th>
+                                        <th style={{ padding: '8px', textAlign: 'left' }}>Registration</th>
+                                        <th style={{ padding: '8px', textAlign: 'left' }}>Attendance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {registrations.slice(0, 5).map(reg => (
+                                        <tr key={reg._id} style={{ borderTop: '1px solid #e2e8f0' }}>
+                                            <td style={{ padding: '8px' }}>{reg.student?.name}</td>
+                                            <td style={{ padding: '8px' }}>{reg.student?.usn}</td>
+                                            <td style={{ padding: '8px' }}>{reg.student?.department}</td>
+                                            <td style={{ padding: '8px' }}>Registered</td>
+                                            <td style={{ padding: '8px', color: reg.status === 'Attended' ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
+                                                {reg.status === 'Attended' ? 'Present' : 'Absent'}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {registrations.length > 5 && <tr><td colSpan="5" style={{ padding: '8px', textAlign: 'center', color: '#64748b' }}>+{registrations.length - 5} more entries...</td></tr>}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div className="preview-empty">No registrations available.</div>
+                    )}
+                </div>
+
+                <div className="preview-block">
+                    <h4>4. Feedback Analytics</h4>
+                    {analytics && analytics.total > 0 ? (
+                        <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                            <p style={{ margin: '0 0 8px 0', fontWeight: 600 }}>Total Feedback Submissions: {analytics.total}</p>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+                                {analytics.analytics.filter(q => q.type === 'rating').map(q => (
+                                    <div key={q.id} style={{ background: 'white', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.85rem' }}>
+                                        <div style={{ color: '#475569', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{q.text}</div>
+                                        <div style={{ fontWeight: 700, color: '#0f172a' }}>{q.average} ⭐</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="preview-empty">No feedback submitted for this event.</div>
+                    )}
+                </div>
+
+                <div className="section-header-flex" style={{ marginTop: '24px' }}>
+                    <h3 className="section-title">15. Details of Resource Person(s) / Speakers</h3>
                     {!isLocked && (
                         <button className="btn-add-small" onClick={handleAddResourcePerson}>
                             <i className="ri-add-line"></i> Add Speaker
@@ -262,8 +357,8 @@ const ReportEditor = () => {
                 {content.resourcePersons.length === 0 && <p className="empty-hint">No resource persons added yet.</p>}
 
                 <h3 className="section-title" style={{ marginTop: '20px' }}>D. Coordination</h3>
-                {renderTextarea('20. Names of Faculty Coordinators', 'facultyCoordinators', 'List all faculty coordinators (comma-separated or line-by-line)...')}
-                {renderTextarea('21. Names of Student Coordinators', 'studentCoordinators', 'List all student coordinators (comma-separated or line-by-line)...')}
+                {renderTextarea('16. Names of Faculty Coordinators', 'facultyCoordinators', 'List all faculty coordinators (comma-separated or line-by-line)...')}
+                {renderTextarea('17. Names of Student Coordinators', 'studentCoordinators', 'List all student coordinators (comma-separated or line-by-line)...')}
             </div>
         </div>
     );

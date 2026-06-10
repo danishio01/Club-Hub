@@ -344,6 +344,21 @@ const EventDetails = () => {
                 </div>
             </div>
 
+            {isCompleted && event.gallery && event.gallery.length > 0 && (
+                <div className="gallery-panel">
+                    <div className="panel-header">
+                        <h2><i className="ri-camera-lens-fill" style={{ color: '#0f172a' }}></i> Official Post-Event Gallery</h2>
+                    </div>
+                    <div className="gallery-grid">
+                        {event.gallery.map(img => (
+                            <div key={img.fileId} className="gallery-image-wrapper" onClick={() => setLightboxImage(img.url)} style={{ cursor: 'pointer' }}>
+                                <img src={img.url} alt="Event Moment" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {isEditModalOpen && <EditEventModal event={event} onClose={() => setIsEditModalOpen(false)} onSuccess={() => { setIsEditModalOpen(false); handleManualRefresh(); }} />}
             {isRejectModalOpen && <RejectEventModal onClose={() => setIsRejectModalOpen(false)} onConfirm={handleReject} />}
             {lightboxImage && <ImageLightbox imageUrl={lightboxImage} onClose={() => setLightboxImage(null)} />}

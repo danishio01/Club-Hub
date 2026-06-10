@@ -17,8 +17,7 @@ const DEFAULT_FEEDBACK_QUESTIONS = [
     { id: 'q3', type: 'mcq', text: 'Are you satisfied with this event?', order: 2, options: ['Yes', 'No'], allowMultiple: false }
 ];
 
-const FeedbackBuilder = ({ questions, setQuestions, templateType }) => {
-    
+const FeedbackBuilder = ({ questions, setQuestions }) => {
     const sortedQuestions = [...questions].sort((a, b) => (a.order || 0) - (b.order || 0));
 
     const updateQuestion = (qId, field, value) => {
@@ -122,9 +121,7 @@ const FeedbackBuilder = ({ questions, setQuestions, templateType }) => {
                                 <button type="button" onClick={() => moveQuestion(index, 1)} disabled={index === sortedQuestions.length - 1}><i className="ri-arrow-down-s-line"></i></button>
                             </div>
                         </div>
-                        {templateType === 'custom' && (
-                            <button type="button" className="btn-del-question" onClick={() => removeQuestion(q.id)}>Remove</button>
-                        )}
+                        <button type="button" className="btn-del-question" onClick={() => removeQuestion(q.id)}>Remove</button>
                     </div>
                     
                     <input 
@@ -138,7 +135,7 @@ const FeedbackBuilder = ({ questions, setQuestions, templateType }) => {
                     {q.type === 'mcq' && (
                         <div className="options-section">
                             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#475569', marginBottom: '8px' }}>
-                                <input type="checkbox" checked={q.allowMultiple} onChange={(e) => updateQuestion(q.id, 'allowMultiple', e.target.checked)} />
+                                <input type="checkbox" checked={q.allowMultiple || false} onChange={(e) => updateQuestion(q.id, 'allowMultiple', e.target.checked)} />
                                 Allow multiple selections
                             </label>
                             {q.options.map((opt, oIdx) => (
@@ -205,13 +202,11 @@ const FeedbackBuilder = ({ questions, setQuestions, templateType }) => {
                 </div>
             ))}
 
-            {templateType === 'custom' && (
-                <div className="builder-actions">
-                    <button type="button" onClick={() => addQuestion('rating')}><i className="ri-star-line"></i> Add Rating</button>
-                    <button type="button" onClick={() => addQuestion('mcq')}><i className="ri-list-radio"></i> Add Choice</button>
-                    <button type="button" onClick={() => addQuestion('paragraph')}><i className="ri-text"></i> Add Paragraph</button>
-                </div>
-            )}
+            <div className="builder-actions">
+                <button type="button" onClick={() => addQuestion('rating')}><i className="ri-star-line"></i> Add Rating</button>
+                <button type="button" onClick={() => addQuestion('mcq')}><i className="ri-list-radio"></i> Add Choice</button>
+                <button type="button" onClick={() => addQuestion('paragraph')}><i className="ri-text"></i> Add Paragraph</button>
+            </div>
         </div>
     );
 };
@@ -436,7 +431,6 @@ const AddEventModal = ({ onClose, onSuccess }) => {
                         </div>
 
                         <FeedbackBuilder 
-                            templateType={formData.feedbackTemplateType}
                             questions={formData.feedbackQuestions}
                             setQuestions={(newQ) => setFormData({ ...formData, feedbackQuestions: newQ })}
                         />

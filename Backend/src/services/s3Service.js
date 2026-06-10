@@ -129,14 +129,12 @@ export const generateAndUploadReportPDF = async (reportData, event, clubName, pr
             doc.moveDown(1);
         });
 
-        // Async Document Processing for Images
         (async () => {
             // C. Attachments & Proofs
             doc.addPage();
             doc.fontSize(18).font('Helvetica-Bold').fillColor('#0f172a').text('C. Attachments & Proofs', { align: 'center' });
             doc.moveDown(2);
 
-            // 1. Event Flyer
             doc.fontSize(14).text('1. Official Event Flyer');
             doc.moveDown();
             if (event.bannerUrl) {
@@ -153,7 +151,6 @@ export const generateAndUploadReportPDF = async (reportData, event, clubName, pr
                 doc.moveDown();
             }
 
-            // 2. Gallery
             doc.addPage();
             doc.fontSize(14).font('Helvetica-Bold').fillColor('#0f172a').text('2. Post Event Photos (Gallery)');
             doc.moveDown();
@@ -173,7 +170,6 @@ export const generateAndUploadReportPDF = async (reportData, event, clubName, pr
                 doc.fontSize(11).font('Helvetica').fillColor('#475569').text('Post-event photos not uploaded.', { align: 'left' });
             }
 
-            // 3. Registrations
             doc.addPage();
             doc.fontSize(14).font('Helvetica-Bold').fillColor('#0f172a').text('3. Attendance & Registration Sheet');
             doc.moveDown();
@@ -215,31 +211,47 @@ export const generateAndUploadReportPDF = async (reportData, event, clubName, pr
                 doc.fontSize(11).font('Helvetica').fillColor('#475569').text('No registrations available.', { align: 'left' });
             }
 
-            // 4. Feedback
             doc.addPage();
             doc.fontSize(14).font('Helvetica-Bold').fillColor('#0f172a').text('4. Feedback Analytics');
             doc.moveDown();
             
-            doc.fontSize(12).text(`Average Rating: ${feedbackData.averageRating} / 5.0 ⭐`, { align: 'left' });
-            doc.fontSize(12).font('Helvetica').text(`Total Feedback Submissions: ${feedbackData.total}`, { align: 'left' });
-            doc.moveDown(2);
-
-            if (feedbackData.reviews && feedbackData.reviews.length > 0) {
-                doc.fontSize(12).font('Helvetica-Bold').text('Recent Student Reviews:');
-                doc.moveDown();
-                doc.fontSize(10).font('Helvetica');
-                
-                feedbackData.reviews.slice(0, 15).forEach(r => {
-                    const stars = '⭐'.repeat(r.rating || 5);
-                    doc.font('Helvetica-Bold').text(`${r.student?.name || 'Anonymous'} - ${stars}`);
-                    doc.font('Helvetica').text(`"${r.review || 'No written comment'}"`);
-                    doc.moveDown();
-                });
+            if (feedbackData.total === 0) {
+                doc.fontSize(11).font('Helvetica').fillColor('#475569').text('No feedback submitted for this event.', { align: 'left' });
             } else {
-                doc.fontSize(11).font('Helvetica').fillColor('#475569').text('No feedback provided yet.', { align: 'left' });
+                // Map the graph data to text format
+                feedbackData.analytics.forEach((q, i) => {
+                    doc.fontSize(11).font('Helvetica-Bold').fillColor('#0f172a').text(`Q${i+1}. ${q.text}`);
+                    if (q.type === 'rating') {
+                        doc.fontSize(10).font('Helvetica').fillColor('#475569').text(`Average Rating: ${q.average} / 5.0 ⭐`);
+                    } else if (q.type === 'mcq') {
+                        Object.entries(q.breakdown).forEach(([opt, count]) => {
+                            const pct = Math.round((count / feedbackData.total) * 100);
+                            doc.fontSize(10).font('Helvetica').fillColor('#475569').text(`${opt}: ${count} votes (${pct}%)`);
+                        });
+                    } else if (q.type === 'paragraph') {
+                        doc.fontSize(10).font('Helvetica').fillColor('#475569').text(`Received ${q.rawAnswers.length} written responses. AI summary below.`);
+                    }
+                    doc.moveDown(0.5);
+                });
+                
+                doc.moveDown();
+                doc.fontSize(12).font('Helvetica-Bold').fillColor('#0f172a').text('AI Feedback Synthesis');
+                doc.moveDown(0.5);
+                if (feedbackData.aiSummary) {
+                    // Split the markdown into parts to render
+                    const lines = feedbackData.aiSummary.split('\n');
+                    lines.forEach(line => {
+                        if (line.startsWith('###')) {
+                            doc.fontSize(11).font('Helvetica-Bold').fillColor('#0f172a').text(line.replace(/#/g, '').trim());
+                        } else if (line.trim() !== '') {
+                            doc.fontSize(10).font('Helvetica').fillColor('#475569').text(line.replace(/\*/g, '').trim());
+                        }
+                    });
+                } else {
+                    doc.fontSize(10).font('Helvetica').fillColor('#475569').text('AI summary not generated prior to report submission.');
+                }
             }
 
-            // D. Coordination
             doc.addPage();
             doc.fontSize(18).font('Helvetica-Bold').fillColor('#0f172a').text('D. Coordination', { align: 'center' });
             doc.moveDown();

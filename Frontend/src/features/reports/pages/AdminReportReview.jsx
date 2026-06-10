@@ -82,7 +82,7 @@ const AdminReportReview = () => {
 
                     <hr className="divider" />
                     <div className="report-block">
-                        <h4>19. Resource Persons</h4>
+                        <h4>15. Resource Persons</h4>
                         {selectedReport.content.resourcePersons && selectedReport.content.resourcePersons.length > 0 ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 {selectedReport.content.resourcePersons.map((rp, i) => (
@@ -100,8 +100,8 @@ const AdminReportReview = () => {
                     </div>
 
                     <hr className="divider" />
-                    {renderTextSection('20. Faculty Coordinators', selectedReport.content.facultyCoordinators)}
-                    {renderTextSection('21. Student Coordinators', selectedReport.content.studentCoordinators)}
+                    {renderTextSection('16. Faculty Coordinators', selectedReport.content.facultyCoordinators)}
+                    {renderTextSection('17. Student Coordinators', selectedReport.content.studentCoordinators)}
 
                     {selectedReport.pdfUrl && (
                         <div className="pdf-download-section" style={{ marginTop: '24px' }}>

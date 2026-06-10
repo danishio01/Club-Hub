@@ -109,12 +109,9 @@ const StudentFeedback = () => {
     const handleSubmit = async () => {
         setIsSubmitting(true);
         try {
-            const overallRatingObj = responses.find(r => r.questionText.toLowerCase().includes('overall'));
-            const overallRating = overallRatingObj ? overallRatingObj.answer : 5;
-
             await axiosInstance.post(`/feedback/student/submit/${eventId}`, {
                 responses,
-                overallRating
+                overallRating: 5 // Defaulting legacy parameter to 5 since overall rating concept is removed from UI requirements.
             });
             alert("Feedback submitted successfully! You earned 100 points.");
             navigate(`/student/events/${eventId}`);

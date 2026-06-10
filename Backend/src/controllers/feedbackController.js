@@ -65,16 +65,18 @@ export const getFeedbackAnalytics = async (req, res) => {
             return res.status(200).json({ success: true, data: { total: 0 } });
         }
 
-        let totalScore = 0;
         const questionStats = {};
 
         registrations.forEach(reg => {
-            if (reg.rating) totalScore += reg.rating;
-
             reg.feedbackResponses.forEach(res => {
                 if (!questionStats[res.questionId]) {
-                    questionStats[res.questionId] = { text: res.questionText, answers: [] };
+                    // Try to map back to original type from event template if possible to classify correctly
+                    const templateQ = event.feedbackQuestions?.find(q => q.id === res.questionId);
+                    const qType = templateQ ? templateQ.type : (typeof res.answer === 'number' ? 'rating' : (Array.isArray(res.answer) || ['Yes', 'No'].includes(res.answer) ? 'mcq' : 'paragraph'));
+                    
+                    questionStats[res.questionId] = { text: res.questionText, type: qType, answers: [] };
                 }
+                
                 if (Array.isArray(res.answer)) {
                     questionStats[res.questionId].answers.push(...res.answer);
                 } else {
@@ -83,23 +85,25 @@ export const getFeedbackAnalytics = async (req, res) => {
             });
         });
 
-        const averageRating = (totalScore / totalResponses).toFixed(1);
-
         const analytics = Object.keys(questionStats).map(qId => {
             const data = questionStats[qId];
-            const isNumeric = data.answers.every(a => typeof a === 'number');
             
-            if (isNumeric) {
+            if (data.type === 'rating') {
                 const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-                data.answers.forEach(a => { counts[a] += 1; });
-                const sum = data.answers.reduce((a, b) => a + b, 0);
-                return { id: qId, text: data.text, type: 'rating', average: (sum / data.answers.length).toFixed(1), breakdown: counts };
-            } else {
+                data.answers.forEach(a => { if (typeof a === 'number') counts[a] += 1; });
+                const sum = data.answers.reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0);
+                const avg = data.answers.length > 0 ? (sum / data.answers.length).toFixed(1) : 0;
+                return { id: qId, text: data.text, type: 'rating', average: avg, breakdown: counts };
+            } 
+            else if (data.type === 'mcq') {
                 const counts = {};
                 data.answers.forEach(a => {
-                    counts[a] = (counts[a] || 0) + 1;
+                    if (a) { counts[a] = (counts[a] || 0) + 1; }
                 });
-                return { id: qId, text: data.text, type: 'mcq_or_text', breakdown: counts, rawAnswers: data.answers };
+                return { id: qId, text: data.text, type: 'mcq', breakdown: counts };
+            } 
+            else {
+                return { id: qId, text: data.text, type: 'paragraph', rawAnswers: data.answers.filter(a => typeof a === 'string' && a.trim() !== '') };
             }
         });
 
@@ -108,7 +112,6 @@ export const getFeedbackAnalytics = async (req, res) => {
             data: { 
                 eventDetails: { title: event.title, date: event.date, venue: event.venue },
                 total: totalResponses, 
-                averageRating, 
                 analytics,
                 rawRegistrations: registrations
             } 
@@ -125,34 +128,37 @@ export const generateFeedbackSummary = async (req, res) => {
         
         if (registrations.length === 0) return res.status(400).json({ success: false, message: 'No feedback to summarize.' });
 
-        let allTextResponses = [];
+        let allResponses = [];
         registrations.forEach(reg => {
             reg.feedbackResponses.forEach(res => {
-                if (typeof res.answer === 'string' && res.answer.length > 5) {
-                    allTextResponses.push(`Q: ${res.questionText} | A: ${res.answer}`);
+                if (typeof res.answer === 'string') {
+                    allResponses.push(`Q: ${res.questionText} | A: ${res.answer}`);
                 } else if (Array.isArray(res.answer)) {
-                    allTextResponses.push(`Q: ${res.questionText} | A: ${res.answer.join(', ')}`);
+                    allResponses.push(`Q: ${res.questionText} | A: ${res.answer.join(', ')}`);
+                } else if (typeof res.answer === 'number') {
+                    allResponses.push(`Q: ${res.questionText} | A: ${res.answer}/5 Stars`);
                 }
             });
         });
 
-        if (allTextResponses.length === 0) {
-            return res.status(400).json({ success: false, message: 'No text responses to summarize.' });
+        if (allResponses.length === 0) {
+            return res.status(400).json({ success: false, message: 'No responses to summarize.' });
         }
 
-        const reviewTexts = allTextResponses.join('\n');
+        const reviewTexts = allResponses.join('\n');
         const model = new ChatMistralAI({ model: "mistral-medium-latest", apiKey: process.env.MISTRAL_API_KEY });
         
-        const promptText = `Analyze the following event feedback from students:
+        const promptText = `Analyze all the following event feedback from students (which includes ratings, multiple choice answers, and text):
         "${reviewTexts}"
         
         Provide a structured summary in Markdown format with exactly these headings:
-        ### 🌟 Key Strengths
-        ### 📈 Areas of Improvement
+        ### 🌟 Strengths
+        ### 📈 Weaknesses
         ### 💡 Common Suggestions
+        ### 🗣️ Common Praises
         ### 📊 Overall Sentiment
         
-        Be concise, professional, and actionable. Only use the provided feedback. Do not hallucinate.`;
+        Be concise, professional, and actionable. Only use the provided feedback. Analyze everything holistically. Do not hallucinate.`;
 
         const response = await model.invoke([new HumanMessage(promptText)]);
         return res.status(200).json({ success: true, data: response.content });
