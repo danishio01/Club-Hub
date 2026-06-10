@@ -31,11 +31,11 @@ const AdminEventReviews = () => {
                     const formattedDate = new Date(event.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
                     
                     let displayStatus = event.status;
-                    if (event.status === 'pending_admin') displayStatus = 'Pending Admin Review (Flyer & Details)';
+                    if (event.status === 'pending_admin') displayStatus = 'Pending Admin Review';
                     if (event.status === 'review') displayStatus = 'Waiting For Grafik Flyer';
                     if (event.status === 'pending_president') displayStatus = 'Pending President Review';
-                    if (event.status === 'banner_rejected') displayStatus = 'Flyer Rejected (Needs Fix)';
-                    if (event.status === 'rejected') displayStatus = 'Event Rejected (Needs Fix)';
+                    if (event.status === 'banner_rejected') displayStatus = 'Flyer Rejected';
+                    if (event.status === 'rejected') displayStatus = 'Event Rejected';
                     if (event.status === 'president_rejected') displayStatus = 'Proposal Rejected By President';
 
                     return (

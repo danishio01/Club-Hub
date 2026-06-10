@@ -12,7 +12,6 @@ const ReportEditor = () => {
         activityName: '', thrustArea: '', level: '', semester: '', quarter: '', date: '', duration: '',
         facultyCount: '', studentCount: '', fundsUtilized: '', department: '',
         objective: '', summary: '', benefits: '',
-        registrationDetails: '', feedbackDetails: '', flyers: '', photoCollage: '',
         socialMedia: { instagram: '', facebook: '', twitter: '' },
         resourcePersons: [],
         facultyCoordinators: '', studentCoordinators: ''
@@ -128,7 +127,7 @@ const ReportEditor = () => {
             <label>{title}</label>
             <input
                 type={type}
-                value={content[field]}
+                value={content[field] || ''}
                 onChange={(e) => handleInputChange(field, e.target.value)}
                 placeholder={placeholder}
                 disabled={isLocked}
@@ -140,7 +139,7 @@ const ReportEditor = () => {
         <div className="editor-section">
             <label>{title}</label>
             <textarea
-                value={content[field]}
+                value={content[field] || ''}
                 onChange={(e) => handleInputChange(field, e.target.value)}
                 placeholder={placeholder}
                 disabled={isLocked}
@@ -211,12 +210,15 @@ const ReportEditor = () => {
                 {renderTextarea('13. Summary', 'summary', 'Describe the execution flow, sessions, and implementations...')}
                 {renderTextarea('14. Benefits', 'benefits', 'Explain knowledge gained, skills developed, innovation exposure...')}
 
-                <h3 className="section-title">C. Attachments & Proofs (Drive/Cloud Links)</h3>
-                <div className="form-grid">
-                    {renderInput('15. Registration / Attendance Sheet Link', 'registrationDetails', 'URL to attendance sheet')}
-                    {renderInput('16. Feedback Form / Graphs Link', 'feedbackDetails', 'URL to feedback analysis')}
-                    {renderInput('17. Event Flyers Link', 'flyers', 'URL to promotional materials')}
-                    {renderInput('18. Photo Collage Link', 'photoCollage', 'URL to event photos')}
+                <h3 className="section-title">C. Attachments & Proofs (Auto-Generated)</h3>
+                <div className="auto-generated-notice" style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #cbd5e1', color: '#475569', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                    <p><i className="ri-magic-line" style={{color: '#2563eb', marginRight: '6px'}}></i> The following items will be <strong>automatically fetched from the ClubHub system</strong> and embedded directly into your final PDF report:</p>
+                    <ul style={{ paddingLeft: '20px', marginTop: '10px' }}>
+                        <li><strong>Event Flyer:</strong> Pulled from the approved flyer designed by Grafik.</li>
+                        <li><strong>Photo Collage:</strong> Generated from the official event gallery uploaded by Grafik.</li>
+                        <li><strong>Attendance Sheet:</strong> Built from scanned QR registrations (Marked as Present/Absent).</li>
+                        <li><strong>Feedback Analytics:</strong> Compiled from student star ratings and post-event reviews.</li>
+                    </ul>
                 </div>
 
                 <h3 className="section-title">19. Social Media Handles</h3>

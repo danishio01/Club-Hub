@@ -75,11 +75,9 @@ const AdminReportReview = () => {
                     {renderTextSection('14. Benefits', selectedReport.content.benefits)}
 
                     <hr className="divider" />
-                    <div className="report-content-grid">
-                        {renderTextSection('15. Registration Details', selectedReport.content.registrationDetails)}
-                        {renderTextSection('16. Feedback Form Links', selectedReport.content.feedbackDetails)}
-                        {renderTextSection('17. Flyers', selectedReport.content.flyers)}
-                        {renderTextSection('18. Photo Collage', selectedReport.content.photoCollage)}
+                    <div className="report-block">
+                        <h4>Attachments & Proofs</h4>
+                        <p className="no-data">Event Flyer, Photo Gallery, Attendance Sheet, and Feedback Analytics are automatically compiled and embedded in the generated PDF.</p>
                     </div>
 
                     <hr className="divider" />

@@ -1,11 +1,12 @@
 import Report from '../models/reportModel.js';
 import Event from '../models/eventModel.js';
+import Registration from '../models/registrationModel.js';
 import { generateAndUploadReportPDF } from '../services/s3Service.js';
 
 export const getReportByEvent = async (req, res) => {
     try {
         const { eventId } = req.params;
-        let report = await Report.findOne({ event: eventId }).populate('event').populate('president', 'name usn');
+        let report = await Report.findOne({ event: eventId }).populate('event').populate('president', 'name usn role');
         
         if (!report) {
             const event = await Event.findById(eventId);
@@ -23,6 +24,7 @@ export const getReportByEvent = async (req, res) => {
                 }
             });
             await report.save();
+            report = await Report.findById(report._id).populate('event').populate('president', 'name usn role');
         }
 
         return res.status(200).json({ success: true, data: report });
@@ -38,8 +40,8 @@ export const saveDraft = async (req, res) => {
         const { content } = req.body;
 
         const report = await Report.findOneAndUpdate(
-            { event: eventId, president: req.user._id, status: { $ne: 'reviewed' } },
-            { content },
+            { event: eventId, status: { $ne: 'reviewed' } },
+            { content, president: req.user._id },
             { new: true }
         );
 
@@ -57,18 +59,26 @@ export const submitReport = async (req, res) => {
         const { content } = req.body;
 
         const event = await Event.findById(eventId).populate('club');
+        const registrations = await Registration.find({ event: eventId }).populate('student', 'name usn department');
         
+        const reviews = registrations.filter(r => r.rating);
+        const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0);
+        const averageRating = reviews.length > 0 ? (totalRating / reviews.length).toFixed(1) : 0;
+        const feedbackData = { averageRating, total: reviews.length, reviews };
+
         let pdfUrl = null;
         try {
-            pdfUrl = await generateAndUploadReportPDF(content, event.title, event.club.name, req.user.name);
+            const submitterInfo = `${req.user.name} (${req.user.role === 'president' ? 'President' : 'Club Member'})`;
+            pdfUrl = await generateAndUploadReportPDF(content, event, event.club.name, submitterInfo, registrations, feedbackData);
         } catch (s3Error) {
             console.error(s3Error);
         }
 
         const report = await Report.findOneAndUpdate(
-            { event: eventId, president: req.user._id },
+            { event: eventId },
             { 
                 content, 
+                president: req.user._id,
                 status: 'submitted', 
                 submittedAt: new Date(),
                 pdfUrl 
@@ -88,7 +98,7 @@ export const getAllReportsAdmin = async (req, res) => {
         const reports = await Report.find({ status: { $in: ['submitted', 'reviewed'] } })
             .populate('event', 'title date')
             .populate('club', 'name')
-            .populate('president', 'name usn')
+            .populate('president', 'name usn role')
             .sort({ submittedAt: -1 });
 
         return res.status(200).json({ success: true, data: reports });

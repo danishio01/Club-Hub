@@ -19,10 +19,6 @@ const reportSchema = new mongoose.Schema({
         objective: { type: String, default: '' },
         summary: { type: String, default: '' },
         benefits: { type: String, default: '' },
-        registrationDetails: { type: String, default: '' },
-        feedbackDetails: { type: String, default: '' },
-        flyers: { type: String, default: '' },
-        photoCollage: { type: String, default: '' },
         socialMedia: {
             instagram: { type: String, default: '' },
             facebook: { type: String, default: '' },
