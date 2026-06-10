@@ -13,7 +13,6 @@ const ReportEditor = () => {
     const [event, setEvent] = useState(null);
     const [registrations, setRegistrations] = useState([]);
     const [analytics, setAnalytics] = useState(null);
-    const [aiSummary, setAiSummary] = useState(null);
 
     const [content, setContent] = useState({
         activityName: '', thrustArea: '', level: '', semester: '', quarter: '', date: '', duration: '',
@@ -36,13 +35,9 @@ const ReportEditor = () => {
                 const regData = await getEventRegistrationsApi(eventId);
                 
                 let analyticsData = null;
-                let summaryText = null;
                 try {
                     const res = await axiosInstance.get(`/feedback/analytics/${eventId}`);
                     analyticsData = res.data.data;
-                    
-                    const summaryRes = await axiosInstance.post(`/feedback/analytics/${eventId}/summary`);
-                    summaryText = summaryRes.data.data;
                 } catch (e) {
                     console.error("No feedback data compiled for report preview", e);
                 }
@@ -52,7 +47,6 @@ const ReportEditor = () => {
                     setEvent(evData);
                     setRegistrations(regData);
                     setAnalytics(analyticsData);
-                    setAiSummary(summaryText);
 
                     if (data.content) {
                         setContent(prev => ({
@@ -123,7 +117,7 @@ const ReportEditor = () => {
         if(window.confirm("Submit final report? You will not be able to edit it after submission.")) {
             setIsSaving(true);
             try {
-                await submitReportApi(eventId, { content, aiSummary });
+                await submitReportApi(eventId, { content });
                 alert("Report successfully generated and submitted to Admin.");
                 navigate('/president/events');
             } catch (error) {
@@ -135,82 +129,13 @@ const ReportEditor = () => {
         }
     };
 
-    const parseMarkdownToNormalText = (text) => {
-        if (!text) return null;
-        const cleanText = text.replace(/```markdown/gi, '').replace(/```/g, '').trim();
-        const lines = cleanText.split('\n');
-        let currentList = [];
-        const components = [];
-
-        const formatBoldText = (rawText) => {
-            let cleanString = rawText.replace(/^[-*•]\s*/, '').trim();
-            const boldRegex = /\*\*(.*?)\*\*/g;
-            const parts = [];
-            let lastIndex = 0;
-            let match;
-            
-            while ((match = boldRegex.exec(cleanString)) !== null) {
-                if (match.index > lastIndex) {
-                    parts.push(cleanString.substring(lastIndex, match.index));
-                }
-                parts.push(<strong key={`bold-${match.index}`}>{match[1]}</strong>);
-                lastIndex = boldRegex.lastIndex;
-            }
-            if (lastIndex < cleanString.length) {
-                parts.push(cleanString.substring(lastIndex));
-            }
-            return parts.length > 0 ? parts : cleanString;
-        };
-
-        lines.forEach((line, index) => {
-            const trimmed = line.trim();
-            if (!trimmed) return;
-
-            const isHeader = trimmed.startsWith('###') || 
-                             trimmed.startsWith('🌟') || 
-                             trimmed.startsWith('📈') || 
-                             trimmed.startsWith('💡') || 
-                             trimmed.startsWith('🗣️') || 
-                             trimmed.startsWith('📊') ||
-                             trimmed.toLowerCase().includes('strengths') ||
-                             trimmed.toLowerCase().includes('weaknesses') ||
-                             trimmed.toLowerCase().includes('suggestions') ||
-                             trimmed.toLowerCase().includes('praises') ||
-                             trimmed.toLowerCase().includes('sentiment');
-
-            if (isHeader) {
-                if (currentList.length > 0) {
-                    components.push(<ul key={`list-${index}`}>{currentList}</ul>);
-                    currentList = [];
-                }
-                const headingText = trimmed.replace(/^###\s*/, '').replace(/\*\*/g, '').trim();
-                components.push(<h3 key={`h3-${index}`} style={{ margin: '14px 0 8px 0', fontSize: '1.1rem', color: '#0f172a' }}>{headingText}</h3>);
-            } else if (trimmed.startsWith('-') || trimmed.startsWith('*') || trimmed.startsWith('•')) {
-                const formatted = formatBoldText(trimmed);
-                currentList.push(<li key={`li-${index}`} style={{ marginBottom: '4px', fontSize: '0.95rem' }}>{formatted}</li>);
-            } else {
-                if (currentList.length > 0) {
-                    components.push(<ul key={`list-${index}`}>{currentList}</ul>);
-                    currentList = [];
-                }
-                const formatted = formatBoldText(trimmed);
-                components.push(<p key={`p-${index}`} style={{ margin: '0 0 8px 0', fontSize: '0.95rem', lineHeight: '1.5' }}>{formatted}</p>);
-            }
-        });
-
-        if (currentList.length > 0) {
-            components.push(<ul key={`list-final`}>{currentList}</ul>);
-        }
-
-        return components;
-    };
-
     if (isLoading) return <div className="loading-state">Initializing Report Platform...</div>;
     if (!report || !event) return null;
 
     const isLocked = report.status === 'submitted' || report.status === 'reviewed';
     const presentCount = registrations.filter(r => r.status === 'Attended').length;
     const absentCount = registrations.length - presentCount;
+    const feedbackRecords = registrations.filter(r => r.feedbackResponses && r.feedbackResponses.length > 0);
 
     const renderInput = (title, field, placeholder, type = 'text') => (
         <div className="editor-section">
@@ -362,25 +287,78 @@ const ReportEditor = () => {
                 </div>
 
                 <div className="preview-block" style={{ marginBottom: '24px', padding: '16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                    <h4 style={{ margin: '0 0 12px 0', fontSize: '1rem', color: '#0f172a' }}>4. Feedback Analytics Overview</h4>
+                    <h4 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', color: '#0f172a', fontWeight: '700', borderBottom: '1px solid #cbd5e1', paddingBottom: '8px' }}>4. Feedback Metrics & Analytics Summary</h4>
                     {analytics && analytics.total > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
-                                {analytics.analytics.filter(q => q.type === 'rating').map(q => (
-                                    <div key={q.id} style={{ background: 'white', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}>
-                                        <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: '4px' }}>{q.text}</div>
-                                        <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a' }}>{q.average} ⭐</div>
-                                    </div>
-                                ))}
-                            </div>
-                            {aiSummary && (
-                                <div style={{ background: 'white', padding: '16px', border: '1px solid #cbd5e1', borderRadius: '6px', lineBreak: 'auto' }}>
-                                    <div style={{ fontWeight: 700, color: '#c026d3', marginBottom: '8px' }}><i className="ri-sparkling-fill"></i> AI Feedback Synthesis Preview</div>
-                                    <div style={{ fontSize: '0.95rem', color: '#334155', lineHeight: '1.6' }}>
-                                        {parseMarkdownToNormalText(aiSummary)}
-                                    </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                            <div>
+                                <h5 style={{ margin: '0 0 10px 0', fontSize: '1rem', color: '#1e293b' }}>Section 1: Feedback Statistics</h5>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+                                    {analytics.analytics.filter(q => q.type === 'rating').map(q => (
+                                        <div key={q.id} style={{ background: 'white', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '6px' }}>
+                                            <div style={{ fontSize: '0.85rem', color: '#475569', fontWeight: 600, marginBottom: '4px' }}>{q.text}</div>
+                                            <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>Average Rating: {q.average} / 5</div>
+                                        </div>
+                                    ))}
                                 </div>
-                            )}
+                            </div>
+
+                            <hr style={{ border: 'none', borderTop: '1px solid #cbd5e1', margin: '10px 0' }} />
+
+                            <div>
+                                <h5 style={{ margin: '0 0 10px 0', fontSize: '1rem', color: '#1e293b' }}>Section 2: MCQ / Option Questions</h5>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                    {analytics.analytics.filter(q => q.type === 'mcq').map(q => (
+                                        <div key={q.id} style={{ background: 'white', padding: '14px', border: '1px solid #cbd5e1', borderRadius: '6px' }}>
+                                            <div style={{ fontWeight: 600, color: '#1e293b', marginBottom: '8px', fontSize: '0.9rem' }}>{q.text}</div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingLeft: '10px' }}>
+                                                {Object.entries(q.breakdown || {}).map(([opt, count]) => {
+                                                    const pct = analytics.total > 0 ? Math.round((count / analytics.total) * 100) : 0;
+                                                    return (
+                                                        <div key={opt} style={{ fontSize: '0.9rem', color: '#475569' }}>
+                                                            <strong>{opt}</strong>: {count} Students ({pct}%)
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <hr style={{ border: 'none', borderTop: '1px solid #cbd5e1', margin: '10px 0' }} />
+
+                            <div>
+                                <h5 style={{ margin: '0 0 12px 0', fontSize: '1rem', color: '#1e293b' }}>Section 3: Individual Student Responses</h5>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                    {feedbackRecords.map((reg, sIdx) => (
+                                        <div key={reg._id || sIdx} style={{ background: 'white', padding: '16px', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                                            <div style={{ fontSize: '0.95rem', color: '#0f172a', marginBottom: '4px' }}>
+                                                <strong>Student:</strong> {reg.student?.name || 'Anonymous'}
+                                            </div>
+                                            <div style={{ fontSize: '0.85rem', color: '#475569', marginBottom: '10px' }}>
+                                                <strong>USN:</strong> {reg.student?.usn || 'N/A'}
+                                            </div>
+                                            <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600, marginBottom: '6px', paddingLeft: '8px', borderLeft: '2px solid #cbd5e1' }}>
+                                                Responses:
+                                            </div>
+                                            <div style={{ paddingLeft: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                {reg.feedbackResponses?.map((resp, rIdx) => {
+                                                    const templateQ = event.feedbackQuestions?.find(q => q.id === resp.questionId);
+                                                    const isRating = templateQ ? templateQ.type === 'rating' : typeof resp.answer === 'number';
+                                                    return (
+                                                        <div key={resp.questionId || rIdx} style={{ fontSize: '0.9rem', color: '#334155' }}>
+                                                            <span style={{ color: '#475569', fontStyle: 'italic' }}>{resp.questionText}</span>
+                                                            <div style={{ color: '#0f172a', fontWeight: '500', marginTop: '2px', paddingLeft: '10px' }}>
+                                                                {isRating ? `${resp.answer}/5` : Array.isArray(resp.answer) ? resp.answer.join(', ') : resp.answer}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     ) : (
                         <div style={{ color: '#64748b', fontStyle: 'italic' }}>No feedback submitted for this event.</div>

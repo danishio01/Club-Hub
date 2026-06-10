@@ -211,47 +211,80 @@ export const generateAndUploadReportPDF = async (reportData, event, clubName, pr
             }
 
             doc.addPage();
-            doc.fontSize(14).font('Helvetica-Bold').fillColor('#0f172a').text('4. Feedback Analytics');
+            doc.fontSize(16).font('Helvetica-Bold').fillColor('#0f172a').text('4. Feedback Metrics & Analytics Summary');
             doc.moveDown();
             
-            // Safe execution check preventing crash
             if (!feedbackData || feedbackData.total === 0 || !feedbackData.analytics) {
                 doc.fontSize(11).font('Helvetica').fillColor('#475569').text('No feedback submitted for this event.', { align: 'left' });
             } else {
-                feedbackData.analytics.forEach((q, i) => {
-                    doc.fontSize(11).font('Helvetica-Bold').fillColor('#0f172a').text(`Q${i+1}. ${q.text}`);
-                    if (q.type === 'rating') {
-                        doc.fontSize(10).font('Helvetica').fillColor('#475569').text(`Average Rating: ${q.average} / 5.0 ⭐`);
-                    } else if (q.type === 'mcq') {
-                        Object.entries(q.breakdown).forEach(([opt, count]) => {
-                            const pct = Math.round((count / feedbackData.total) * 100);
-                            doc.fontSize(10).font('Helvetica').fillColor('#475569').text(`${opt}: ${count} votes (${pct}%)`);
-                        });
-                    } else if (q.type === 'paragraph') {
-                        doc.fontSize(10).font('Helvetica').fillColor('#475569').text(`Received ${q.rawAnswers.length} written responses. AI summary below.`);
-                    }
-                    doc.moveDown(0.5);
-                });
-                
-                doc.moveDown();
-                doc.fontSize(12).font('Helvetica-Bold').fillColor('#0f172a').text('AI Feedback Synthesis');
+                doc.fontSize(13).font('Helvetica-Bold').fillColor('#0f172a').text('Section 1: Feedback Statistics');
                 doc.moveDown(0.5);
-                if (feedbackData.aiSummary) {
-                    let cleanSummary = feedbackData.aiSummary.replace(/```markdown/gi, '').replace(/```/g, '').trim();
-                    const lines = cleanSummary.split('\n');
-                    lines.forEach(line => {
-                        if (line.startsWith('###')) {
-                            doc.fontSize(11).font('Helvetica-Bold').fillColor('#0f172a').text(line.replace(/#/g, '').trim());
-                        } else if (line.trim() !== '') {
-                            doc.fontSize(10).font('Helvetica').fillColor('#475569').text(line.replace(/\*/g, '').trim());
+                
+                feedbackData.analytics.forEach((q) => {
+                    if (q.type === 'rating') {
+                        doc.fontSize(11).font('Helvetica-Bold').fillColor('#1e293b').text(q.text);
+                        doc.fontSize(10).font('Helvetica').fillColor('#475569').text(`Average Rating: ${q.average} / 5`, { indent: 15 });
+                        doc.moveDown(0.5);
+                    }
+                });
+
+                doc.moveDown();
+                doc.fontSize(13).font('Helvetica-Bold').fillColor('#0f172a').text('Section 2: MCQ / Option Questions');
+                doc.moveDown(0.5);
+
+                feedbackData.analytics.forEach((q) => {
+                    if (q.type === 'mcq') {
+                        doc.fontSize(11).font('Helvetica-Bold').fillColor('#1e293b').text(q.text);
+                        Object.entries(q.breakdown || {}).forEach(([opt, count]) => {
+                            const pct = feedbackData.total > 0 ? Math.round((count / feedbackData.total) * 100) : 0;
+                            doc.fontSize(10).font('Helvetica').fillColor('#475569').text(`${opt}`, { indent: 15 });
+                            doc.text(`${count} Students (${pct}%)`, { indent: 30 });
+                        });
+                        doc.moveDown(0.5);
+                    }
+                });
+
+                doc.addPage();
+                doc.fontSize(13).font('Helvetica-Bold').fillColor('#0f172a').text('Section 3: Individual Student Responses');
+                doc.moveDown();
+
+                const feedbackRecords = registrations.filter(r => r.feedbackResponses && r.feedbackResponses.length > 0);
+                
+                feedbackRecords.forEach((reg, sIdx) => {
+                    if (doc.y > 680) {
+                        doc.addPage();
+                    }
+                    
+                    const studentInfo = reg.student || {};
+                    doc.fontSize(11).font('Helvetica-Bold').fillColor('#0f172a').text(`Student: `, { continued: true })
+                       .font('Helvetica').text(`${studentInfo.name || 'Anonymous'}`);
+                    doc.font('Helvetica-Bold').text(`USN: `, { continued: true })
+                       .font('Helvetica').text(`${studentInfo.usn || 'N/A'}`);
+                    
+                    doc.font('Helvetica-Bold').fillColor('#334155').text('Responses:', { indent: 15 });
+                    
+                    reg.feedbackResponses.forEach(resp => {
+                        const templateQ = event.feedbackQuestions?.find(q => q.id === resp.questionId);
+                        const isRating = templateQ ? templateQ.type === 'rating' : typeof resp.answer === 'number';
+                        
+                        doc.fontSize(10).font('Helvetica-Bold').fillColor('#475569').text(`${resp.questionText}`, { indent: 25 });
+                        if (isRating) {
+                            doc.font('Helvetica').fillColor('#0f172a').text(`${resp.answer}/5`, { indent: 35 });
+                        } else {
+                            doc.font('Helvetica').fillColor('#0f172a').text(`${Array.isArray(resp.answer) ? resp.answer.join(', ') : resp.answer}`, { indent: 35 });
                         }
                     });
-                } else {
-                    doc.fontSize(10).font('Helvetica').fillColor('#475569').text('AI summary not generated prior to report submission.');
-                }
+                    
+                    doc.moveDown();
+                    doc.moveTo(50, doc.y).lineTo(550, doc.y).strokeColor('#e2e8f0').stroke();
+                    doc.moveDown();
+                });
             }
 
-            doc.addPage();
+            if (doc.y > 650) {
+                doc.addPage();
+            }
+            doc.moveDown();
             doc.fontSize(18).font('Helvetica-Bold').fillColor('#0f172a').text('D. Coordination', { align: 'center' });
             doc.moveDown();
             

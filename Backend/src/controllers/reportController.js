@@ -56,12 +56,11 @@ export const saveDraft = async (req, res) => {
 export const submitReport = async (req, res) => {
     try {
         const { eventId } = req.params;
-        const { content, aiSummary } = req.body; 
+        const { content } = req.body; 
 
         const event = await Event.findById(eventId).populate('club');
-        const registrations = await Registration.find({ event: eventId }).populate('student', 'name usn department');
+        const registrations = await Registration.find({ event: eventId }).populate('student', 'name usn department semester section');
         
-        // Build correct feedback analytics payload for the PDF generator
         const feedbackRegistrations = registrations.filter(r => r.feedbackResponses && r.feedbackResponses.length > 0);
         const totalResponses = feedbackRegistrations.length;
         
@@ -110,8 +109,7 @@ export const submitReport = async (req, res) => {
         const feedbackData = { 
             total: totalResponses, 
             averageRating, 
-            analytics, 
-            aiSummary: aiSummary || null 
+            analytics
         };
 
         let pdfUrl = null;
