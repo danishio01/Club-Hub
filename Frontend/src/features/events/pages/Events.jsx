@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { getEventsList, approveProposalApi, rejectProposalApi } from '../service/eventService';
 import AddEventModal from '../components/AddEventModal';
 import '../../students/style/Students.scss';
+import useRealtimeEventRefresh from '../hooks/useRealtimeEventRefresh';
 
 const EventTable = ({ data, navigate, user, onApproveProposal, onRejectProposal }) => (
     <div className="table-container">
@@ -93,6 +94,7 @@ const Events = () => {
     const loadEvents = useCallback(() => {
         dispatch(getEventsList());
     }, [dispatch]);
+    useRealtimeEventRefresh(loadEvents);
 
     useEffect(() => {
         if (hasClub) loadEvents();

@@ -3,7 +3,7 @@ import * as notificationService from '../services/notificationService.js';
 
 export const registerToken = async (req, res) => {
     try {
-        const { token } = req.body;
+        const { token, device } = req.body;
         
         if (!token || typeof token !== 'string' || token.length < 20) {
             return res.status(400).json({ success: false, message: 'FCM Token key missing.' });
@@ -13,7 +13,10 @@ export const registerToken = async (req, res) => {
             tokenSuffix: token.slice(-12)
         });
         
-        const success = await notificationService.registerDeviceToken(req.user._id, token);
+        const success = await notificationService.registerDeviceToken(req.user._id, token, {
+            ...device,
+            userAgent: req.get('user-agent')
+        });
         
         if (success) {
             return res.status(200).json({ success: true, message: 'Device token added successfully.' });
@@ -102,7 +105,7 @@ export const sendTestNotification = async (req, res) => {
 };
 
 export const getPushStatus = async (req, res) => {
-    const tokenCount = Array.isArray(req.user.fcmTokens) ? req.user.fcmTokens.length : 0;
+    const tokenCount = await notificationService.countDeviceTokens(req.user._id);
     return res.status(200).json({
         success: true,
         data: { registered: tokenCount > 0, tokenCount }

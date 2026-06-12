@@ -12,7 +12,15 @@ const firebaseConfig = {
 };
 
 const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
-const requiredConfig = ['apiKey', 'projectId', 'messagingSenderId', 'appId'];
+const firebaseEnvFields = {
+    VITE_FIREBASE_API_KEY: firebaseConfig.apiKey,
+    VITE_FIREBASE_AUTH_DOMAIN: firebaseConfig.authDomain,
+    VITE_FIREBASE_PROJECT_ID: firebaseConfig.projectId,
+    VITE_FIREBASE_STORAGE_BUCKET: firebaseConfig.storageBucket,
+    VITE_FIREBASE_MESSAGING_SENDER_ID: firebaseConfig.messagingSenderId,
+    VITE_FIREBASE_APP_ID: firebaseConfig.appId,
+    VITE_FIREBASE_VAPID_KEY: vapidKey
+};
 let messagingInstance;
 let serviceWorkerRegistration;
 let foregroundUnsubscribe;
@@ -27,7 +35,62 @@ const log = (message, details) => {
     else console.info(`[FCM] ${message}`, details);
 };
 
-const hasValidConfig = () => requiredConfig.every((key) => firebaseConfig[key]) && vapidKey;
+const validatePushConfiguration = () => {
+    const issues = [];
+    Object.entries(firebaseEnvFields).forEach(([key, value]) => {
+        if (!value) issues.push(`${key} is missing.`);
+    });
+
+    if (firebaseConfig.apiKey && !/^AIza[A-Za-z0-9_-]{30,}$/.test(firebaseConfig.apiKey)) {
+        issues.push('VITE_FIREBASE_API_KEY has an invalid Firebase API key format.');
+    }
+    if (firebaseConfig.authDomain && !firebaseConfig.authDomain.includes('.')) {
+        issues.push('VITE_FIREBASE_AUTH_DOMAIN has an invalid domain format.');
+    }
+    if (firebaseConfig.messagingSenderId && !/^\d{10,15}$/.test(firebaseConfig.messagingSenderId)) {
+        issues.push('VITE_FIREBASE_MESSAGING_SENDER_ID must be a 10-15 digit sender ID.');
+    }
+    if (firebaseConfig.appId && !/^1:\d+:web:[A-Za-z0-9]+$/.test(firebaseConfig.appId)) {
+        issues.push('VITE_FIREBASE_APP_ID is invalid. Expected a value like 1:123456789:web:abc123.');
+    }
+    if (firebaseConfig.appId && firebaseConfig.appId === firebaseConfig.messagingSenderId) {
+        issues.push('VITE_FIREBASE_APP_ID incorrectly contains the messaging sender ID.');
+    }
+    if (vapidKey && /^1:\d+:web:/.test(vapidKey)) {
+        issues.push('VITE_FIREBASE_VAPID_KEY incorrectly contains a Firebase app ID.');
+    } else if (vapidKey && (vapidKey.length < 80 || !/^[A-Za-z0-9_-]+$/.test(vapidKey))) {
+        issues.push(`VITE_FIREBASE_VAPID_KEY is invalid. Expected an 80-90 character URL-safe Web Push public key; received length ${vapidKey.length}.`);
+    }
+
+    return {
+        valid: issues.length === 0,
+        firebaseConfigured: Boolean(
+            firebaseConfig.apiKey
+            && firebaseConfig.authDomain
+            && firebaseConfig.projectId
+            && firebaseConfig.storageBucket
+            && firebaseConfig.messagingSenderId
+            && firebaseConfig.appId
+        ),
+        vapidKeyValid: Boolean(vapidKey && vapidKey.length >= 80 && /^[A-Za-z0-9_-]+$/.test(vapidKey)),
+        issues,
+        fields: Object.fromEntries(
+            Object.entries(firebaseEnvFields).map(([key, value]) => [key, {
+                present: Boolean(value),
+                length: value?.length || 0
+            }])
+        )
+    };
+};
+
+export const getPushConfigurationStatus = validatePushConfiguration;
+
+const logConfiguration = () => {
+    const status = validatePushConfiguration();
+    console.info('[FCM] Firebase env validation', status.fields);
+    status.issues.forEach((issue) => console.error(`[FCM] Configuration issue: ${issue}`));
+    return status;
+};
 
 export const unlockNotificationSound = async () => {
     try {
@@ -104,8 +167,9 @@ const getWorkerRegistration = async () => {
 
 const getMessagingInstance = async () => {
     if (messagingInstance) return messagingInstance;
-    if (!hasValidConfig()) {
-        console.error('[FCM] Push is not configured. Set all VITE_FIREBASE_* values, including VITE_FIREBASE_VAPID_KEY.');
+    const configuration = logConfiguration();
+    if (!configuration.firebaseConfigured) {
+        console.error('[FCM] Firebase initialization failed because required VITE_FIREBASE_* configuration is missing or invalid.');
         return null;
     }
     if (!await isSupported()) {
@@ -120,10 +184,22 @@ const getMessagingInstance = async () => {
 };
 
 export const syncFcmToken = async () => {
-    if (Notification.permission !== 'granted') return null;
+    if (Notification.permission !== 'granted') {
+        console.warn('[FCM] Token sync skipped because notification permission is not granted.', {
+            permission: Notification.permission
+        });
+        return null;
+    }
 
     const messaging = await getMessagingInstance();
     if (!messaging) return null;
+    const configuration = validatePushConfiguration();
+    if (!configuration.valid) {
+        console.error('[FCM] Token generation skipped because Firebase configuration is invalid.', {
+            issues: configuration.issues
+        });
+        return null;
+    }
 
     try {
         const registration = await getWorkerRegistration();
@@ -137,13 +213,22 @@ export const syncFcmToken = async () => {
             return null;
         }
 
+        log('FCM token generated', {
+            present: true,
+            prefix: token.slice(0, 6),
+            suffix: token.slice(-6),
+            length: token.length
+        });
         await registerFcmTokenApi(token);
         currentToken = token;
         localStorage.setItem('clubhub:fcm-token', token);
         log('Token registered with ClubHub backend', { suffix: token.slice(-12) });
         return token;
     } catch (error) {
-        console.error('[FCM] Token generation or registration failed', error);
+        console.error('[FCM] Token generation or registration failed', {
+            code: error?.code || 'unknown',
+            message: error?.message || String(error)
+        });
         return null;
     }
 };
@@ -174,25 +259,7 @@ export const initializePushNotifications = async (onForegroundMessage) => {
     foregroundUnsubscribe?.();
     foregroundUnsubscribe = onMessage(messaging, (payload) => {
         log('Foreground message received', payload);
-        playNotificationSound();
         onForegroundMessage?.(payload);
-
-        const title = payload.notification?.title || payload.data?.title || 'ClubHub Notification';
-        const body = payload.notification?.body || payload.data?.body || 'A new update is available.';
-        if (Notification.permission === 'granted') {
-            const notification = new Notification(title, {
-                body,
-                icon: 'https://ik.imagekit.io/p4nbkerbz/ClubHub/applogo.png',
-                tag: payload.data?.referenceId || 'clubhub-foreground',
-                data: payload.data,
-                silent: false
-            });
-            notification.onclick = () => {
-                window.focus();
-                if (payload.data?.url) window.location.assign(payload.data.url);
-                notification.close();
-            };
-        }
     });
 
     if (!lifecycleHandlersAttached) {

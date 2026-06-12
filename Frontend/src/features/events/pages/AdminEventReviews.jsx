@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { getEventsList } from '../service/eventService';
 import '../style/AdminEventReviews.scss';
+import useRealtimeEventRefresh from '../hooks/useRealtimeEventRefresh';
 
 const AdminEventReviews = () => {
     const dispatch = useDispatch();
@@ -12,6 +13,7 @@ const AdminEventReviews = () => {
     const loadEvents = useCallback(() => {
         dispatch(getEventsList());
     }, [dispatch]);
+    useRealtimeEventRefresh(loadEvents);
 
     useEffect(() => {
         loadEvents();

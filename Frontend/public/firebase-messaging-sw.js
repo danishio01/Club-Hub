@@ -9,6 +9,12 @@ const storageBucket = urlParams.get('storageBucket');
 const messagingSenderId = urlParams.get('messagingSenderId');
 const appId = urlParams.get('appId');
 
+console.info('[FCM SW] Configuration loaded', {
+    projectId: projectId || 'missing',
+    messagingSenderIdPresent: Boolean(messagingSenderId),
+    appIdPresent: Boolean(appId)
+});
+
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(clients.claim()));
 
@@ -28,7 +34,7 @@ if (apiKey && messagingSenderId) {
     const messaging = firebase.messaging();
 
     messaging.onBackgroundMessage((payload) => {
-        console.log('[FCM SW] Background message received.', payload);
+        console.info('[FCM SW] Background message received.', payload);
         
         const notificationTitle = payload.notification?.title || payload.data?.title || "ClubHub Notification";
         const notificationOptions = {
@@ -50,6 +56,7 @@ if (apiKey && messagingSenderId) {
 }
 
 self.addEventListener('notificationclick', (event) => {
+    console.info('[FCM SW] Notification clicked', event.notification.data);
     event.notification.close();
     const targetUrl = new URL(event.notification.data?.url || '/', self.location.origin).href;
     event.waitUntil(

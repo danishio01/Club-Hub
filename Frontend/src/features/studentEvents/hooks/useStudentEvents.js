@@ -1,11 +1,13 @@
 import { useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getStudentEventsList, registerForEventApi } from '../service/studentEventsService';
+import useRealtimeEventRefresh from '../../events/hooks/useRealtimeEventRefresh';
 
 export const useStudentEvents = () => {
     const dispatch = useDispatch();
     const { events, isLoading, error } = useSelector((state) => state.studentEvents);
     const { user } = useSelector((state) => state.auth);
+    useRealtimeEventRefresh(() => dispatch(getStudentEventsList()));
 
     useEffect(() => {
         dispatch(getStudentEventsList());

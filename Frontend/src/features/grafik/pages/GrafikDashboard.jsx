@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getGrafikEventsApi } from '../../events/service/eventService';
 import '../style/GrafikDashboard.scss';
+import useRealtimeEventRefresh from '../../events/hooks/useRealtimeEventRefresh';
 
 const GrafikDashboard = () => {
     const navigate = useNavigate();
@@ -18,6 +19,7 @@ const GrafikDashboard = () => {
             setIsLoading(false);
         }
     }, []);
+    useRealtimeEventRefresh(loadEvents);
 
     useEffect(() => {
         let isMounted = true;

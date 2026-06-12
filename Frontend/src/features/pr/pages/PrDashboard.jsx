@@ -1,35 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../../api/axiosInstance';
 import '../style/PrDashboard.scss';
+import useRealtimeEventRefresh from '../../events/hooks/useRealtimeEventRefresh';
 
 const PrDashboard = () => {
     const [events, setEvents] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const navigate = useNavigate();
 
+    const initializeEvents = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            const res = await axiosInstance.get('/events');
+            setEvents(res.data.data.filter(e => e.status === 'approved'));
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+    useRealtimeEventRefresh(initializeEvents);
+
     useEffect(() => {
-        let isMounted = true;
-
-        const initializeEvents = async () => {
-            try {
-                setIsLoading(true);
-                const res = await axiosInstance.get('/events');
-                if (isMounted) {
-                    setEvents(res.data.data.filter(e => e.status === 'approved'));
-                }
-            } catch (error) {
-                console.error(error);
-            } finally {
-                if (isMounted) setIsLoading(false);
-            }
-        };
-
-        initializeEvents();
-
-        return () => {
-            isMounted = false;
-        };
+        axiosInstance.get('/events')
+            .then((res) => setEvents(res.data.data.filter(e => e.status === 'approved')))
+            .catch(console.error)
+            .finally(() => setIsLoading(false));
     }, []);
 
     return (

@@ -4,7 +4,9 @@ import Admin from '../models/adminModel.js';
 import Registration from '../models/registrationModel.js';
 import Event from '../models/eventModel.js';
 import Club from '../models/clubModel.js';
+import NotificationToken from '../models/notificationTokenModel.js';
 import { messaging } from '../config/firebase.js';
+import { emitToUsers } from './socketService.js';
 
 export const dispatchNotification = async ({ recipients, title, message, type, referenceId }) => {
     try {
@@ -14,7 +16,7 @@ export const dispatchNotification = async ({ recipients, title, message, type, r
         }
 
         const targetUsers = [...new Set((Array.isArray(recipients) ? recipients : [recipients]).map(String))];
-        let tokenList = [];
+        const legacyTokens = [];
         const dbWrites = [];
         console.info('[FCM] Notification flow started', { type, recipients: targetUsers.length });
 
@@ -37,17 +39,48 @@ export const dispatchNotification = async ({ recipients, title, message, type, r
                     referenceId,
                     isRead: false
                 });
+                if (Array.isArray(userObj.fcmTokens)) legacyTokens.push(...userObj.fcmTokens);
 
-                if (userObj.fcmTokens && userObj.fcmTokens.length > 0) {
-                    tokenList.push(...userObj.fcmTokens);
-                }
             }
         }
 
         if (dbWrites.length > 0) {
-            await Notification.insertMany(dbWrites);
+            const savedNotifications = await Notification.insertMany(dbWrites);
             console.info('[FCM] Database notifications saved', { count: dbWrites.length });
+            savedNotifications.forEach((notification) => {
+                emitToUsers([notification.recipient], 'notification:new', notification.toObject());
+            });
+            if (referenceId && /^(EVENT_|ADMIN_EVENT_|FLYER_)/.test(type)) {
+                emitToUsers(targetUsers, 'events:changed', { type, referenceId: String(referenceId) });
+            }
         }
+
+        const allTokenDocuments = await NotificationToken.find({ userId: { $in: targetUsers } })
+            .select('token userId userModel role active');
+        const tokenDocuments = allTokenDocuments.filter((entry) => entry.active !== false);
+        targetUsers.forEach((userId) => {
+            const userTokens = allTokenDocuments.filter((entry) => String(entry.userId) === userId);
+            if (userTokens.length === 0) {
+                console.warn('[FCM] No NotificationToken found for recipient userId', { userId });
+            } else if (userTokens.every((entry) => entry.active === false)) {
+                console.warn('[FCM] Recipient only has inactive NotificationToken records', { userId });
+            } else {
+                console.info('[FCM] NotificationToken lookup matched recipient', {
+                    userId,
+                    tokenCount: userTokens.filter((entry) => entry.active !== false).length,
+                    roles: [...new Set(userTokens.map((entry) => entry.role))],
+                    userModels: [...new Set(userTokens.map((entry) => entry.userModel))]
+                });
+            }
+        });
+        const tokenList = [...new Set([
+            ...tokenDocuments.map((entry) => entry.token),
+            ...legacyTokens
+        ].filter(Boolean))];
+        console.info('[FCM] Recipient users and tokens resolved', {
+            recipientUsersFound: dbWrites.length,
+            validTokenCount: tokenList.length
+        });
 
         if (messaging && tokenList.length > 0) {
             const uniqueTokens = [...new Set(tokenList)];
@@ -69,8 +102,18 @@ export const dispatchNotification = async ({ recipients, title, message, type, r
                 success: response.successCount,
                 failed: response.failureCount
             });
+            response.responses.forEach((result, index) => {
+                if (!result.success) {
+                    console.error('[FCM] Token delivery failed', {
+                        tokenSuffix: uniqueTokens[index].slice(-12),
+                        code: result.error?.code || 'unknown',
+                        message: result.error?.message || 'Unknown Firebase delivery error'
+                    });
+                }
+            });
 
             const invalidTokenCodes = new Set([
+                'messaging/invalid-argument',
                 'messaging/invalid-registration-token',
                 'messaging/registration-token-not-registered'
             ]);
@@ -80,6 +123,7 @@ export const dispatchNotification = async ({ recipients, title, message, type, r
 
             if (invalidTokens.length > 0) {
                 await Promise.all([
+                    NotificationToken.deleteMany({ token: { $in: invalidTokens } }),
                     Student.updateMany({}, { $pull: { fcmTokens: { $in: invalidTokens } } }),
                     Admin.updateMany({}, { $pull: { fcmTokens: { $in: invalidTokens } } })
                 ]);
@@ -97,12 +141,12 @@ export const dispatchNotification = async ({ recipients, title, message, type, r
     }
 };
 
-export const registerDeviceToken = async (userId, token) => {
+export const registerDeviceToken = async (userId, token, device = {}) => {
     try {
         let updatedUser = await Student.findByIdAndUpdate(
             userId,
             { $addToSet: { fcmTokens: token } },
-            { new: true, select: 'fcmTokens' }
+            { returnDocument: 'after', select: 'fcmTokens role' }
         );
         let model = 'Student';
         if (!updatedUser) {
@@ -110,10 +154,25 @@ export const registerDeviceToken = async (userId, token) => {
             updatedUser = await Admin.findByIdAndUpdate(
                 userId,
                 { $addToSet: { fcmTokens: token } },
-                { new: true, select: 'fcmTokens' }
+                { returnDocument: 'after', select: 'fcmTokens' }
             );
         }
         if (!updatedUser) return false;
+
+        await NotificationToken.findOneAndUpdate(
+            { token },
+            {
+                userId,
+                userModel: model,
+                role: model === 'Admin' ? 'admin' : updatedUser.role,
+                userAgent: device.userAgent,
+                platform: device.platform,
+                deviceLabel: device.deviceLabel,
+                active: true,
+                lastSeenAt: new Date()
+            },
+            { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+        );
 
         console.info('[FCM] Device token persisted', {
             userId: String(userId),
@@ -129,6 +188,7 @@ export const registerDeviceToken = async (userId, token) => {
 };
 
 export const clearDeviceToken = async (userId, token) => {
+    await NotificationToken.deleteOne({ userId, token });
     const studentResult = await Student.updateOne({ _id: userId }, { $pull: { fcmTokens: token } });
     const adminResult = studentResult.matchedCount
         ? { matchedCount: 0 }
@@ -137,6 +197,8 @@ export const clearDeviceToken = async (userId, token) => {
     console.info('[FCM] Device token clear requested', { userId: String(userId), found });
     return found;
 };
+
+export const countDeviceTokens = (userId) => NotificationToken.countDocuments({ userId });
 
 const getCreatorId = (event) => event.creator?.student?._id || event.creator?.student || null;
 

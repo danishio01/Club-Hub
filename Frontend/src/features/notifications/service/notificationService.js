@@ -6,7 +6,13 @@ export const fetchMyNotificationsApi = async (page = 1, limit = 10) => {
 };
 
 export const registerFcmTokenApi = async (token) => {
-    const response = await axiosInstance.post('/notifications/token/register', { token });
+    const response = await axiosInstance.post('/notifications/token/register', {
+        token,
+        device: {
+            platform: navigator.userAgentData?.platform || navigator.platform,
+            deviceLabel: `${navigator.vendor || 'Browser'} ${navigator.userAgentData?.mobile ? 'mobile' : 'desktop'}`
+        }
+    });
     return response.data;
 };
 

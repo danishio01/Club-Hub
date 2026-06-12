@@ -2,6 +2,29 @@
   position: relative;
   display: inline-block;
 
+  .notification-live-toast {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 3000;
+    width: min(360px, calc(100vw - 36px));
+    padding: 14px 16px;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    background: #f0fdf4;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+    color: #14532d;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    span {
+      color: #166534;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+  }
+
   .bell-trigger {
     background: none;
     border: none;
@@ -147,6 +170,20 @@
         color: #9a3412;
         font-size: 0.8rem;
         line-height: 1.4;
+      }
+
+      .push-configuration-errors {
+        margin: 8px 12px 12px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: #fef2f2;
+        color: #991b1b;
+        font-size: 0.76rem;
+        line-height: 1.45;
+
+        div + div {
+          margin-top: 5px;
+        }
       }
 
       .dropdown-hint {

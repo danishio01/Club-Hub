@@ -10,10 +10,12 @@ import {
 } from '../service/notificationService';
 import {
     initializePushNotifications,
+    getPushConfigurationStatus,
     playNotificationSound,
     requestAndRegisterPushNotifications,
     unlockNotificationSound
 } from '../service/fcmClient';
+import { subscribeToRealtimeNotifications } from '../service/socketClient';
 import '../style/NotificationBell.scss';
 
 const NotificationBell = () => {
@@ -27,8 +29,20 @@ const NotificationBell = () => {
     const [isTesting, setIsTesting] = useState(false);
     const [pushStatus, setPushStatus] = useState(null);
     const [soundMessage, setSoundMessage] = useState('');
+    const [realtimeToast, setRealtimeToast] = useState(null);
+    const recentDeliveries = useRef(new Map());
     
     const { notifications, unreadCount, pagination, isLoading } = useSelector((state) => state.notifications);
+    const pushConfiguration = getPushConfigurationStatus();
+    const pushStatusLabel = !pushConfiguration.valid
+        ? 'configuration invalid'
+        : permission === 'denied'
+            ? 'permission blocked'
+            : permission === 'default'
+                ? 'permission pending'
+                : pushStatus?.registered
+                    ? `connected (${pushStatus.tokenCount} device)`
+                    : 'not connected';
 
     const syncAlerts = useCallback(async (targetPage = 1) => {
         dispatch(fetchAlertsStart());
@@ -40,20 +54,59 @@ const NotificationBell = () => {
         }
     }, [dispatch]);
 
+    const handleLiveNotification = useCallback(async (payload, source) => {
+        const data = payload.data || payload;
+        const title = payload.notification?.title || data.title || 'ClubHub Notification';
+        const message = payload.notification?.body || data.body || data.message || 'A new update is available.';
+        const key = `${data.type || ''}:${data.referenceId || ''}:${title}`;
+        const lastDelivered = recentDeliveries.current.get(key) || 0;
+        if (Date.now() - lastDelivered < 5000) return;
+        recentDeliveries.current.set(key, Date.now());
+
+        console.info(`[${source}] Notification received`, { title, type: data.type, referenceId: data.referenceId });
+        await playNotificationSound();
+        setRealtimeToast({ title, message });
+        window.setTimeout(() => setRealtimeToast(null), 5000);
+        syncAlerts(1);
+
+        if (source === 'FCM' && Notification.permission === 'granted') {
+            const notification = new Notification(title, {
+                body: message,
+                icon: 'https://ik.imagekit.io/p4nbkerbz/ClubHub/applogo.png',
+                tag: data.referenceId || 'clubhub-foreground',
+                data,
+                silent: false
+            });
+            notification.onclick = () => {
+                window.focus();
+                if (data.url) window.location.assign(data.url);
+                notification.close();
+            };
+        }
+    }, [syncAlerts]);
+
     useEffect(() => {
         syncAlerts(page);
     }, [page, syncAlerts]);
 
     useEffect(() => {
         let cleanup = () => {};
-        initializePushNotifications(() => syncAlerts(1))
+        initializePushNotifications((payload) => handleLiveNotification(payload, 'FCM'))
             .then(async (unsubscribe) => {
                 cleanup = unsubscribe;
                 setPushStatus(await fetchPushStatusApi());
             })
             .catch((error) => console.error('[FCM] Initialization failed', error));
         return () => cleanup();
-    }, [syncAlerts]);
+    }, [handleLiveNotification]);
+
+    useEffect(() => subscribeToRealtimeNotifications({
+        onNotification: (payload) => handleLiveNotification(payload, 'SOCKET'),
+        onEventsChanged: (payload) => {
+            console.info('[SOCKET] Event lifecycle update received', payload);
+            window.dispatchEvent(new CustomEvent('clubhub:events-changed', { detail: payload }));
+        }
+    }), [handleLiveNotification]);
 
     const enablePushNotifications = async () => {
         const result = await requestAndRegisterPushNotifications();
@@ -74,15 +127,14 @@ const NotificationBell = () => {
             const unlocked = await unlockNotificationSound();
             if (!unlocked) {
                 setSoundMessage('Sound is blocked by browser autoplay/site sound settings.');
-                return;
             }
-            if (Notification.permission === 'granted') {
-                await sendTestNotificationApi();
-                setSoundMessage('Test push sent. Keep this tab open to verify foreground sound.');
-            } else {
-                await playNotificationSound();
-                setSoundMessage('Foreground sound played. Push remains blocked by notification permission.');
-            }
+            await sendTestNotificationApi();
+            setSoundMessage(unlocked
+                ? (Notification.permission === 'granted'
+                    ? 'Test notification sent. Verifying Socket.IO, foreground sound, and FCM push.'
+                    : 'Real-time test sent. Socket.IO and sound can work, but background push remains blocked by browser permission.')
+                : 'Real-time test sent. Notification arrived, but sound is blocked by browser autoplay/site sound settings.'
+            );
         } catch (error) {
             console.error('[FCM] Notification test failed', error);
         } finally {
@@ -110,6 +162,12 @@ const NotificationBell = () => {
 
     return (
         <div className="notification-bell-container" ref={dropdownRef}>
+            {realtimeToast && (
+                <div className="notification-live-toast" role="status">
+                    <strong>{realtimeToast.title}</strong>
+                    <span>{realtimeToast.message}</span>
+                </div>
+            )}
             <button className="bell-trigger" onClick={toggleOpenState}>
                 <i className="ri-notification-3-line"></i>
                 {unreadCount > 0 && <span className="unread-badge">{unreadCount}</span>}
@@ -128,8 +186,13 @@ const NotificationBell = () => {
 
                     <div className="dropdown-body">
                         <div className={`push-status ${pushStatus?.registered ? 'connected' : 'disconnected'}`}>
-                            Push: {pushStatus?.registered ? `connected (${pushStatus.tokenCount} device)` : 'not connected'}
+                            Push: {pushStatusLabel}
                         </div>
+                        {!pushConfiguration.valid && (
+                            <div className="push-configuration-errors">
+                                {pushConfiguration.issues.map((issue) => <div key={issue}>{issue}</div>)}
+                            </div>
+                        )}
                         {permission === 'default' && (
                             <button className="enable-push-button" onClick={enablePushNotifications}>
                                 Enable browser notifications
@@ -137,7 +200,7 @@ const NotificationBell = () => {
                         )}
                         {permission === 'denied' && (
                             <div className="permission-warning">
-                                Browser notifications are blocked. Enable them in site settings.
+                                Notifications are blocked in browser settings. Enable them for {window.location.host}.
                             </div>
                         )}
                         <button className="test-sound-button" onClick={testNotificationSound} disabled={isTesting}>
