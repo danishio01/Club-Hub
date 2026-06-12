@@ -11,7 +11,8 @@ const studentSchema = new mongoose.Schema({
     section: { type: String, required: true },
     interests: [{ type: String }],
     role: { type: String, enum: ['student', 'president', 'pr', 'grafik'], default: 'student' },
-    points: { type: Number, default: 0 }
+    points: { type: Number, default: 0 },
+    fcmTokens: { type: [String], default: [] }
 }, { timestamps: true });
 
 studentSchema.pre('save', async function () {

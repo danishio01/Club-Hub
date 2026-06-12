@@ -1,5 +1,6 @@
 import axiosInstance from '../../../api/axiosInstance';
 import { loginStart, loginSuccess, loginFailure, logoutSuccess, setAuthChecked } from '../state/authSlice';
+import { unregisterCurrentFcmToken } from '../../notifications/service/fcmClient';
 
 export const loginAdmin = (credentials) => async (dispatch) => {
     dispatch(loginStart());
@@ -29,6 +30,7 @@ export const loginStudent = (credentials) => async (dispatch) => {
 
 export const logoutStudent = () => async (dispatch) => {
     try {
+        await unregisterCurrentFcmToken();
         await axiosInstance.post('/auth/student/logout');
         dispatch(logoutSuccess());
     } catch (error) {

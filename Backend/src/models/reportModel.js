@@ -30,7 +30,7 @@ const reportSchema = new mongoose.Schema({
         facultyCoordinators: { type: String, default: '' },
         studentCoordinators: { type: String, default: '' }
     },
-    status: { type: String, enum: ['draft', 'submitted', 'reviewed'], default: 'draft' },
+    status: { type: String, enum: ['draft', 'submitted', 'reviewed', 'rejected'], default: 'draft' },
     adminRemarks: { type: String, default: '' },
     pdfUrl: { type: String, default: null },
     submittedAt: { type: Date, default: null },

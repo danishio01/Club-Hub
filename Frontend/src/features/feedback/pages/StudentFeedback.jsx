@@ -64,7 +64,7 @@ const StudentFeedback = () => {
         setHistory([...history, { 
             step: currentStep, 
             templateState: [...template], 
-            responsesState: [...responses] 
+            responsesState: updatedResponses
         }]);
 
         setResponses(updatedResponses);
@@ -130,7 +130,7 @@ const StudentFeedback = () => {
     const disableNext = currentAnswer === null || currentAnswer === '' || (Array.isArray(currentAnswer) && currentAnswer.length === 0);
 
     return (
-        <div style={{ maxWidth: '600px', margin: '40px auto', padding: '20px', fontFamily: 'sans-serif' }}>
+        <div className="student-feedback-page" style={{ maxWidth: '600px', margin: '40px auto', padding: '20px', fontFamily: 'sans-serif' }}>
             <style>
                 {`
                     .animated-step {
@@ -151,6 +151,14 @@ const StudentFeedback = () => {
                     .mcq-option.active {
                         border-color: #9333ea; background: #faf5ff; color: #7e22ce;
                     }
+                    @media (max-width: 600px) {
+                        .student-feedback-page { margin: 0 auto !important; padding: 4px !important; }
+                        .feedback-card { padding: 20px !important; border-radius: 12px !important; }
+                        .feedback-actions { align-items: stretch !important; gap: 12px !important; }
+                        .feedback-actions button { min-height: 44px; }
+                        .feedback-complete-actions { flex-direction: column !important; }
+                        .star-btn { font-size: 2.35rem; }
+                    }
                 `}
             </style>
 
@@ -168,7 +176,7 @@ const StudentFeedback = () => {
 
             <div key={animationKey} className="animated-step">
                 {!isComplete ? (
-                    <div style={{ background: 'white', padding: '30px', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9' }}>
+                    <div className="feedback-card" style={{ background: 'white', padding: '30px', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9' }}>
                         <h2 style={{ fontSize: '1.5rem', color: '#0f172a', marginBottom: '24px', lineHeight: 1.4 }}>
                             {template[currentStep].text}
                             {template[currentStep].type === 'mcq' && template[currentStep].allowMultiple && <span style={{ fontSize: '0.85rem', color: '#64748b', display: 'block', marginTop: '8px', fontWeight: 'normal' }}>(Select all that apply)</span>}
@@ -217,7 +225,7 @@ const StudentFeedback = () => {
                             />
                         )}
 
-                        <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div className="feedback-actions" style={{ marginTop: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <button 
                                 onClick={handleBack}
                                 disabled={currentStep === 0}
@@ -248,7 +256,7 @@ const StudentFeedback = () => {
                         <p style={{ color: '#64748b', fontSize: '1.05rem', marginBottom: '30px', lineHeight: 1.5 }}>
                             Thank you for completing the feedback. Your insights help us improve future events.
                         </p>
-                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                        <div className="feedback-complete-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                             <button 
                                 onClick={handleBack}
                                 style={{ background: '#f1f5f9', color: '#0f172a', padding: '16px 24px', border: '1px solid #cbd5e1', borderRadius: '50px', fontSize: '1rem', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s' }}

@@ -1,6 +1,7 @@
 import Student from '../models/studentModel.js';
 import Club from '../models/clubModel.js';
 import jwt from 'jsonwebtoken';
+import { jwtSecret } from '../config/auth.js';
 
 const buildStudentSession = async (student) => {
     let clubName = null;
@@ -61,7 +62,7 @@ export const studentLogin = async (req, res) => {
 
         const token = jwt.sign(
             { id: student._id, role: student.role }, 
-            'clubhub_super_secret_key_123', 
+            jwtSecret,
             { expiresIn: '1d' }
         );
 

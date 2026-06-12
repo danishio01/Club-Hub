@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutStudent, checkAuthStatus } from '../../features/auth/service/authService';
+import NotificationBell from '../..//features/notifications/components/NotificationBell';
 import './PresidentLayout.scss';
 
 const PresidentLayout = () => {
@@ -97,6 +98,7 @@ const PresidentLayout = () => {
                     </div>
                     <div className="user-info">
                         <span className="club-chip">{clubLabel} {userRoleLabel}</span>
+                        <NotificationBell />
                         <span>{user.name}</span>
                         <div className="avatar">{user.name.charAt(0)}</div>
                     </div>

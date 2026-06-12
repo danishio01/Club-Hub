@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { getAllAdminReportsList, reviewReportApi } from '../service/reportService';
+import { getAllAdminReportsList, rejectReportApi, reviewReportApi } from '../service/reportService';
 import '../style/AdminReportReview.scss';
 
 const AdminReportReview = () => {
@@ -30,6 +30,21 @@ const AdminReportReview = () => {
         } catch (error) {
             console.error(error);
             alert("Failed to submit review.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleReject = async () => {
+        if (!remarks.trim()) return alert('Add rejection feedback before rejecting the report.');
+        setIsSubmitting(true);
+        try {
+            await rejectReportApi(selectedReport._id, remarks);
+            setSelectedReport(null);
+            setRemarks('');
+            loadReports();
+        } catch (error) {
+            alert(error.response?.data?.message || 'Failed to reject report.');
         } finally {
             setIsSubmitting(false);
         }
@@ -127,9 +142,12 @@ const AdminReportReview = () => {
                 <div className="modal-footer">
                     <button className="btn-secondary" onClick={() => setSelectedReport(null)}>Close</button>
                     {selectedReport.status === 'submitted' && (
-                        <button className="btn-primary" onClick={handleReviewSubmit} disabled={isSubmitting}>
-                            {isSubmitting ? 'Processing...' : 'Mark as Reviewed'}
-                        </button>
+                        <>
+                            <button className="btn-secondary" onClick={handleReject} disabled={isSubmitting}>Reject</button>
+                            <button className="btn-primary" onClick={handleReviewSubmit} disabled={isSubmitting}>
+                                {isSubmitting ? 'Processing...' : 'Approve Report'}
+                            </button>
+                        </>
                     )}
                 </div>
             </div>

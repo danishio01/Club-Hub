@@ -20,7 +20,8 @@ import {
     deleteGalleryImage,
     getPrCompletedEvents,
     approveClubMemberProposal,
-    rejectClubMemberProposal
+    rejectClubMemberProposal,
+    reviewGallery
 } from '../controllers/eventController.js';
 import { 
     registerForEvent, 
@@ -40,13 +41,13 @@ import { protect, presidentOnly, prOnly, adminOnly, presidentOrAdmin, grafikOnly
 const router = express.Router();
 
 router.get('/leaderboard/rankings', getLeaderboard);
-router.post('/leaderboard/reset', resetLeaderboard);
+router.post('/leaderboard/reset', protect, adminOnly, resetLeaderboard);
 
 router.get('/student-events', protect, getStudentEvents);
 router.get('/student-events/:id', protect, getStudentEventById);
 router.get('/student/certificates', protect, getAttendedEvents);
 router.get('/student/attendance-report', protect, getStudentAttendanceReport);
-router.get('/admin/attendance-report', getAdminAttendanceReport);
+router.get('/admin/attendance-report', protect, adminOnly, getAdminAttendanceReport);
 
 router.get('/president/all', protect, presidentOrClubMember, getPresidentEvents);
 router.post('/', protect, presidentClubMemberOrAdmin, createEvent);
@@ -70,6 +71,7 @@ router.post('/:id/gallery/upload', protect, grafikOnly, uploadGalleryImage);
 router.delete('/:id/gallery/:fileId', protect, grafikOnly, deleteGalleryImage);
 
 router.get('/pr/galleries', protect, prOnly, getPrCompletedEvents);
+router.patch('/:id/gallery/review', protect, prOnly, reviewGallery);
 
 router.get('/', getEvents);
 router.get('/:id', getEventById);

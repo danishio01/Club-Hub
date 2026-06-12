@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutStudent, checkAuthStatus } from '../../features/auth/service/authService';
+import NotificationBell from '../..//features/notifications/components/NotificationBell';
 import './PrLayout.scss';
 
 const PrLayout = () => {
@@ -77,6 +78,7 @@ const PrLayout = () => {
                         </button>
                     </div>
                     <div className="user-info">
+                        <NotificationBell />
                         <span>{user.name} (PR)</span>
                         <div className="avatar">{user.name.charAt(0)}</div>
                     </div>

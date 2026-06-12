@@ -2,6 +2,7 @@ import Report from '../models/reportModel.js';
 import Event from '../models/eventModel.js';
 import Registration from '../models/registrationModel.js';
 import { generateAndUploadReportPDF } from '../services/s3Service.js';
+import { executeDynamicLifecycleBroadcasting } from '../services/notificationService.js';
 
 export const getReportByEvent = async (req, res) => {
     try {
@@ -121,7 +122,7 @@ export const submitReport = async (req, res) => {
         }
 
         const report = await Report.findOneAndUpdate(
-            { event: eventId },
+            { event: eventId, status: { $ne: 'reviewed' } },
             { 
                 content, 
                 president: req.user._id,
@@ -132,6 +133,8 @@ export const submitReport = async (req, res) => {
             { new: true }
         );
 
+        await executeDynamicLifecycleBroadcasting('REPORT_SUBMITTED', event);
+
         return res.status(200).json({ success: true, data: report, message: 'Report submitted successfully to Admin.' });
     } catch (error) {
         console.error(error);
@@ -141,7 +144,7 @@ export const submitReport = async (req, res) => {
 
 export const getAllReportsAdmin = async (req, res) => {
     try {
-        const reports = await Report.find({ status: { $in: ['submitted', 'reviewed'] } })
+        const reports = await Report.find({ status: { $in: ['submitted', 'reviewed', 'rejected'] } })
             .populate('event', 'title date')
             .populate('club', 'name')
             .populate('president', 'name usn role')
@@ -166,9 +169,36 @@ export const reviewReportAdmin = async (req, res) => {
         );
 
         if (!report) return res.status(404).json({ success: false, message: 'Report not found' });
+        
+        const event = await Event.findById(report.event);
+        if (event) {
+            await executeDynamicLifecycleBroadcasting('REPORT_APPROVED', event);
+        }
+        
         return res.status(200).json({ success: true, data: report, message: 'Report marked as reviewed.' });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ success: false, message: 'Failed to review report' });
+    }
+};
+
+export const rejectReportAdmin = async (req, res) => {
+    try {
+        const { reportId } = req.params;
+        const { adminRemarks } = req.body;
+        if (!adminRemarks?.trim()) {
+            return res.status(400).json({ success: false, message: 'Rejection feedback is required.' });
+        }
+        const report = await Report.findOneAndUpdate(
+            { _id: reportId, status: 'submitted' },
+            { status: 'rejected', adminRemarks: adminRemarks.trim(), reviewedAt: new Date() },
+            { new: true }
+        );
+        if (!report) return res.status(404).json({ success: false, message: 'Submitted report not found.' });
+        const event = await Event.findById(report.event);
+        if (event) await executeDynamicLifecycleBroadcasting('REPORT_REJECTED', event);
+        return res.status(200).json({ success: true, data: report, message: 'Report rejected with feedback.' });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to reject report.' });
     }
 };

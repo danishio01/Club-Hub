@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import { store } from './app/store';
 import { routes } from './routes/routes';
 import 'remixicon/fonts/remixicon.css';
+import './styles/responsive.scss';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

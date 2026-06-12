@@ -3,6 +3,8 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginSuccess, setAuthChecked } from '../../features/auth/state/authSlice';
 import axiosInstance from '../../api/axiosInstance';
+import NotificationBell from '../..//features/notifications/components/NotificationBell';
+import { unregisterCurrentFcmToken } from '../../features/notifications/service/fcmClient';
 import './AdminLayout.scss';
 
 const AdminLayout = () => {
@@ -31,6 +33,7 @@ const AdminLayout = () => {
 
     const handleLogout = async () => {
         try {
+            await unregisterCurrentFcmToken();
             await axiosInstance.post('/admin/logout');
             navigate('/admin/login', { replace: true });
         } catch (error) {
@@ -41,7 +44,6 @@ const AdminLayout = () => {
     const toggleMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
     const closeMenu = () => setIsMobileMenuOpen(false);
 
-    // Keep active highlight for child routes like analytics
     const isActiveLink = (path) => {
         if (path === '/admin/event-approvals' && location.pathname.includes('/events/')) {
             return true;
@@ -78,6 +80,7 @@ const AdminLayout = () => {
                             {item.label}
                         </NavLink>
                     ))}
+                    <NotificationBell />
                     <button className="nav-link logout-btn-header" onClick={handleLogout} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626' }}>
                         <i className="ri-logout-box-r-line"></i> Logout
                     </button>

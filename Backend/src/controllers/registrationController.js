@@ -5,6 +5,8 @@ import Club from '../models/clubModel.js';
 import jwt from 'jsonwebtoken';
 import { ChatMistralAI } from "@langchain/mistralai";
 import { HumanMessage } from "@langchain/core/messages";
+import { dispatchNotification } from '../services/notificationService.js';
+import { jwtSecret } from '../config/auth.js';
 
 const blockClubMemberStudentFeature = (req, res) => {
     if (req.user?.isClubMember) {
@@ -21,8 +23,8 @@ export const registerForEvent = async (req, res) => {
         const eventId = req.params.eventId;
         const studentId = req.user._id; 
 
-        const event = await Event.findById(eventId);
-        if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+        const event = await Event.findOne({ _id: eventId, status: 'approved' });
+        if (!event) return res.status(404).json({ success: false, message: 'Event not found or not open for registration' });
 
         const existingRegistration = await Registration.findOne({ student: studentId, event: eventId });
         if (existingRegistration) return res.status(400).json({ success: false, message: 'You are already registered for this event.' });
@@ -33,8 +35,19 @@ export const registerForEvent = async (req, res) => {
         const registration = new Registration({ student: studentId, event: eventId });
         await registration.save();
 
+        await dispatchNotification({
+            recipients: [studentId],
+            title: "Registration Confirmed",
+            message: `Successfully registered for event "${event.title}". See you there!`,
+            type: 'SYSTEM',
+            referenceId: event._id
+        });
+
         return res.status(201).json({ success: true, message: 'Successfully registered for the event!' });
     } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({ success: false, message: 'You are already registered for this event.' });
+        }
         return res.status(500).json({ success: false, message: 'Server error during registration.' });
     }
 };
@@ -71,7 +84,7 @@ export const getEventRegistrations = async (req, res) => {
 export const generateAttendanceToken = async (req, res) => {
     try {
         const { eventId } = req.params;
-        const token = jwt.sign({ eventId }, 'clubhub_super_secret_key_123', { expiresIn: '12h' });
+        const token = jwt.sign({ eventId }, jwtSecret, { expiresIn: '12h' });
         return res.status(200).json({ success: true, data: token });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to generate attendance token' });
@@ -86,9 +99,10 @@ export const markAttendance = async (req, res) => {
         const { token } = req.body;
         const studentId = req.user._id;
 
-        const decoded = jwt.verify(token, 'clubhub_super_secret_key_123');
+        const decoded = jwt.verify(token, jwtSecret);
         if (decoded.eventId !== eventId) return res.status(400).json({ success: false, message: 'Invalid QR Code for this event.' });
 
+        const event = await Event.findById(eventId);
         const registration = await Registration.findOne({ event: eventId, student: studentId });
         if (!registration) return res.status(404).json({ success: false, message: 'You are not registered for this event.' });
         if (registration.status === 'Attended') return res.status(400).json({ success: false, message: 'Attendance already recorded.' });
@@ -96,6 +110,14 @@ export const markAttendance = async (req, res) => {
 
         registration.status = 'Scanned';
         await registration.save();
+
+        await dispatchNotification({
+            recipients: [studentId],
+            title: "Attendance Scanned",
+            message: `Attendance scanned for "${event?.title || 'Event'}". Submit feedback to finalize and earn points.`,
+            type: 'SYSTEM',
+            referenceId: eventId
+        });
 
         return res.status(200).json({ success: true, message: 'QR Scanned! Please submit a review to mark your attendance and earn points.' });
     } catch (error) {
@@ -114,6 +136,7 @@ export const getAttendedEvents = async (req, res) => {
             registrationId: reg._id,
             eventName: reg.event.title,
             eventDate: reg.event.date,
+            eventDateRaw: reg.event.date,
             eventTime: reg.event.time,
             clubName: reg.event.club?.name || 'Campus Club',
             studentName: req.user.name 
@@ -303,6 +326,23 @@ export const submitReview = async (req, res) => {
         }
         
         await registration.save();
+        const event = await Event.findById(req.params.eventId);
+
+        await dispatchNotification({
+            recipients: [req.user._id],
+            title: "Attendance Processed",
+            message: `Attendance marked successfully for "${event?.title || 'Event'}". +100 Points awarded!`,
+            type: 'SYSTEM',
+            referenceId: req.params.eventId
+        });
+
+        await dispatchNotification({
+            recipients: [req.user._id],
+            title: "Certificate Generated",
+            message: `Your credentials verification certificate for "${event?.title || 'Event'}" is now available.`,
+            type: 'SYSTEM',
+            referenceId: req.params.eventId
+        });
         
         return res.status(200).json({ success: true, message: 'Review submitted successfully! Attendance marked and 100 points awarded.' });
     } catch (error) {

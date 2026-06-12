@@ -5,7 +5,8 @@ import studentReducer from '../features/students/state/studentSlice';
 import clubReducer from '../features/clubs/state/clubSlice';
 import eventReducer from '../features/events/state/eventSlice';
 import studentEventsReducer from '../features/studentEvents/state/studentEventsSlice';
-import reportReducer from '../features/reports/state/reportSlice'; // NEW
+import reportReducer from '../features/reports/state/reportSlice';
+import notificationReducer from '../features/notifications/state/notificationSlice';
 
 export const store = configureStore({
     reducer: {
@@ -15,6 +16,7 @@ export const store = configureStore({
         clubs: clubReducer,
         events: eventReducer,
         studentEvents: studentEventsReducer,
-        reports: reportReducer
+        reports: reportReducer,
+        notifications: notificationReducer
     },
 });

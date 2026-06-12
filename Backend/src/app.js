@@ -12,6 +12,7 @@ import aiRoutes from './routes/aiRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import feedbackRoutes from './routes/feedbackRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 import morgan from 'morgan'
 
 const app = express();
@@ -19,7 +20,7 @@ const app = express();
 app.set('trust proxy', 1);
 
 app.use(cors({
-    origin: ['http://localhost:5173', 'https://club-hub-theta.vercel.app'],
+    origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://club-hub-theta.vercel.app'],
     credentials: true
 }));
 
@@ -27,7 +28,6 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
 app.use(morgan('combined'));
-
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
@@ -40,6 +40,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/reports', reportRoutes); 
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get('/api/health', (req, res) => {
     res.status(200).json({ message: 'API is healthy' });

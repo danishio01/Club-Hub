@@ -4,6 +4,7 @@ import Club from '../models/clubModel.js';
 import Report from '../models/reportModel.js';
 import { generatePosterBuffer } from '../services/bannerService.js';
 import { uploadBannerToImageKit, deleteBannerFromImageKit } from '../services/imagekitService.js';
+import { executeDynamicLifecycleBroadcasting } from '../services/notificationService.js';
 
 const populateEventQuery = (query) => query
     .populate('club', 'name isActive president members')
@@ -77,6 +78,13 @@ export const createEvent = async (req, res) => {
         const event = new Event(req.body);
         await event.save();
         const populatedEvent = await populateEventQuery(Event.findById(event._id));
+        
+        if (populatedEvent.status === 'pending_president') {
+            await executeDynamicLifecycleBroadcasting('EVENT_CREATED', populatedEvent);
+        } else if (populatedEvent.status === 'review') {
+            await executeDynamicLifecycleBroadcasting('EVENT_APPROVED', populatedEvent);
+        }
+        
         return res.status(201).json({ success: true, data: populatedEvent });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to create event' });
@@ -167,6 +175,13 @@ export const updateEvent = async (req, res) => {
         }
 
         const event = await populateEventQuery(Event.findByIdAndUpdate(id, updateData, { new: true }));
+        
+        if (event.status === 'pending_president') {
+            await executeDynamicLifecycleBroadcasting('EVENT_CREATED', event);
+        } else if (event.status === 'review') {
+            await executeDynamicLifecycleBroadcasting('EVENT_APPROVED', event);
+        }
+        
         return res.status(200).json({ success: true, data: event });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to update event' });
@@ -216,13 +231,16 @@ export const deleteEvent = async (req, res) => {
 export const approveEvent = async (req, res) => {
     try {
         const { id } = req.params;
-        const event = await Event.findByIdAndUpdate(
-            id, 
+        const event = await Event.findOneAndUpdate(
+            { _id: id, status: 'pending_admin' },
             { status: 'approved', rejectedReason: null, rejectedBy: null, rejectedByModel: 'Admin', rejectedAt: null }, 
             { new: true }
         ).populate('club', 'name isActive president members').populate('creator.student', 'name usn email');
         
         if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+        
+        await executeDynamicLifecycleBroadcasting('FLYER_APPROVED', event);
+        
         return res.status(200).json({ success: true, data: event, message: 'Event approved successfully' });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to approve event' });
@@ -238,7 +256,7 @@ export const rejectEvent = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Rejection reason is required.' });
         }
 
-        const eventToUpdate = await Event.findById(id);
+        const eventToUpdate = await Event.findOne({ _id: id, status: 'pending_admin' });
         if (!eventToUpdate) return res.status(404).json({ success: false, message: 'Event not found' });
 
         const targetStatus = rejectType === 'banner' ? 'banner_rejected' : 'rejected';
@@ -259,6 +277,13 @@ export const rejectEvent = async (req, res) => {
         await eventToUpdate.save();
 
         const populatedEvent = await populateEventQuery(Event.findById(id));
+        
+        if (targetStatus === 'banner_rejected') {
+            await executeDynamicLifecycleBroadcasting('FLYER_REJECTED', populatedEvent);
+        } else {
+            await executeDynamicLifecycleBroadcasting('ADMIN_EVENT_REJECTED', populatedEvent);
+        }
+        
         return res.status(200).json({ success: true, data: populatedEvent, message: 'Rejection processed successfully' });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to reject event' });
@@ -361,7 +386,7 @@ export const getGrafikEvents = async (req, res) => {
 
 export const generateEventBanner = async (req, res) => {
     try {
-        const event = await Event.findById(req.params.id).populate('club');
+        const event = await Event.findOne({ _id: req.params.id, status: { $in: ['review', 'banner_rejected'] } }).populate('club');
         if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
 
         if (event.bannerFileId) {
@@ -389,7 +414,7 @@ export const uploadCustomEventBanner = async (req, res) => {
         const { imageBase64 } = req.body;
         if (!imageBase64) return res.status(400).json({ success: false, message: 'Image data is required' });
 
-        const event = await Event.findById(req.params.id);
+        const event = await Event.findOne({ _id: req.params.id, status: { $in: ['review', 'banner_rejected'] } });
         if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
 
         if (event.bannerFileId) {
@@ -413,13 +438,14 @@ export const uploadCustomEventBanner = async (req, res) => {
 
 export const approveEventBanner = async (req, res) => {
     try {
-        const event = await Event.findByIdAndUpdate(
-            req.params.id, 
+        const event = await Event.findOneAndUpdate(
+            { _id: req.params.id, status: { $in: ['review', 'banner_rejected'] }, bannerUrl: { $ne: null } },
             { status: 'pending_admin' }, 
             { new: true }
         ).populate('club', 'name isActive president members').populate('creator.student', 'name usn email');
         
         if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+        await executeDynamicLifecycleBroadcasting('FLYER_GENERATED', event);
         return res.status(200).json({ success: true, data: event, message: 'Flyer approved. Event submitted to Admin.' });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to approve flyer' });
@@ -442,7 +468,12 @@ export const uploadGalleryImage = async (req, res) => {
         const uploadResult = await uploadBannerToImageKit(imageBase64, safeTitle);
 
         event.gallery.push({ url: uploadResult.url, fileId: uploadResult.fileId });
+        event.galleryStatus = 'pending';
+        event.galleryRejectionReason = null;
         await event.save();
+
+        const updatedEvent = await populateEventQuery(Event.findById(event._id));
+        await executeDynamicLifecycleBroadcasting('GALLERY_UPLOADED', updatedEvent);
 
         return res.status(200).json({ success: true, data: event.gallery });
     } catch (error) {
@@ -467,6 +498,7 @@ export const deleteGalleryImage = async (req, res) => {
         }
 
         event.gallery = event.gallery.filter(img => img.fileId !== fileId);
+        event.galleryStatus = event.gallery.length > 0 ? 'pending' : 'draft';
         await event.save();
 
         return res.status(200).json({ success: true, data: event.gallery, message: 'Image deleted successfully' });
@@ -509,6 +541,8 @@ export const approveClubMemberProposal = async (req, res) => {
         await event.save();
 
         const populatedEvent = await populateEventQuery(Event.findById(id));
+        await executeDynamicLifecycleBroadcasting('EVENT_APPROVED', populatedEvent);
+        
         return res.status(200).json({ success: true, data: populatedEvent, message: 'Proposal approved and sent to Grafik' });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to approve proposal' });
@@ -541,8 +575,36 @@ export const rejectClubMemberProposal = async (req, res) => {
         await event.save();
 
         const populatedEvent = await populateEventQuery(Event.findById(id));
+        await executeDynamicLifecycleBroadcasting('EVENT_REJECTED', populatedEvent);
+        
         return res.status(200).json({ success: true, data: populatedEvent, message: 'Proposal rejected' });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to reject proposal' });
+    }
+};
+
+export const reviewGallery = async (req, res) => {
+    try {
+        const { decision, reason } = req.body;
+        if (!['approved', 'rejected'].includes(decision)) {
+            return res.status(400).json({ success: false, message: 'Decision must be approved or rejected.' });
+        }
+        if (decision === 'rejected' && !reason?.trim()) {
+            return res.status(400).json({ success: false, message: 'A rejection reason is required.' });
+        }
+
+        const event = await populateEventQuery(Event.findOne({ _id: req.params.id, status: 'completed', 'gallery.0': { $exists: true } }));
+        if (!event) return res.status(404).json({ success: false, message: 'Completed event gallery not found.' });
+
+        event.galleryStatus = decision;
+        event.galleryRejectionReason = decision === 'rejected' ? reason.trim() : null;
+        await event.save();
+        await executeDynamicLifecycleBroadcasting(
+            decision === 'approved' ? 'GALLERY_APPROVED' : 'GALLERY_REJECTED',
+            event
+        );
+        return res.status(200).json({ success: true, data: event, message: `Gallery ${decision}.` });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to review gallery.' });
     }
 };

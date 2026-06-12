@@ -31,3 +31,8 @@ export const reviewReportApi = async (reportId, adminRemarks) => {
     const response = await axiosInstance.patch(`/reports/admin/${reportId}/review`, { adminRemarks });
     return response.data.data;
 };
+
+export const rejectReportApi = async (reportId, adminRemarks) => {
+    const response = await axiosInstance.patch(`/reports/admin/${reportId}/reject`, { adminRemarks });
+    return response.data.data;
+};

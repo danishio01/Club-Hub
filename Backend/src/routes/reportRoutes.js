@@ -1,5 +1,5 @@
 import express from 'express';
-import { getReportByEvent, saveDraft, submitReport, getAllReportsAdmin, reviewReportAdmin } from '../controllers/reportController.js';
+import { getReportByEvent, saveDraft, submitReport, getAllReportsAdmin, reviewReportAdmin, rejectReportAdmin } from '../controllers/reportController.js';
 import { protect, presidentOrClubMember, adminOnly } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -10,5 +10,6 @@ router.post('/event/:eventId/submit', protect, presidentOrClubMember, submitRepo
 
 router.get('/admin/all', protect, adminOnly, getAllReportsAdmin);
 router.patch('/admin/:reportId/review', protect, adminOnly, reviewReportAdmin);
+router.patch('/admin/:reportId/reject', protect, adminOnly, rejectReportAdmin);
 
 export default router;

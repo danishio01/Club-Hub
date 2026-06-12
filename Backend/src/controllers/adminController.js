@@ -1,5 +1,6 @@
 import Admin from '../models/adminModel.js';
 import jwt from 'jsonwebtoken';
+import { jwtSecret } from '../config/auth.js';
 
 export const loginAdmin = async (req, res) => {
     try {
@@ -23,7 +24,7 @@ export const loginAdmin = async (req, res) => {
             });
         }
 
-        const token = jwt.sign({ id: admin._id, role: 'admin' }, 'clubhub_super_secret_key_123', {
+        const token = jwt.sign({ id: admin._id, role: 'admin' }, jwtSecret, {
             expiresIn: '30d',
         });
 

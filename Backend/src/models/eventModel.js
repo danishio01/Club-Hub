@@ -45,6 +45,8 @@ const eventSchema = new mongoose.Schema({
     bannerUrl: { type: String, default: null },
     bannerFileId: { type: String, default: null },
     gallery: [galleryImageSchema],
+    galleryStatus: { type: String, enum: ['draft', 'pending', 'approved', 'rejected'], default: 'draft' },
+    galleryRejectionReason: { type: String, default: null },
     status: { 
         type: String, 
         enum: ['pending_president', 'review', 'pending_admin', 'approved', 'rejected', 'president_rejected', 'banner_rejected', 'completed'], 

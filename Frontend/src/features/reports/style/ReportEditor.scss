@@ -33,7 +33,7 @@
     .section-title { margin: 20px 0 10px 0; font-size: 1.3rem; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; }
     .section-header-flex { display: flex; justify-content: space-between; align-items: center; margin: 20px 0 10px 0; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; .section-title { margin: 0; border: none; padding: 0; } }
 
-    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px; }
 
     .editor-section {
       display: flex; flex-direction: column; gap: 8px;

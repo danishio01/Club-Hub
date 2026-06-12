@@ -2,13 +2,14 @@ import jwt from 'jsonwebtoken';
 import Student from '../models/studentModel.js';
 import Admin from '../models/adminModel.js';
 import Club from '../models/clubModel.js';
+import { jwtSecret } from '../config/auth.js';
 
 export const protect = async (req, res, next) => {
     let token = req.cookies.jwt;
 
     if (token) {
         try {
-            const decoded = jwt.verify(token, 'clubhub_super_secret_key_123');
+            const decoded = jwt.verify(token, jwtSecret);
             
             if (decoded.role === 'admin') {
                 req.user = await Admin.findById(decoded.id).select('-password');
@@ -25,6 +26,9 @@ export const protect = async (req, res, next) => {
                 }
             }
             
+            if (!req.user) {
+                return res.status(401).json({ success: false, message: 'Not authorized, user no longer exists' });
+            }
             next();
         } catch (error) {
             res.status(401).json({ success: false, message: 'Not authorized, token failed' });
@@ -48,6 +52,13 @@ export const presidentOnly = (req, res, next) => {
     } else {
         res.status(403).json({ success: false, message: 'Not authorized as a President' });
     }
+};
+
+export const selfOrAdmin = (req, res, next) => {
+    if (req.user?.role === 'admin' || req.user?._id?.toString() === req.params.id) {
+        return next();
+    }
+    return res.status(403).json({ success: false, message: 'Not authorized to update this profile' });
 };
 
 export const presidentOrClubMember = async (req, res, next) => {

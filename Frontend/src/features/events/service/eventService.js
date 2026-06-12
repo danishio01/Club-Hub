@@ -122,3 +122,8 @@ export const getPrCompletedEventsApi = async () => {
     const response = await axiosInstance.get('/events/pr/galleries');
     return response.data.data;
 };
+
+export const reviewGalleryApi = async (id, decision, reason = '') => {
+    const response = await axiosInstance.patch(`/events/${id}/gallery/review`, { decision, reason });
+    return response.data.data;
+};

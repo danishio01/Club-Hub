@@ -19,4 +19,6 @@ const registrationSchema = new mongoose.Schema({
     feedbackSubmittedAt: { type: Date, default: null }
 });
 
+registrationSchema.index({ event: 1, student: 1 }, { unique: true });
+
 export default mongoose.model('Registration', registrationSchema);
