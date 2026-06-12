@@ -18,11 +18,30 @@ const getSocket = () => {
 
 export const subscribeToRealtimeNotifications = ({ onNotification, onEventsChanged }) => {
     const client = getSocket();
-    client.on('notification:new', onNotification);
+    const workflowEvents = [
+        'registrations:changed',
+        'attendance:changed',
+        'event:updated',
+        'gallery:changed',
+        'report:changed'
+    ];
+    const forwardWorkflowEvent = (eventName) => (payload) => {
+        console.info(`[SOCKET] ${eventName} received`, payload);
+        window.dispatchEvent(new CustomEvent('clubhub:workflow-changed', { detail: { eventName, ...payload } }));
+        window.dispatchEvent(new CustomEvent(`clubhub:${eventName}`, { detail: payload }));
+    };
+    const workflowHandlers = workflowEvents.map((eventName) => [eventName, forwardWorkflowEvent(eventName)]);
+    const notificationHandler = (payload) => {
+        console.info('[SOCKET] notification:new received', payload);
+        onNotification(payload);
+    };
+    client.on('notification:new', notificationHandler);
     client.on('events:changed', onEventsChanged);
+    workflowHandlers.forEach(([eventName, handler]) => client.on(eventName, handler));
 
     return () => {
-        client.off('notification:new', onNotification);
+        client.off('notification:new', notificationHandler);
         client.off('events:changed', onEventsChanged);
+        workflowHandlers.forEach(([eventName, handler]) => client.off(eventName, handler));
     };
 };

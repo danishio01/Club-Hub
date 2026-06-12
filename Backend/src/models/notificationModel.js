@@ -23,7 +23,7 @@ const notificationSchema = new mongoose.Schema({
         type: String,
         required: true,
         enum: [
-            'EVENT_CREATED', 'EVENT_APPROVED', 'EVENT_REJECTED', 'ADMIN_EVENT_REJECTED',
+            'EVENT_CREATED', 'EVENT_APPROVED', 'EVENT_REJECTED', 'ADMIN_EVENT_REJECTED', 'EVENT_COMPLETED',
             'FLYER_GENERATED', 'FLYER_APPROVED', 'FLYER_REJECTED',
             'REPORT_SUBMITTED', 'REPORT_APPROVED', 'REPORT_REJECTED',
             'GALLERY_UPLOADED', 'GALLERY_APPROVED', 'GALLERY_REJECTED',

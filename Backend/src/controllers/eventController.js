@@ -5,6 +5,7 @@ import Report from '../models/reportModel.js';
 import { generatePosterBuffer } from '../services/bannerService.js';
 import { uploadBannerToImageKit, deleteBannerFromImageKit } from '../services/imagekitService.js';
 import { executeDynamicLifecycleBroadcasting } from '../services/notificationService.js';
+import { emitWorkflowUpdate } from '../services/socketService.js';
 
 const populateEventQuery = (query) => query
     .populate('club', 'name isActive president members')
@@ -314,7 +315,12 @@ export const markEventCompleted = async (req, res) => {
             }
         }
 
-        const event = await Event.findByIdAndUpdate(id, { status: 'completed' }, { new: true });
+        const event = await populateEventQuery(Event.findByIdAndUpdate(id, { status: 'completed' }, { new: true }));
+        await executeDynamicLifecycleBroadcasting('EVENT_COMPLETED', event, {
+            actorId: req.user._id,
+            actorRole: req.user.role
+        });
+        emitWorkflowUpdate(event, 'event:updated', { status: event.status });
         return res.status(200).json({ success: true, data: event });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to mark event as completed' });
@@ -474,6 +480,7 @@ export const uploadGalleryImage = async (req, res) => {
 
         const updatedEvent = await populateEventQuery(Event.findById(event._id));
         await executeDynamicLifecycleBroadcasting('GALLERY_UPLOADED', updatedEvent);
+        emitWorkflowUpdate(updatedEvent, 'gallery:changed', { galleryStatus: updatedEvent.galleryStatus });
 
         return res.status(200).json({ success: true, data: event.gallery });
     } catch (error) {
@@ -500,6 +507,7 @@ export const deleteGalleryImage = async (req, res) => {
         event.gallery = event.gallery.filter(img => img.fileId !== fileId);
         event.galleryStatus = event.gallery.length > 0 ? 'pending' : 'draft';
         await event.save();
+        emitWorkflowUpdate(event, 'gallery:changed', { galleryStatus: event.galleryStatus });
 
         return res.status(200).json({ success: true, data: event.gallery, message: 'Image deleted successfully' });
     } catch (error) {

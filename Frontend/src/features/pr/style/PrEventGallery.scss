@@ -44,10 +44,10 @@
     }
 
     .album-actions {
-      display: flex; gap: 12px; padding: 0 20px 20px 20px;
+      display: flex; gap: 8px; padding: 0 16px 16px; flex-wrap: wrap;
       
       .btn-action {
-        flex: 1; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px; font-size: 0.9rem; border: none; transition: all 0.2s;
+        flex: 1 1 120px; padding: 7px 10px; border-radius: 7px; font-weight: 600; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 5px; font-size: 0.8rem; border: none; transition: all 0.2s;
         
         &.view { background: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; &:hover { background: #e2e8f0; } }
         &.share { background: #9333ea; color: #ffffff; &:hover { background: #7e22ce; } }

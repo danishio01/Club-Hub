@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { getStudentEventByIdApi, registerForEventApi, createPaymentOrderApi, verifyPaymentApi, markAttendanceApi } from '../service/studentEventsService';
 import '../style/StudentEventDetails.scss';
+import useRealtimeEventRefresh from '../../events/hooks/useRealtimeEventRefresh';
 
 const loadRazorpayScript = () => {
     return new Promise((resolve) => {
@@ -40,14 +41,15 @@ const StudentEventDetails = () => {
         return () => { isMounted = false; };
     }, [eventId, navigate]);
 
-    const reloadEvent = async () => {
+    const reloadEvent = useCallback(async () => {
         try {
             const data = await getStudentEventByIdApi(eventId);
             setEvent(data);
         } catch (error) {
             console.error(error);
         }
-    };
+    }, [eventId]);
+    useRealtimeEventRefresh(reloadEvent);
 
     const handleRegister = async () => {
         if(!window.confirm('Do you want to register for this event?')) return;

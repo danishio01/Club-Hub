@@ -7,6 +7,7 @@ import { ChatMistralAI } from "@langchain/mistralai";
 import { HumanMessage } from "@langchain/core/messages";
 import { dispatchNotification } from '../services/notificationService.js';
 import { jwtSecret } from '../config/auth.js';
+import { emitWorkflowUpdate } from '../services/socketService.js';
 
 const blockClubMemberStudentFeature = (req, res) => {
     if (req.user?.isClubMember) {
@@ -34,6 +35,7 @@ export const registerForEvent = async (req, res) => {
 
         const registration = new Registration({ student: studentId, event: eventId });
         await registration.save();
+        emitWorkflowUpdate(event, 'registrations:changed', { registrationId: String(registration._id) });
 
         await dispatchNotification({
             recipients: [studentId],
@@ -110,6 +112,7 @@ export const markAttendance = async (req, res) => {
 
         registration.status = 'Scanned';
         await registration.save();
+        emitWorkflowUpdate(event, 'attendance:changed', { studentId: String(studentId), status: registration.status });
 
         await dispatchNotification({
             recipients: [studentId],
@@ -327,6 +330,7 @@ export const submitReview = async (req, res) => {
         
         await registration.save();
         const event = await Event.findById(req.params.eventId);
+        emitWorkflowUpdate(event, 'attendance:changed', { studentId: String(req.user._id), status: registration.status });
 
         await dispatchNotification({
             recipients: [req.user._id],

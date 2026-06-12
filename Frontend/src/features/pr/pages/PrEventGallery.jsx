@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getPrCompletedEventsApi, reviewGalleryApi } from '../../events/service/eventService';
+import { getPrCompletedEventsApi } from '../../events/service/eventService';
 import ImageLightbox from '../../../components/common/ImageLightbox';
 import '../style/PrEventGallery.scss';
+import useRealtimeEventRefresh from '../../events/hooks/useRealtimeEventRefresh';
 
 const PrEventGallery = () => {
     const navigate = useNavigate();
@@ -11,23 +12,22 @@ const PrEventGallery = () => {
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [lightboxImage, setLightboxImage] = useState(null);
 
-    useEffect(() => {
-        let isMounted = true;
-        
-        const fetchGalleries = async () => {
-            try {
-                const data = await getPrCompletedEventsApi();
-                if (isMounted) setEvents(data);
-            } catch (error) {
-                console.error("Failed to load PR galleries:", error);
-            } finally {
-                if (isMounted) setIsLoading(false);
-            }
-        };
+    const fetchGalleries = useCallback(async () => {
+        try {
+            setEvents(await getPrCompletedEventsApi());
+        } catch (error) {
+            console.error("Failed to load PR galleries:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+    useRealtimeEventRefresh(fetchGalleries);
 
-        fetchGalleries();
-        
-        return () => { isMounted = false; };
+    useEffect(() => {
+        getPrCompletedEventsApi()
+            .then(setEvents)
+            .catch((error) => console.error("Failed to load PR galleries:", error))
+            .finally(() => setIsLoading(false));
     }, []);
 
     const openGallery = (event) => {
@@ -36,15 +36,6 @@ const PrEventGallery = () => {
 
     const closeGallery = () => {
         setSelectedEvent(null);
-    };
-
-    const reviewGallery = async (event, decision) => {
-        const reason = decision === 'rejected' ? window.prompt('Why is this gallery being rejected?') : '';
-        if (decision === 'rejected' && !reason?.trim()) return;
-        await reviewGalleryApi(event._id, decision, reason);
-        setEvents(current => current.map(item => item._id === event._id
-            ? { ...item, galleryStatus: decision, galleryRejectionReason: reason || null }
-            : item));
     };
 
     if (isLoading) return <div className="pr-gallery-page"><div className="loading-state">Loading official event galleries...</div></div>;
@@ -105,7 +96,7 @@ const PrEventGallery = () => {
                                 <div className="album-info">
                                     <h3>{event.title}</h3>
                                     <p>{new Date(event.date).toLocaleDateString()}</p>
-                                    <p>Approval: {event.galleryStatus || 'pending'}</p>
+                                    <p>Ready for social media</p>
                                 </div>
                                 <div className="album-actions">
                                     <button className="btn-action view" onClick={() => openGallery(event)}>
@@ -114,12 +105,6 @@ const PrEventGallery = () => {
                                     <button className="btn-action share" onClick={() => navigate(`/pr/events/${event._id}/share`)}>
                                         <i className="ri-share-forward-line"></i> Create Post
                                     </button>
-                                    {event.galleryStatus !== 'approved' && (
-                                        <button className="btn-action view" onClick={() => reviewGallery(event, 'approved')}>Approve</button>
-                                    )}
-                                    {event.galleryStatus !== 'rejected' && (
-                                        <button className="btn-action share" onClick={() => reviewGallery(event, 'rejected')}>Reject</button>
-                                    )}
                                 </div>
                             </div>
                         ))

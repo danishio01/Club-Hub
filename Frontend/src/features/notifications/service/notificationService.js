@@ -5,12 +5,20 @@ export const fetchMyNotificationsApi = async (page = 1, limit = 10) => {
     return response.data.data;
 };
 
-export const registerFcmTokenApi = async (token) => {
+export const registerFcmTokenApi = async (token, identity = {}) => {
+    let deviceId = localStorage.getItem('clubhub:fcm-device-id');
+    if (!deviceId) {
+        deviceId = crypto.randomUUID();
+        localStorage.setItem('clubhub:fcm-device-id', deviceId);
+    }
     const response = await axiosInstance.post('/notifications/token/register', {
         token,
+        clientUserId: identity.userId,
+        clientRole: identity.role,
         device: {
             platform: navigator.userAgentData?.platform || navigator.platform,
-            deviceLabel: `${navigator.vendor || 'Browser'} ${navigator.userAgentData?.mobile ? 'mobile' : 'desktop'}`
+            deviceLabel: `${navigator.vendor || 'Browser'} ${navigator.userAgentData?.mobile ? 'mobile' : 'desktop'}`,
+            deviceId
         }
     });
     return response.data;
@@ -33,6 +41,16 @@ export const markAllNotificationsReadApi = async () => {
 
 export const sendTestNotificationApi = async () => {
     const response = await axiosInstance.post('/notifications/test');
+    return response.data;
+};
+
+export const sendFirebaseOnlyTestApi = async () => {
+    const response = await axiosInstance.post('/notifications/test-push');
+    return response.data;
+};
+
+export const sendCurrentBrowserTokenTestApi = async (browserIdentity) => {
+    const response = await axiosInstance.post('/notifications/test-current-browser-token', browserIdentity);
     return response.data;
 };
 

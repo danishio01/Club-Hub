@@ -24,6 +24,10 @@ const notificationTokenSchema = new mongoose.Schema({
     userAgent: String,
     platform: String,
     deviceLabel: String,
+    deviceId: {
+        type: String,
+        index: true
+    },
     active: {
         type: Boolean,
         default: true,

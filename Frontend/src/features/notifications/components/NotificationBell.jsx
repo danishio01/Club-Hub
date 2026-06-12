@@ -6,13 +6,20 @@ import {
 } from '../state/notificationSlice';
 import { 
     fetchMyNotificationsApi,
-    markNotificationReadApi, markAllNotificationsReadApi, sendTestNotificationApi, fetchPushStatusApi
+    markNotificationReadApi, markAllNotificationsReadApi, sendTestNotificationApi, sendFirebaseOnlyTestApi,
+    sendCurrentBrowserTokenTestApi, fetchPushStatusApi
 } from '../service/notificationService';
 import {
     initializePushNotifications,
     getPushConfigurationStatus,
+    getPushRuntimeStatus,
+    getCurrentBrowserPushDiagnostics,
+    getCurrentBrowserTokenIdentity,
     playNotificationSound,
     requestAndRegisterPushNotifications,
+    setFcmClientIdentity,
+    showLocalSystemNotificationTest,
+    showSystemNotification,
     unlockNotificationSound
 } from '../service/fcmClient';
 import { subscribeToRealtimeNotifications } from '../service/socketClient';
@@ -30,9 +37,12 @@ const NotificationBell = () => {
     const [pushStatus, setPushStatus] = useState(null);
     const [soundMessage, setSoundMessage] = useState('');
     const [realtimeToast, setRealtimeToast] = useState(null);
+    const [pushRuntimeStatus, setPushRuntimeStatus] = useState(getPushRuntimeStatus());
+    const [pushDiagnostics, setPushDiagnostics] = useState(null);
     const recentDeliveries = useRef(new Map());
     
     const { notifications, unreadCount, pagination, isLoading } = useSelector((state) => state.notifications);
+    const { user } = useSelector((state) => state.auth);
     const pushConfiguration = getPushConfigurationStatus();
     const pushStatusLabel = !pushConfiguration.valid
         ? 'configuration invalid'
@@ -42,7 +52,7 @@ const NotificationBell = () => {
                 ? 'permission pending'
                 : pushStatus?.registered
                     ? `connected (${pushStatus.tokenCount} device)`
-                    : 'not connected';
+                    : pushRuntimeStatus.message || 'Firebase token is not connected.';
 
     const syncAlerts = useCallback(async (targetPage = 1) => {
         dispatch(fetchAlertsStart());
@@ -58,6 +68,24 @@ const NotificationBell = () => {
         const data = payload.data || payload;
         const title = payload.notification?.title || data.title || 'ClubHub Notification';
         const message = payload.notification?.body || data.body || data.message || 'A new update is available.';
+
+        // System display is intentionally before toast/bell deduplication.
+        try {
+            showSystemNotification({
+                title,
+                body: message,
+                data: { ...data, source },
+                tag: `clubhub-${source.toLowerCase()}-${data._id || data.referenceId || Date.now()}`,
+                targetUrl: user?.role === 'admin' ? '/admin/dashboard' : (data.url || '/')
+            });
+        } catch (error) {
+            console.error('[SYSTEM NOTIFICATION] Display failed', {
+                source,
+                permission: 'Notification' in window ? Notification.permission : 'unsupported',
+                message: error.message
+            });
+        }
+
         const key = `${data.type || ''}:${data.referenceId || ''}:${title}`;
         const lastDelivered = recentDeliveries.current.get(key) || 0;
         if (Date.now() - lastDelivered < 5000) return;
@@ -69,25 +97,15 @@ const NotificationBell = () => {
         window.setTimeout(() => setRealtimeToast(null), 5000);
         syncAlerts(1);
 
-        if (source === 'FCM' && Notification.permission === 'granted') {
-            const notification = new Notification(title, {
-                body: message,
-                icon: 'https://ik.imagekit.io/p4nbkerbz/ClubHub/applogo.png',
-                tag: data.referenceId || 'clubhub-foreground',
-                data,
-                silent: false
-            });
-            notification.onclick = () => {
-                window.focus();
-                if (data.url) window.location.assign(data.url);
-                notification.close();
-            };
-        }
-    }, [syncAlerts]);
+    }, [syncAlerts, user]);
 
     useEffect(() => {
         syncAlerts(page);
     }, [page, syncAlerts]);
+
+    useEffect(() => {
+        setFcmClientIdentity({ userId: user?._id || user?.id, role: user?.role });
+    }, [user?._id, user?.id, user?.role]);
 
     useEffect(() => {
         let cleanup = () => {};
@@ -107,6 +125,27 @@ const NotificationBell = () => {
             window.dispatchEvent(new CustomEvent('clubhub:events-changed', { detail: payload }));
         }
     }), [handleLiveNotification]);
+
+    useEffect(() => {
+        const handleStatus = (event) => setPushRuntimeStatus(event.detail);
+        window.addEventListener('clubhub:push-status', handleStatus);
+        return () => window.removeEventListener('clubhub:push-status', handleStatus);
+    }, []);
+
+    const refreshPushDiagnostics = useCallback(async () => {
+        const diagnostics = await getCurrentBrowserPushDiagnostics();
+        setPushDiagnostics(diagnostics);
+        setPermission(diagnostics.notificationPermission);
+    }, []);
+
+    useEffect(() => {
+        const timer = window.setTimeout(refreshPushDiagnostics, 0);
+        window.addEventListener('clubhub:push-diagnostics-changed', refreshPushDiagnostics);
+        return () => {
+            window.clearTimeout(timer);
+            window.removeEventListener('clubhub:push-diagnostics-changed', refreshPushDiagnostics);
+        };
+    }, [refreshPushDiagnostics]);
 
     const enablePushNotifications = async () => {
         const result = await requestAndRegisterPushNotifications();
@@ -141,6 +180,51 @@ const NotificationBell = () => {
             setIsTesting(false);
         }
     };
+
+    const testFirebasePush = async () => {
+        setIsTesting(true);
+        try {
+            const result = await sendFirebaseOnlyTestApi();
+            setSoundMessage(
+                `Firebase-only test: ${result.data.firebaseSuccessCount} delivered, ${result.data.firebaseFailureCount} failed.`
+            );
+            setPushStatus(await fetchPushStatusApi());
+        } catch (error) {
+            setSoundMessage(error.response?.data?.message || 'Firebase-only push test failed.');
+        } finally {
+            setIsTesting(false);
+        }
+    };
+
+    const testCurrentBrowserFirebasePush = async () => {
+        setIsTesting(true);
+        try {
+            const identity = getCurrentBrowserTokenIdentity();
+            if (!identity.token) throw new Error('This browser has not generated an FCM token.');
+            const result = await sendCurrentBrowserTokenTestApi(identity);
+            setSoundMessage(
+                `Current browser token ${result.data.sentToTokenSuffix}: `
+                + `${result.data.firebaseSuccessCount} delivered, ${result.data.firebaseFailureCount} failed.`
+            );
+            await refreshPushDiagnostics();
+        } catch (error) {
+            setSoundMessage(error.response?.data?.message || error.message || 'Current browser Firebase test failed.');
+        } finally {
+            setIsTesting(false);
+        }
+    };
+
+    const testLocalSystemNotification = async () => {
+        try {
+            showLocalSystemNotificationTest();
+            setSoundMessage('Local notification requested. If it is not visible, check Chrome and Windows notification settings.');
+            await refreshPushDiagnostics();
+        } catch (error) {
+            setSoundMessage(error.message);
+        }
+    };
+
+    const displayTime = (value) => value ? new Date(value).toLocaleString() : 'Never';
 
     const handleMarkAsRead = async (id) => {
         try {
@@ -206,6 +290,45 @@ const NotificationBell = () => {
                         <button className="test-sound-button" onClick={testNotificationSound} disabled={isTesting}>
                             {isTesting ? 'Testing notification...' : 'Test notification sound'}
                         </button>
+                        <button className="test-sound-button" onClick={testFirebasePush} disabled={isTesting}>
+                            Test Firebase push only
+                        </button>
+                        <button className="test-sound-button" onClick={testCurrentBrowserFirebasePush} disabled={isTesting}>
+                            Test Firebase on this browser
+                        </button>
+                        <button className="test-sound-button" onClick={testLocalSystemNotification} disabled={isTesting}>
+                            Test local system notification
+                        </button>
+                        {pushDiagnostics && (
+                            <div className="push-diagnostics">
+                                <strong>Current Browser Diagnostics</strong>
+                                <span>Permission: {pushDiagnostics.notificationPermission}</span>
+                                <span>Secure context: {pushDiagnostics.secureContext ? 'yes' : 'no'}</span>
+                                <span>Service worker active: {pushDiagnostics.serviceWorkerActive ? 'yes' : 'no'}</span>
+                                <span>FCM token generated: {pushDiagnostics.tokenGenerated ? 'yes' : 'no'}</span>
+                                <span>Token suffix: {pushDiagnostics.tokenSuffix || 'none'}</span>
+                                <span>Device ID: {pushDiagnostics.deviceId || 'none'}</span>
+                                <span>User ID: {pushDiagnostics.userId || 'none'}</span>
+                                <span>Role: {pushDiagnostics.role || 'none'}</span>
+                                <span>Last token saved: {displayTime(pushDiagnostics.lastTokenSavedTime)}</span>
+                                <span>Last foreground FCM: {displayTime(pushDiagnostics.lastForegroundReceivedTime)}</span>
+                                <span>Last background FCM: {displayTime(pushDiagnostics.lastBackgroundReceivedTime)}</span>
+                                <span>Last system display: {displayTime(pushDiagnostics.lastSystemNotificationDisplayedTime)}</span>
+                                {pushDiagnostics.serviceWorkerCount > 1 && (
+                                    <span className="diagnostic-warning">Multiple Firebase service workers detected.</span>
+                                )}
+                                {!pushDiagnostics.notificationSupported && (
+                                    <span className="diagnostic-warning">This browser does not support notifications.</span>
+                                )}
+                                {!pushDiagnostics.secureContext && (
+                                    <span className="diagnostic-warning">Push requires HTTPS or localhost.</span>
+                                )}
+                                <small>
+                                    Chrome site notifications must be Allowed for {window.location.host}. Windows notifications
+                                    for Chrome must be enabled, and Windows Do Not Disturb/Focus Assist must be off.
+                                </small>
+                            </div>
+                        )}
                         {soundMessage && <div className="sound-test-message">{soundMessage}</div>}
                         {isLoading && <div className="dropdown-hint">Loading alerts...</div>}
                         {!isLoading && notifications.length === 0 && (

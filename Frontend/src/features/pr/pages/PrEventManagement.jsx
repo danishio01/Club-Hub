@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { getEventByIdApi, generateQrTokenApi, getEventRegistrationsApi } from '../../events/service/eventService';
 import '../style/PrEventManagement.scss';
+import useRealtimeEventRefresh from '../../events/hooks/useRealtimeEventRefresh';
 
 const PrEventManagement = () => {
     const { eventId } = useParams();
@@ -13,32 +14,29 @@ const PrEventManagement = () => {
     const [qrUrl, setQrUrl] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    const initializeSessionData = useCallback(async () => {
+        try {
+            const evData = await getEventByIdApi(eventId);
+            const regData = await getEventRegistrationsApi(eventId);
+            setEvent(evData);
+            setRegistrations(regData);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [eventId]);
+    useRealtimeEventRefresh(initializeSessionData);
+
     useEffect(() => {
-        let isMounted = true;
-
-        const initializeSessionData = async () => {
-            try {
-                const evData = await getEventByIdApi(eventId);
-                const regData = await getEventRegistrationsApi(eventId);
-                
-                if (isMounted) {
-                    setEvent(evData);
-                    setRegistrations(regData);
-                }
-            } catch (error) {
-                console.error(error);
-                if (isMounted) navigate('/pr/dashboard');
-            } finally {
-                if (isMounted) setIsLoading(false);
-            }
-        };
-
-        initializeSessionData();
-
-        return () => {
-            isMounted = false;
-        };
-    }, [eventId, navigate]);
+        Promise.all([getEventByIdApi(eventId), getEventRegistrationsApi(eventId)])
+            .then(([evData, regData]) => {
+                setEvent(evData);
+                setRegistrations(regData);
+            })
+            .catch(console.error)
+            .finally(() => setIsLoading(false));
+    }, [eventId]);
 
     const handleManualRefresh = async () => {
         try {

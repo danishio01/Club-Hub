@@ -83,6 +83,9 @@ const StudentLogin = () => {
                     <button type="submit" className="submit-button" disabled={isLoading || !identifier || !password || isCheckingAuth}>
                         {isLoading || isCheckingAuth ? 'Authenticating...' : 'Secure Login'}
                     </button>
+                    <button type="button" className="submit-button" style={{ marginTop: '10px', background: '#334155' }} onClick={() => navigate('/admin/login')}>
+                        Login as Admin
+                    </button>
                     
                     <p style={{ textAlign: 'center', margin: '20px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
                         If you don't have an account, please contact your department admin.

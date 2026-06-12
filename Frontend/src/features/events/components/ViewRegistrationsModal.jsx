@@ -1,25 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getEventRegistrationsApi } from '../service/eventService';
 import '../style/EventModals.scss';
+import useRealtimeEventRefresh from '../hooks/useRealtimeEventRefresh';
 
 const ViewRegistrationsModal = ({ event, onClose }) => {
     const [registrations, setRegistrations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchRegistrations = async () => {
-            try {
-                const data = await getEventRegistrationsApi(event._id);
-                setRegistrations(data);
-            } catch (error) {
-                console.error('Failed to fetch registrations', error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+    const fetchRegistrations = useCallback(async () => {
+        try {
+            const data = await getEventRegistrationsApi(event._id);
+            setRegistrations(data);
+        } catch (error) {
+            console.error('Failed to fetch registrations', error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [event._id]);
+    useRealtimeEventRefresh(fetchRegistrations);
 
+    useEffect(() => {
         if (event) {
-            fetchRegistrations();
+            getEventRegistrationsApi(event._id)
+                .then(setRegistrations)
+                .catch((error) => console.error('Failed to fetch registrations', error))
+                .finally(() => setIsLoading(false));
         }
     }, [event]);
 

@@ -3,6 +3,7 @@ import Event from '../models/eventModel.js';
 import Registration from '../models/registrationModel.js';
 import { generateAndUploadReportPDF } from '../services/s3Service.js';
 import { executeDynamicLifecycleBroadcasting } from '../services/notificationService.js';
+import { emitWorkflowUpdate } from '../services/socketService.js';
 
 export const getReportByEvent = async (req, res) => {
     try {
@@ -133,7 +134,11 @@ export const submitReport = async (req, res) => {
             { new: true }
         );
 
-        await executeDynamicLifecycleBroadcasting('REPORT_SUBMITTED', event);
+        await executeDynamicLifecycleBroadcasting('REPORT_SUBMITTED', event, {
+            actorId: req.user._id,
+            actorRole: req.user.role
+        });
+        emitWorkflowUpdate(event, 'report:changed', { reportStatus: report.status });
 
         return res.status(200).json({ success: true, data: report, message: 'Report submitted successfully to Admin.' });
     } catch (error) {
@@ -173,6 +178,7 @@ export const reviewReportAdmin = async (req, res) => {
         const event = await Event.findById(report.event);
         if (event) {
             await executeDynamicLifecycleBroadcasting('REPORT_APPROVED', event);
+            emitWorkflowUpdate(event, 'report:changed', { reportStatus: report.status });
         }
         
         return res.status(200).json({ success: true, data: report, message: 'Report marked as reviewed.' });
@@ -196,7 +202,10 @@ export const rejectReportAdmin = async (req, res) => {
         );
         if (!report) return res.status(404).json({ success: false, message: 'Submitted report not found.' });
         const event = await Event.findById(report.event);
-        if (event) await executeDynamicLifecycleBroadcasting('REPORT_REJECTED', event);
+        if (event) {
+            await executeDynamicLifecycleBroadcasting('REPORT_REJECTED', event);
+            emitWorkflowUpdate(event, 'report:changed', { reportStatus: report.status });
+        }
         return res.status(200).json({ success: true, data: report, message: 'Report rejected with feedback.' });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to reject report.' });

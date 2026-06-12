@@ -1,4 +1,25 @@
 /* global importScripts, firebase, clients */
+const serviceWorkerVersion = '2026-06-12T20-30-fcm-diagnostics';
+const diagnosticCacheName = 'clubhub-fcm-diagnostics';
+const diagnosticCacheKey = '/__clubhub-fcm-diagnostics__';
+console.info('[FCM SW] Loaded version', serviceWorkerVersion);
+
+const broadcastDiagnostic = async (detail) => {
+    const cache = await caches.open(diagnosticCacheName);
+    const previousResponse = await cache.match(diagnosticCacheKey);
+    const previous = previousResponse ? await previousResponse.json() : {};
+    await cache.put(diagnosticCacheKey, new Response(JSON.stringify({
+        ...previous,
+        ...detail,
+        serviceWorkerVersion
+    }), { headers: { 'Content-Type': 'application/json' } }));
+    const windowClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    windowClients.forEach((client) => client.postMessage({
+        type: 'clubhub:fcm-diagnostic',
+        serviceWorkerVersion,
+        ...detail
+    }));
+};
 
 // Extract runtime environment credentials passed dynamically from the frontend layer registration URL
 const urlParams = new URL(self.location.href).searchParams;
@@ -33,8 +54,21 @@ if (apiKey && messagingSenderId) {
 
     const messaging = firebase.messaging();
 
-    messaging.onBackgroundMessage((payload) => {
-        console.info('[FCM SW] Background message received.', payload);
+    messaging.onBackgroundMessage(async (payload) => {
+        console.info('[FCM SW] Background message received', payload);
+        const receivedAt = new Date().toISOString();
+        await broadcastDiagnostic({ lastBackgroundReceivedTime: receivedAt });
+        if (payload.notification) {
+            console.info('[FCM SW] Background notification display handled by Firebase notification payload', {
+                title: payload.notification.title,
+                type: payload.data?.type,
+                referenceId: payload.data?.referenceId
+            });
+            return broadcastDiagnostic({
+                lastBackgroundReceivedTime: receivedAt,
+                lastSystemNotificationDisplayedTime: new Date().toISOString()
+            });
+        }
         
         const notificationTitle = payload.notification?.title || payload.data?.title || "ClubHub Notification";
         const notificationOptions = {
@@ -49,7 +83,17 @@ if (apiKey && messagingSenderId) {
             timestamp: Date.now()
         };
 
-        return self.registration.showNotification(notificationTitle, notificationOptions);
+        return self.registration.showNotification(notificationTitle, notificationOptions).then(() => {
+            console.info('[FCM SW] Background notification displayed', {
+                title: notificationTitle,
+                type: payload.data?.type,
+                referenceId: payload.data?.referenceId
+            });
+            return broadcastDiagnostic({
+                lastBackgroundReceivedTime: receivedAt,
+                lastSystemNotificationDisplayedTime: new Date().toISOString()
+            });
+        });
     });
 } else {
     console.warn('[FCM SW] Firebase initialization skipped because configuration is incomplete.');
@@ -58,13 +102,17 @@ if (apiKey && messagingSenderId) {
 self.addEventListener('notificationclick', (event) => {
     console.info('[FCM SW] Notification clicked', event.notification.data);
     event.notification.close();
-    const targetUrl = new URL(event.notification.data?.url || '/', self.location.origin).href;
+    const notificationData = event.notification.data?.FCM_MSG?.data || event.notification.data || {};
+    const targetUrl = new URL(notificationData.url || '/', self.location.origin).href;
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
             const existingClient = windowClients.find((client) => client.url.startsWith(self.location.origin));
             if (existingClient) {
                 existingClient.focus();
-                return existingClient.navigate(targetUrl);
+                const resolvedUrl = existingClient.url.includes('/admin/')
+                    ? new URL('/admin/dashboard', self.location.origin).href
+                    : targetUrl;
+                return existingClient.navigate(resolvedUrl);
             }
             return clients.openWindow(targetUrl);
         })

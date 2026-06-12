@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { getAdminAttendanceReportApi } from '../service/attendanceService';
 import '../style/Attendance.scss';
+import useRealtimeEventRefresh from '../../events/hooks/useRealtimeEventRefresh';
 
 const AdminAttendance = () => {
     const [records, setRecords] = useState([]);
@@ -15,26 +16,23 @@ const AdminAttendance = () => {
     const [filterSemester, setFilterSemester] = useState('');
     const [filterSection, setFilterSection] = useState('');
 
+    const fetchAttendanceRecords = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            setRecords(await getAdminAttendanceReportApi());
+        } catch (error) {
+            console.error("Failed to load attendance records:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+    useRealtimeEventRefresh(fetchAttendanceRecords);
+
     useEffect(() => {
-        let isMounted = true;
-        
-        const fetchAttendanceRecords = async () => {
-            setIsLoading(true);
-            try {
-                const data = await getAdminAttendanceReportApi();
-                if (isMounted) setRecords(data);
-            } catch (error) {
-                console.error("Failed to load attendance records:", error);
-            } finally {
-                if (isMounted) setIsLoading(false);
-            }
-        };
-
-        fetchAttendanceRecords();
-
-        return () => {
-            isMounted = false;
-        };
+        getAdminAttendanceReportApi()
+            .then(setRecords)
+            .catch((error) => console.error("Failed to load attendance records:", error))
+            .finally(() => setIsLoading(false));
     }, []);
 
     const processedData = useMemo(() => {
