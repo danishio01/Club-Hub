@@ -96,6 +96,7 @@ const PresidentLayout = () => {
                     <NavLink to="/president/ai-agent" className={`nav-item ${isActiveLink('/president/ai-agent') ? 'active' : ''}`} onClick={closeSidebar}>
                         <i className="ri-robot-2-line"></i> AI Assistant
                     </NavLink>
+                    <NavLink to="/president/profile" className="nav-item" onClick={closeSidebar}><i className="ri-user-line"></i> Profile</NavLink>
                 </nav>
                 <div className="sidebar-footer">
                     <button className="logout-btn" onClick={handleLogout}>

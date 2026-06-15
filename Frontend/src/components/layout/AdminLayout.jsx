@@ -63,7 +63,8 @@ const AdminLayout = () => {
         { path: `${basePath}/tasks`, icon: 'ri-task-line', label: 'Work Oversight' },
         { path: `${basePath}/leaderboard`, icon: 'ri-trophy-line', label: 'Leaderboard' },
         { path: `${basePath}/reports`, icon: 'ri-file-list-3-fill', label: 'Report Reviews' },
-        { path: `${basePath}/attendance`, icon: 'ri-calendar-check-line', label: 'Master Grid' }
+        { path: `${basePath}/attendance`, icon: 'ri-calendar-check-line', label: 'Master Grid' },
+        { path: `${basePath}/profile`, icon: 'ri-user-line', label: 'Profile' }
     ];
 
     if (isCheckingAuth || !user) {

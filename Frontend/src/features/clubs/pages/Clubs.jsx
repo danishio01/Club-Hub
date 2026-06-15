@@ -5,6 +5,7 @@ import { getClubsList, deleteClubService, addClubMemberService, removeClubMember
 import AddClubModal from '../components/AddClubModal';
 import EditClubModal from '../components/EditClubModal';
 import '../style/Clubs.scss';
+import SearchableSelect from '../../../components/common/SearchableSelect';
 
 const Clubs = () => {
     const dispatch = useDispatch();
@@ -15,7 +16,6 @@ const Clubs = () => {
     const [editingClub, setEditingClub] = useState(null);
     const [students, setStudents] = useState([]);
     const [selectedStudents, setSelectedStudents] = useState({});
-    const [memberSearch, setMemberSearch] = useState({});
     const isPresidentView = user?.role === 'president';
     const isHodView = user?.role === 'hod';
 
@@ -103,9 +103,8 @@ const Clubs = () => {
         }
     };
 
-    const getAvailableStudents = (club) => {
-        const query = (memberSearch[club._id] || '').trim().toLowerCase();
-        return students.filter((student) => !query || student.name?.toLowerCase().includes(query) || student.usn?.toLowerCase().includes(query));
+    const getAvailableStudents = () => {
+        return students;
     };
 
     return (
@@ -168,23 +167,7 @@ const Clubs = () => {
                                     <div style={{ color: '#94a3b8', fontSize: '0.9rem' }}>No club members assigned.</div>
                                 )}
                                 {!isHodView && <div className="add-member-container">
-                                    <input
-                                        className="member-search"
-                                        type="search"
-                                        placeholder="Search name or USN"
-                                        value={memberSearch[club._id] || ''}
-                                        onChange={(event) => setMemberSearch((previous) => ({ ...previous, [club._id]: event.target.value }))}
-                                    />
-                                    <select 
-                                        className="member-select"
-                                        value={selectedStudents[club._id] || ''} 
-                                        onChange={(e) => setSelectedStudents(prev => ({ ...prev, [club._id]: e.target.value }))}
-                                    >
-                                        <option value="">Select student</option>
-                                        {getAvailableStudents(club).map(student => (
-                                            <option key={student._id} value={student._id}>{student.name} ({student.usn})</option>
-                                        ))}
-                                    </select>
+                                    <SearchableSelect value={selectedStudents[club._id] || ''} onChange={(value) => setSelectedStudents((prev) => ({ ...prev, [club._id]: value }))} placeholder="Search member by name or USN" options={getAvailableStudents().map((student) => ({ value: student._id, label: `${student.name} (${student.usn})` }))} />
                                     <button className="btn-primary add-btn" onClick={() => handleAddMember(club._id)}>
                                         Add
                                     </button>

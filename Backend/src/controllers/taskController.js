@@ -44,22 +44,30 @@ export const emitTaskChanged = (task, extraRooms = []) => emitToRooms([
 
 const notifyTask = async (task, type, title, message, actorId, extraRecipients = []) => {
     const recipients = new Set();
+    const event = await Event.findById(task.event).select('title');
     const sourceClub = await Club.findById(task.sourceClub).select('president');
     const responsibleClub = await Club.findById(task.responsibleClub).select('president members');
-    if (sourceClub?.president) recipients.add(String(sourceClub.president));
-    if (responsibleClub?.president) recipients.add(String(responsibleClub.president));
-    (responsibleClub?.members || []).forEach((member) => recipients.add(String(member)));
-    if (task.assignee) recipients.add(String(task.assignee));
+    if (type === 'TASK_SUBMITTED' && task.type === 'poster') {
+        if (responsibleClub?.president) recipients.add(String(responsibleClub.president));
+    } else {
+        if (responsibleClub?.president) recipients.add(String(responsibleClub.president));
+        if (task.assignee) recipients.add(String(task.assignee));
+        if (['TASK_COMPLETED', 'TASK_APPROVED', 'TASK_REJECTED'].includes(type) && sourceClub?.president) {
+            recipients.add(String(sourceClub.president));
+        }
+    }
     extraRecipients.filter(Boolean).forEach((recipient) => recipients.add(String(recipient)));
-    (await Admin.find({ role: 'faculty_coordinator', active: true }).select('_id'))
-        .forEach((staff) => recipients.add(String(staff._id)));
-    (await Admin.find({ role: 'hod', active: true }).select('_id'))
-        .forEach((staff) => recipients.add(String(staff._id)));
     if (actorId) recipients.delete(String(actorId));
+    const eventName = event?.title || 'the event';
+    const taskLabel = task.type.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+    const detailedTitle = title.startsWith('Task ') ? `${taskLabel} ${title.toLowerCase()}` : title;
+    const detailedMessage = message.includes(eventName) || message.includes(`"${eventName}"`)
+        ? message
+        : `${message.replace(/\.$/, '')} for "${eventName}".`;
     await dispatchNotification({
         recipients: [...recipients],
-        title,
-        message,
+        title: detailedTitle,
+        message: detailedMessage,
         type,
         referenceId: task.event,
         idempotencyKey: `task:${task._id}:${type}:${task.status}:${task.audit?.length || 0}`
@@ -78,10 +86,12 @@ export const createTaskForEvent = async (event, type, specialRole) => {
     const task = await EventTask.findOneAndUpdate(
         { event: event._id, type },
         {
+            $set: {
+                sourceClub: event.club?._id || event.club,
+                responsibleClub: responsibleClub._id
+            },
             $setOnInsert: {
                 event: event._id,
-                sourceClub: event.club?._id || event.club,
-                responsibleClub: responsibleClub._id,
                 assignee: defaultAssignee,
                 assignedBy: defaultAssignee,
                 assignedAt: defaultAssignee ? new Date() : null,
@@ -96,6 +106,7 @@ export const createTaskForEvent = async (event, type, specialRole) => {
 };
 
 export const activateTaskForEvent = async (event, type, specialRole, actorId) => {
+    const existed = Boolean(await EventTask.exists({ event: event._id, type }));
     const task = await createTaskForEvent(event, type, specialRole);
     if (task.status === 'cancelled') task.status = task.assignee ? 'assigned' : 'unassigned';
     const alreadyActivated = task.audit.some((entry) => entry.action === 'activated_on_event_completion');
@@ -107,7 +118,7 @@ export const activateTaskForEvent = async (event, type, specialRole, actorId) =>
             note: `Activated when event "${event.title}" completed`
         });
         await task.save();
-        await notifyTask(task, 'TASK_ACTIVATED', 'Social-media work activated', `Social-media work for "${event.title}" is ready.`, null);
+        if (existed) await notifyTask(task, 'TASK_UPDATED', 'Social-media work activated', `Social-media work for "${event.title}" is ready.`, null);
     }
     return task;
 };
@@ -273,6 +284,7 @@ export const completeTask = async (req, res) => {
         event.galleryStatus = 'approved';
         await event.save();
         await executeDynamicLifecycleBroadcasting('GALLERY_APPROVED', event, { idempotencySuffix: String(task.updatedAt?.getTime?.() || Date.now()) });
+        await activateTaskForEvent(event, 'social_media', 'pr', req.user._id);
         emitWorkflowUpdate(event, 'gallery:changed', { galleryStatus: event.galleryStatus });
     }
     await notifyTask(task, 'TASK_COMPLETED', 'Task completed', `The ${task.type.replace('_', ' ')} task was marked completed.`, req.user._id);
@@ -326,6 +338,11 @@ export const reviewTask = async (req, res) => {
     if (event && task.type === 'gallery_upload' && task.status === 'reopened') event.galleryStatus = 'rejected';
     if (event) {
         await event.save();
+        if (task.type === 'poster' && posterApproval) {
+            await executeDynamicLifecycleBroadcasting('FACULTY_REVIEW_REQUIRED', event, {
+                idempotencySuffix: String(task.updatedAt?.getTime?.() || Date.now())
+            });
+        }
         if (task.type === 'gallery_upload' && task.status === 'completed') {
             await executeDynamicLifecycleBroadcasting('GALLERY_APPROVED', event);
         }

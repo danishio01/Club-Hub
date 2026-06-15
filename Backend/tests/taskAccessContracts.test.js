@@ -21,14 +21,20 @@ test('staff task visibility keeps the requested server-side scope', async () => 
 });
 
 test('normal members only receive tasks assigned to them', async () => {
+    const originalDistinct = Club.distinct;
     const userId = new mongoose.Types.ObjectId();
-    const filter = await buildVisibleTaskFilter({ _id: userId, role: 'student' }, { type: 'gallery_upload' });
-    assert.deepEqual(filter, {
-        $and: [
-            { type: 'gallery_upload' },
-            { $or: [{ assignee: userId }] }
-        ]
-    });
+    Club.distinct = async () => [];
+    try {
+        const filter = await buildVisibleTaskFilter({ _id: userId, role: 'student' }, { type: 'gallery_upload' });
+        assert.deepEqual(filter, {
+            $and: [
+                { type: 'gallery_upload' },
+                { $or: [{ assignee: userId }] }
+            ]
+        });
+    } finally {
+        Club.distinct = originalDistinct;
+    }
 });
 
 test('presidents receive assigned tasks and their responsible-club queue', async () => {
@@ -41,6 +47,24 @@ test('presidents receive assigned tasks and their responsible-club queue', async
         assert.deepEqual(filter, {
             $and: [
                 { type: 'attendance' },
+                { $or: [{ assignee: userId }, { responsibleClub: { $in: [clubId] } }] }
+            ]
+        });
+    } finally {
+        Club.distinct = originalDistinct;
+    }
+});
+
+test('club presidency is authoritative even when the stored account role is stale', async () => {
+    const originalDistinct = Club.distinct;
+    const userId = new mongoose.Types.ObjectId();
+    const clubId = new mongoose.Types.ObjectId();
+    Club.distinct = async () => [clubId];
+    try {
+        const filter = await buildVisibleTaskFilter({ _id: userId, role: 'student' }, { type: 'poster' });
+        assert.deepEqual(filter, {
+            $and: [
+                { type: 'poster' },
                 { $or: [{ assignee: userId }, { responsibleClub: { $in: [clubId] } }] }
             ]
         });

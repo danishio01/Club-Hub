@@ -69,7 +69,7 @@ const PrEventGallery = () => {
                                     <i className="ri-zoom-in-line"></i>
                                 </div>
                             </div>
-                        )) : <div className="empty-state">Grafik gallery photos are not approved yet. The social-media task remains available for planning.</div>}
+                        )) : <div className="empty-state">Gallery not completed yet.</div>}
                     </div>
                 </div>
             ) : (
@@ -96,7 +96,7 @@ const PrEventGallery = () => {
                                     <p>Assigned to: {task?.assignee?.name || 'Unassigned'} ({task?.assignee?.usn || 'N/A'})</p>
                                     <p>Status: {task?.status || 'Not created'}</p>
                                     <p>Assigned: {formatDate(task?.assignedAt)} | Due: {formatDate(task?.dueAt)}</p>
-                                    <p>{event.galleryStatus === 'approved' ? 'Approved photos ready' : 'Waiting for approved Grafik photos'}</p>
+                                    <p>{event.galleryStatus === 'approved' ? 'Gallery completed - photos ready' : 'Gallery not completed yet.'}</p>
                                 </div>
                                 <div className="album-actions">
                                     <button className="btn-action view" onClick={() => openGallery(event)}>

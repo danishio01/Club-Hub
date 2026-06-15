@@ -4,6 +4,9 @@ import Registration from '../models/registrationModel.js';
 import { generateAndUploadReportPDF } from '../services/s3Service.js';
 import { executeDynamicLifecycleBroadcasting } from '../services/notificationService.js';
 import { emitWorkflowUpdate } from '../services/socketService.js';
+import EventTask from '../models/eventTaskModel.js';
+
+const galleryIsCompleted = (eventId) => EventTask.exists({ event: eventId, type: 'gallery_upload', status: 'completed' });
 
 export const getReportByEvent = async (req, res) => {
     try {
@@ -49,10 +52,7 @@ export const saveDraft = async (req, res) => {
 
         if (!report) return res.status(404).json({ success: false, message: 'Report not found or locked.' });
         const event = await Event.findById(eventId);
-        if (event) {
-            await executeDynamicLifecycleBroadcasting('REPORT_EDITED', event, { idempotencySuffix: String(report.updatedAt?.getTime?.() || Date.now()) });
-            emitWorkflowUpdate(event, 'report:changed', { reportStatus: report.status });
-        }
+        if (event) emitWorkflowUpdate(event, 'report:changed', { reportStatus: report.status });
         return res.status(200).json({ success: true, data: report, message: 'Draft saved.' });
     } catch (error) {
         console.error(error);
@@ -66,6 +66,9 @@ export const submitReport = async (req, res) => {
         const { content } = req.body; 
 
         const event = await Event.findById(eventId).populate('club');
+        if (!event || !await galleryIsCompleted(eventId)) {
+            return res.status(409).json({ success: false, message: 'Report can be submitted after event gallery is completed.' });
+        }
         const registrations = await Registration.find({ event: eventId }).populate('student', 'name usn department semester section');
         
         const feedbackRegistrations = registrations.filter(r => r.feedbackResponses && r.feedbackResponses.length > 0);

@@ -5,6 +5,7 @@ import axiosInstance from '../../../api/axiosInstance';
 import '../../students/style/Students.scss';
 import { formatDate } from '../../../utils/dateFormat';
 import useAuthorizedTasks from '../hooks/useAuthorizedTasks';
+import SearchableSelect from '../../../components/common/SearchableSelect';
 const dateInputValue = (value) => value ? new Date(value).toISOString().slice(0, 10) : '';
 
 const TaskDashboard = () => {
@@ -83,10 +84,7 @@ const TaskDashboard = () => {
                                         <div className="task-actions">
                                             {(isResponsiblePresident || canIntervene) && !isLocked && (
                                                 <>
-                                                    <select aria-label={`Edit assignment for ${task.type}`} value={task.assignee?._id || ''} onChange={(event) => event.target.value && assignTo(task, event.target.value)}>
-                                                        <option value="">Edit assignment...</option>
-                                                        {candidates.map((member) => <option key={member._id} value={member._id}>{member.name} ({member.usn})</option>)}
-                                                    </select>
+                                                    <SearchableSelect value={task.assignee?._id || ''} onChange={(value) => assignTo(task, value)} placeholder={`Search assignee for ${task.type}`} options={candidates.map((member) => ({ value: member._id, label: `${member.name} (${member.usn})` }))} />
                                                     {task.assignee && <input aria-label={`Due date for ${task.type}`} type="date" defaultValue={dateInputValue(task.dueAt)} onChange={(event) => updateDueDate(task, event.target.value)} />}
                                                 </>
                                             )}

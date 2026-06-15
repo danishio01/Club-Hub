@@ -133,6 +133,7 @@ const ReportEditor = () => {
     if (!report || !event) return null;
 
     const isLocked = report.status === 'submitted' || report.status === 'reviewed';
+    const galleryCompleted = event.galleryStatus === 'approved';
     const presentCount = registrations.filter(r => r.status === 'Attended').length;
     const absentCount = registrations.length - presentCount;
     const feedbackRecords = registrations.filter(r => r.feedbackResponses && r.feedbackResponses.length > 0);
@@ -181,7 +182,7 @@ const ReportEditor = () => {
                             <button className="btn-secondary" onClick={handleSaveDraft} disabled={isSaving}>
                                 <i className="ri-save-line"></i> {isSaving ? 'Saving...' : 'Save Draft'}
                             </button>
-                            <button className="btn-primary" onClick={handleSubmit} disabled={isSaving}>
+                            <button className="btn-primary" onClick={handleSubmit} disabled={isSaving || !galleryCompleted} title={!galleryCompleted ? 'Report can be submitted after event gallery is completed.' : ''}>
                                 <i className="ri-send-plane-fill"></i> Submit to Faculty Coordinator
                             </button>
                         </>
@@ -193,6 +194,7 @@ const ReportEditor = () => {
                     )}
                 </div>
             </div>
+            {!galleryCompleted && <div className="admin-remarks-banner"><i className="ri-information-line"></i><strong>Report can be submitted after event gallery is completed.</strong></div>}
 
             {report.adminRemarks && (
                 <div className="admin-remarks-banner">

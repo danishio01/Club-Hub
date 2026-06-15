@@ -8,7 +8,7 @@ export const SPECIAL_ROLES = ['grafik', 'pr'];
 export const isStaffUser = (user) => ['admin', 'faculty_coordinator', 'hod'].includes(user?.role);
 
 export const getResponsiblePresidentClubIds = async (user) => {
-    if (!user?._id || user.role !== 'president') return [];
+    if (!user?._id) return [];
     return Club.distinct('_id', { president: user._id });
 };
 

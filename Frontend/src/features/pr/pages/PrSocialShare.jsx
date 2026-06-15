@@ -183,7 +183,7 @@ const PrSocialShare = () => {
                         </div>
 
                         {event.galleryStatus !== 'approved' || !event.gallery || event.gallery.length === 0 ? (
-                            <div className="empty-gallery">No approved Grafik photos are available yet.</div>
+                            <div className="empty-gallery">Gallery not completed yet.</div>
                         ) : (
                             <div className="thumbnail-grid">
                                 {event.gallery.map(img => {

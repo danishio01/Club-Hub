@@ -401,3 +401,13 @@
     justify-content: center;
   }
 }
+.modal-footer .btn-success, .modal-footer .btn-danger {
+  border: 0; border-radius: 7px; padding: 10px 16px; color: #fff; font-weight: 700; cursor: pointer;
+  transition: background .2s, box-shadow .2s, transform .2s;
+}
+.modal-footer .btn-success { background: #2563eb; }
+.modal-footer .btn-success:hover:not(:disabled) { background: #1d4ed8; transform: translateY(-1px); }
+.modal-footer .btn-danger { background: #dc2626; }
+.modal-footer .btn-danger:hover:not(:disabled) { background: #b91c1c; }
+.modal-footer .btn-success:focus-visible, .modal-footer .btn-danger:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
+.modal-footer button:disabled { opacity: .65; cursor: wait; }

@@ -158,7 +158,7 @@ const EventDetails = () => {
     const canManage = ['admin', 'faculty_coordinator', 'hod'].includes(user?.role) || user?.role === 'president' || isOwnClubMemberProposal;
     const canEditDelete = user?.role === 'president' || isOwnClubMemberProposal;
 
-    const statusLabel = isPendingPresident ? 'Pending President' : isReview ? 'Pending Grafik' : isPendingAdmin ? 'Pending Faculty Coordinator' : isPendingHod ? 'Pending HOD Final Approval' : isBannerRejected ? 'Flyer Rejected' : event.status === 'president_rejected' ? 'President Rejected' : event.status;
+    const statusLabel = isPendingPresident ? 'Pending President' : isReview ? 'Pending Grafik' : isPendingAdmin ? 'Pending Faculty Review' : isPendingHod ? 'Pending HOD Final Approval' : isBannerRejected ? 'Flyer Rejected' : event.status === 'president_rejected' ? 'President Rejected' : event.status;
 
     return (
         <div className="event-details-page">
@@ -172,7 +172,7 @@ const EventDetails = () => {
                     <div className="review-info">
                         <i className="ri-shield-check-fill"></i>
                         <div>
-                            <h3>Pending Faculty Coordinator Review</h3>
+                            <h3>Pending Faculty Review</h3>
                             <p>Review the event specifications and flyer below. You must approve or reject this submission to proceed.</p>
                         </div>
                     </div>
@@ -391,11 +391,11 @@ const EventDetails = () => {
             {isEditModalOpen && <EditEventModal event={event} onClose={() => setIsEditModalOpen(false)} onSuccess={() => { setIsEditModalOpen(false); handleManualRefresh(); }} />}
             {isRejectModalOpen && <RejectEventModal
                 onClose={() => setIsRejectModalOpen(false)}
-                allowTargetSelection={user?.role !== 'hod'}
+                allowTargetSelection={true}
                 title={user?.role === 'hod' ? 'Reject Event as HOD' : 'Reject Event Submission'}
                 onConfirm={user?.role === 'hod'
-                    ? async ({ reason }) => {
-                        await rejectEventByHodApi(eventId, reason);
+                    ? async ({ reason, rejectType }) => {
+                        await rejectEventByHodApi(eventId, reason, rejectType);
                         navigate('/hod/event-approvals');
                     }
                     : handleReject}

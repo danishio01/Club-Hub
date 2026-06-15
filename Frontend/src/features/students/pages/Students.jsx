@@ -47,6 +47,16 @@ const Students = () => {
         setEditingStudent(null);
         loadStudents();
     };
+    const groupedStudents = students.reduce((groups, student) => {
+        const key = `${student.semester || 'N/A'}-${student.section || 'N/A'}`;
+        (groups[key] ||= []).push(student);
+        return groups;
+    }, {});
+    const ordinal = (value) => {
+        const number = Number(value);
+        if ([11, 12, 13].includes(number % 100)) return `${value}th`;
+        return `${value}${number % 10 === 1 ? 'st' : number % 10 === 2 ? 'nd' : number % 10 === 3 ? 'rd' : 'th'}`;
+    };
 
     return (
         <div className="students-page">
@@ -123,7 +133,9 @@ const Students = () => {
                         ) : students.length === 0 ? (
                             <tr><td colSpan="8" style={{textAlign: 'center'}}>No users found.</td></tr>
                         ) : (
-                            students.map(student => (
+                            Object.entries(groupedStudents).sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true })).flatMap(([group, groupStudents]) => {
+                                const [semester, section] = group.split('-');
+                                return [<tr className="class-group-row" key={`group-${group}`}><td colSpan="8">{ordinal(semester)} Sem {section} Section</td></tr>, ...groupStudents.map(student => (
                                 <tr key={student._id}>
                                     <td>{student.usn}</td>
                                     <td>{student.name}</td>
@@ -149,7 +161,8 @@ const Students = () => {
                                         </button>
                                     </td>
                                 </tr>
-                            ))
+                            ))];
+                            })
                         )}
                     </tbody>
                 </table>

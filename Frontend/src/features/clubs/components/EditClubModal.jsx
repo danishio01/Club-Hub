@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { updateClubService } from '../service/clubService';
 import axiosInstance from '../../../api/axiosInstance';
 import '../style/ClubModals.scss';
+import SearchableSelect from '../../../components/common/SearchableSelect';
 
 const EditClubModal = ({ club, onClose, onSuccess }) => {
     const [formData, setFormData] = useState({
@@ -74,10 +75,7 @@ const EditClubModal = ({ club, onClose, onSuccess }) => {
                         </div>
                         <div className="form-group">
                             <label>Assign President (Optional)</label>
-                            <select name="president" value={formData.president} onChange={handleChange}>
-                                <option value="">None</option>
-                                {presidents.map(p => <option key={p._id} value={p._id}>{p.name} ({p.usn || p.email})</option>)}
-                            </select>
+                            <SearchableSelect value={formData.president} onChange={(president) => setFormData({ ...formData, president })} placeholder="Search President by name or USN" options={presidents.map((p) => ({ value: p._id, label: `${p.name} (${p.usn || p.email})` }))} />
                         </div>
                         <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
                             <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} style={{ width: 'auto' }} />

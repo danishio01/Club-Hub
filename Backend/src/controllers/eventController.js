@@ -353,8 +353,7 @@ export const markEventCompleted = async (req, res) => {
 
         const event = await populateEventQuery(Event.findByIdAndUpdate(id, { status: 'completed' }, { new: true }));
         await Promise.all([
-            createTaskForEvent(event, 'gallery_upload', 'grafik'),
-            activateTaskForEvent(event, 'social_media', 'pr', req.user._id)
+            createTaskForEvent(event, 'gallery_upload', 'grafik')
         ]);
         await executeDynamicLifecycleBroadcasting('EVENT_COMPLETED', event, {
             actorId: req.user._id,
@@ -535,7 +534,9 @@ export const approveEventBanner = async (req, res) => {
             { new: true }
         );
         if (updatedPosterTask) emitTaskChanged(updatedPosterTask);
-        await executeDynamicLifecycleBroadcasting('FLYER_GENERATED', event);
+        await executeDynamicLifecycleBroadcasting('FACULTY_REVIEW_REQUIRED', event, {
+            idempotencySuffix: String(updatedPosterTask?.updatedAt?.getTime?.() || Date.now())
+        });
         emitWorkflowUpdate(event, 'event:updated', { status: event.status });
         return res.status(200).json({ success: true, data: event, message: 'Poster approved. Event submitted to Faculty Coordinator.' });
     } catch (error) {
@@ -564,7 +565,6 @@ export const uploadGalleryImage = async (req, res) => {
         await event.save();
 
         const updatedEvent = await populateEventQuery(Event.findById(event._id));
-        await executeDynamicLifecycleBroadcasting('GALLERY_UPLOADED', updatedEvent);
         emitWorkflowUpdate(updatedEvent, 'gallery:changed', { galleryStatus: updatedEvent.galleryStatus });
 
         return res.status(200).json({ success: true, data: event.gallery });
@@ -683,8 +683,7 @@ export const approveEventByHod = async (req, res) => {
       if (!event) return res.status(404).json({ success: false, message: 'Event awaiting HOD approval not found' });
       await finalizeTaskForEvent(event, 'poster', req.user._id);
     await Promise.all([
-        createTaskForEvent(event, 'attendance', 'pr'),
-        createTaskForEvent(event, 'social_media', 'pr')
+        createTaskForEvent(event, 'attendance', 'pr')
     ]);
     await executeDynamicLifecycleBroadcasting('HOD_APPROVED', event);
     emitWorkflowUpdate(event, 'event:updated', { status: event.status });
@@ -693,6 +692,7 @@ export const approveEventByHod = async (req, res) => {
 
 export const rejectEventByHod = async (req, res) => {
     if (!req.body.reason?.trim()) return res.status(400).json({ success: false, message: 'Rejection reason is required' });
+    const rejectType = req.body.rejectType === 'banner' ? 'banner' : 'event';
     const event = await populateEventQuery(Event.findOneAndUpdate(
         { _id: req.params.id, status: 'pending_hod' },
         {
@@ -706,7 +706,9 @@ export const rejectEventByHod = async (req, res) => {
         { new: true }
     ));
       if (!event) return res.status(404).json({ success: false, message: 'Event awaiting HOD approval not found' });
-      await reopenPosterTaskAfterStaffRejection(event, 'rejected_by_hod', req.user._id, req.body.reason.trim());
+    if (rejectType === 'banner') {
+        await reopenPosterTaskAfterStaffRejection(event, 'rejected_by_hod', req.user._id, req.body.reason.trim());
+    }
     await executeDynamicLifecycleBroadcasting('HOD_REJECTED', event);
     emitWorkflowUpdate(event, 'event:updated', { status: event.status });
     return res.json({ success: true, data: event });

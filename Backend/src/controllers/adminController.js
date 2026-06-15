@@ -111,13 +111,18 @@ export const updateFacultyCoordinator = async (req, res) => {
     const update = {};
     if (typeof req.body.active === 'boolean') update.active = req.body.active;
     if (req.body.name) update.name = req.body.name;
-    const account = await Admin.findOneAndUpdate(
-        { _id: req.params.id, role: 'faculty_coordinator' },
-        update,
-        { new: true }
-    ).select('-password');
-    if (!account) return res.status(404).json({ success: false, message: 'Faculty Coordinator not found' });
-    return res.json({ success: true, data: account });
+    if (req.body.staffId) update.adminId = req.body.staffId.trim().toUpperCase();
+    try {
+        const account = await Admin.findOneAndUpdate(
+            { _id: req.params.id, role: 'faculty_coordinator' },
+            update,
+            { new: true, runValidators: true }
+        ).select('-password');
+        if (!account) return res.status(404).json({ success: false, message: 'Faculty Coordinator not found' });
+        return res.json({ success: true, data: account });
+    } catch (error) {
+        return res.status(409).json({ success: false, message: error.code === 11000 ? 'Staff ID already exists' : error.message });
+    }
 };
 
 export const resetFacultyPassword = async (req, res) => {
@@ -129,10 +134,19 @@ export const resetFacultyPassword = async (req, res) => {
     return res.json({ success: true, message: 'Temporary password set' });
 };
 
+export const deleteFacultyCoordinator = async (req, res) => {
+    const account = await Admin.findOneAndDelete({ _id: req.params.id, role: 'faculty_coordinator' });
+    if (!account) return res.status(404).json({ success: false, message: 'Faculty Coordinator not found' });
+    return res.json({ success: true, message: 'Faculty Coordinator deleted' });
+};
+
 export const changeStaffPassword = async (req, res) => {
     const account = await Admin.findById(req.user._id);
     if (!account || !await account.matchPassword(req.body.currentPassword)) {
         return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+    }
+    if (!req.body.newPassword || req.body.newPassword.length < 8) {
+        return res.status(400).json({ success: false, message: 'New password must be at least 8 characters' });
     }
     account.password = req.body.newPassword;
     account.mustChangePassword = false;

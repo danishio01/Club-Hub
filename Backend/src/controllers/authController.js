@@ -10,14 +10,12 @@ const buildStudentSession = async (student) => {
     let clubMemberRole = null;
     let specialClubRole = null;
 
-    if (student.role === 'president') {
-        const club = await Club.findOne({ president: student._id });
-        if (club) {
-            clubName = club.name;
-            clubId = club._id;
-            clubMemberRole = 'president';
-            specialClubRole = club.specialRole || null;
-        }
+    const presidentClub = await Club.findOne({ president: student._id });
+    if (presidentClub) {
+        clubName = presidentClub.name;
+        clubId = presidentClub._id;
+        clubMemberRole = 'president';
+        specialClubRole = presidentClub.specialRole || null;
     } else {
         const club = await Club.findOne({ members: student._id });
         if (club) {
@@ -38,7 +36,7 @@ const buildStudentSession = async (student) => {
         semester: student.semester,
         section: student.section,
         interests: student.interests,
-        role: student.role,
+        role: presidentClub ? 'president' : student.role,
         clubName,
         clubId,
         isClubMember,
@@ -115,4 +113,17 @@ export const getMe = async (req, res) => {
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Server error retrieving user data.' });
     }
+};
+
+export const changeStudentPassword = async (req, res) => {
+    const student = await Student.findById(req.user._id);
+    if (!student || !await student.matchPassword(req.body.currentPassword)) {
+        return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+    }
+    if (!req.body.newPassword || req.body.newPassword.length < 8) {
+        return res.status(400).json({ success: false, message: 'New password must be at least 8 characters' });
+    }
+    student.password = req.body.newPassword;
+    await student.save();
+    return res.json({ success: true, message: 'Password changed successfully' });
 };

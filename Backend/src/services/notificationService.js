@@ -569,6 +569,7 @@ const getSpecialClubUserIds = async (specialRole) => {
 };
 
 const getRelevantGrafikIds = () => getSpecialClubUserIds('grafik');
+const getSpecialClubPresidentId = async (specialRole) => (await Club.findOne({ specialRole }).select('president'))?.president;
 
 export const executeDynamicLifecycleBroadcasting = async (eventType, contextData, { dryRun = false, actorId, actorRole, idempotencySuffix } = {}) => {
     try {
@@ -588,7 +589,7 @@ export const executeDynamicLifecycleBroadcasting = async (eventType, contextData
             case 'EVENT_APPROVED':
                 title = "Event Ready for Poster Design";
                 message = `Event "${contextData.title}" was approved and is ready for poster generation.`;
-                recipients = await getRelevantGrafikIds(contextData);
+                if (await getSpecialClubPresidentId('grafik')) recipients.push(await getSpecialClubPresidentId('grafik'));
                 break;
 
             case 'EVENT_REJECTED':
@@ -609,6 +610,12 @@ export const executeDynamicLifecycleBroadcasting = async (eventType, contextData
                 message = `Faculty Coordinator approved "${contextData.title}". Final HOD approval is required.`;
                 recipients.push(...(await Admin.find({ role: 'hod', active: true }).select('_id')).map((user) => user._id));
                 if (await getRelatedPresidentId(contextData)) recipients.push(await getRelatedPresidentId(contextData));
+                break;
+
+            case 'FACULTY_REVIEW_REQUIRED':
+                title = "Pending Faculty Review";
+                message = `"${contextData.title}" poster was approved by the Grafik President and is pending Faculty review.`;
+                recipients.push(...(await Admin.find({ role: 'faculty_coordinator', active: true }).select('_id')).map((user) => user._id));
                 break;
 
             case 'HOD_APPROVED':
@@ -668,8 +675,6 @@ export const executeDynamicLifecycleBroadcasting = async (eventType, contextData
             case 'EVENT_COMPLETED':
                 title = "Post-Event Photos Required";
                 message = `Event "${contextData.title}" is complete. Upload post-event photos and continue the reporting workflow.`;
-                recipients.push(...(await Admin.find({}).select('_id')).map((user) => user._id));
-                recipients.push(...await getSpecialClubUserIds('pr'));
                 recipients.push(...await getRelevantGrafikIds(contextData));
                 if (await getRelatedPresidentId(contextData)) recipients.push(await getRelatedPresidentId(contextData));
                 if (actorRole === 'president' && getCreatorId(contextData) && String(getCreatorId(contextData)) !== String(actorId)) {
@@ -713,14 +718,12 @@ export const executeDynamicLifecycleBroadcasting = async (eventType, contextData
                 break;
 
             case 'GALLERY_APPROVED':
-                title = "Official Gallery Published";
-                message = `The post-event photos gallery for "${contextData.title}" is now live.`;
+                title = "Event Gallery Completed";
+                message = `The event gallery for "${contextData.title}" is completed and ready for PR social-media work.`;
                 if (contextData.creator?.student) recipients.push(contextData.creator.student);
                 const parentClub = await contextData.populate('club');
                 if (parentClub.club?.president) recipients.push(parentClub.club.president);
                 recipients.push(...await getSpecialClubUserIds('pr'));
-                const generalStudents = await Student.find({ role: 'student' });
-                generalStudents.forEach(s => recipients.push(s._id));
                 break;
 
             case 'GALLERY_REJECTED':

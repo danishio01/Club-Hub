@@ -13,7 +13,7 @@ import Admin from './src/models/adminModel.js';
 import Club from './src/models/clubModel.js';
 
 configDotenv();
-const PORT = 5000;
+const PORT = Number(process.env.PORT) || 5000;
 
 connectDB();
 
@@ -21,7 +21,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
     cors: {
-        origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'https://club-hub-theta.vercel.app'],
+        origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174', 'http://127.0.0.1:5174', 'https://club-hub-theta.vercel.app'],
         credentials: true
     }
 });

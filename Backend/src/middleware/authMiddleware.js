@@ -23,6 +23,12 @@ export const protect = async (req, res, next) => {
                 req.user = await Student.findById(decoded.id).select('-password');
                 if(req.user) {
                     req.user = req.user.toObject();
+                    const presidentClub = await Club.findOne({ president: req.user._id }).select('_id name specialRole');
+                    if (presidentClub) {
+                        req.user.role = 'president';
+                        req.user.isClubPresident = true;
+                        req.user.presidentClub = presidentClub;
+                    }
                     const clubAssignment = await ClubAssignment.findOne({ student: req.user._id }).select('club position');
                     if (clubAssignment) req.user.clubAssignment = clubAssignment;
                     const memberClub = await Club.findOne({ members: req.user._id }).select('_id name');

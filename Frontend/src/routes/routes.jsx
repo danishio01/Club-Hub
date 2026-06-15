@@ -72,6 +72,7 @@ export const routes = createBrowserRouter([
             { path: "attendance", element: <AdminAttendance /> },
             { path: "reports", element: <AdminReportReview /> },
             { path: "tasks", element: <TaskDashboard /> }
+            ,{ path: "profile", element: <Profile /> }
         ]
     },
     {
@@ -89,6 +90,7 @@ export const routes = createBrowserRouter([
             { path: "attendance", element: <AdminAttendance /> },
             { path: "reports", element: <AdminReportReview /> } 
             ,{ path: "tasks", element: <TaskDashboard /> }
+            ,{ path: "profile", element: <Profile /> }
         ]
     },
     {
@@ -112,6 +114,7 @@ export const routes = createBrowserRouter([
             ,{ path: "grafik/galleries", element: <GrafikGalleriesList /> }
             ,{ path: "grafik/events/:eventId/banner", element: <GrafikEventBanner /> }
             ,{ path: "grafik/events/:eventId/gallery", element: <GrafikEventGallery /> }
+            ,{ path: "profile", element: <Profile /> }
         ]
     },
     {
@@ -128,6 +131,7 @@ export const routes = createBrowserRouter([
             { path: "attendance", element: <AdminAttendance /> },
             { path: "reports", element: <AdminReportReview /> }
             ,{ path: "leaderboard", element: <Leaderboard isAdmin={true} /> }
+            ,{ path: "profile", element: <Profile /> }
         ]
     },
     {

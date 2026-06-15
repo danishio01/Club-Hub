@@ -53,8 +53,8 @@ export const approveEventByHodApi = async (id) => {
     return response.data.data;
 };
 
-export const rejectEventByHodApi = async (id, reason) => {
-    const response = await axiosInstance.patch(`/events/${id}/hod/reject`, { reason });
+export const rejectEventByHodApi = async (id, reason, rejectType = 'event') => {
+    const response = await axiosInstance.patch(`/events/${id}/hod/reject`, { reason, rejectType });
     return response.data.data;
 };
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createClubService } from '../service/clubService';
 import axiosInstance from '../../../api/axiosInstance';
 import '../style/ClubModals.scss';
+import SearchableSelect from '../../../components/common/SearchableSelect';
 
 const AddClubModal = ({ onClose, onSuccess }) => {
     const [formData, setFormData] = useState({ name: '', description: '', president: '', specialRole: '', isActive: true });
@@ -61,10 +62,7 @@ const AddClubModal = ({ onClose, onSuccess }) => {
                         </div>
                         <div className="form-group">
                             <label>Assign President (Optional)</label>
-                            <select name="president" value={formData.president} onChange={handleChange}>
-                                <option value="">None</option>
-                                {presidents.map(p => <option key={p._id} value={p._id}>{p.name} ({p.usn})</option>)}
-                            </select>
+                            <SearchableSelect value={formData.president} onChange={(president) => setFormData({ ...formData, president })} placeholder="Search President by name or USN" options={presidents.map((p) => ({ value: p._id, label: `${p.name} (${p.usn})` }))} />
                         </div>
                         <div className="form-group">
                             <label>College-Wide Special Responsibility</label>

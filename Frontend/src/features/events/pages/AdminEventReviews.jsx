@@ -38,8 +38,8 @@ const AdminEventReviews = () => {
                     const formattedDate = formatDate(event.date);
                     
                     let displayStatus = event.status;
-                    if (event.status === 'pending_admin') displayStatus = 'Pending Faculty Coordinator Review';
-                    if (event.status === 'pending_faculty') displayStatus = 'Pending Faculty Coordinator Review';
+                    if (event.status === 'pending_admin') displayStatus = 'Pending Faculty Review';
+                    if (event.status === 'pending_faculty') displayStatus = 'Pending Faculty Review';
                     if (event.status === 'pending_hod') displayStatus = 'Waiting for HOD Final Approval';
                     if (event.status === 'review') displayStatus = 'Waiting For Grafik Flyer';
                     if (event.status === 'pending_president') displayStatus = 'Pending President Review';
@@ -96,7 +96,7 @@ const AdminEventReviews = () => {
 
             {reviewEvents.length > 0 && (
                 <div className="section-block">
-                    <h2><i className="ri-time-line"></i> Pending {user?.role === 'hod' ? 'HOD Final' : 'Faculty Coordinator'} Approval</h2>
+                    <h2><i className="ri-time-line"></i> {user?.role === 'hod' ? 'Pending HOD Final Approval' : 'Pending Faculty Review'}</h2>
                     {renderEventGrid(reviewEvents, "No pending events.", "highlight-pending")}
                 </div>
             )}

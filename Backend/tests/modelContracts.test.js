@@ -49,3 +49,11 @@ test('event tasks cover required production work', () => {
     assert.ok(EventTask.schema.path('assignedAt'));
     assert.ok(EventTask.schema.path('dueAt'));
 });
+
+test('notifications support narrowed workflow events', async () => {
+    const Notification = (await import('../src/models/notificationModel.js')).default;
+    const types = Notification.schema.path('type').enumValues;
+    for (const type of ['FACULTY_REVIEW_REQUIRED', 'TASK_REASSIGNED', 'TASK_APPROVED', 'TASK_REJECTED', 'TASK_REOPENED']) {
+        assert.ok(types.includes(type));
+    }
+});

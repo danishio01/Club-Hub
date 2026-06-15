@@ -24,7 +24,7 @@ const EventTable = ({ data, navigate, user, onApproveProposal, onRejectProposal 
             <tbody>
                 {data.map(event => {
                     const statusLabel = ['review', 'pending_grafik_poster', 'poster_submitted'].includes(event.status) ? 'Waiting on Grafik' :
-                                        ['pending_admin', 'pending_faculty'].includes(event.status) ? 'Waiting on Faculty Coordinator' :
+                                        ['pending_admin', 'pending_faculty'].includes(event.status) ? 'Pending Faculty Review' :
                                         event.status === 'pending_hod' ? 'Waiting on HOD' :
                                         event.status === 'pending_president' ? 'Pending President' :
                                         event.status === 'president_rejected' ? 'President Rejected' :

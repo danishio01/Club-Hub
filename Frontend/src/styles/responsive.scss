@@ -26,6 +26,13 @@ button {
   max-width: 100%;
   font: inherit;
 }
+.status-badge {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+  line-height: 1.25;
+}
 
 .main-content,
 .page-content,
@@ -54,6 +61,14 @@ button {
 .gallery-display-header,
 .management-header {
   flex-wrap: wrap;
+}
+.management-header > button,
+.gallery-display-header > button,
+.page-header .btn-primary,
+.task-actions > button {
+  flex: 0 0 auto;
+  margin: 0;
+  align-self: center;
 }
 
 .review-actions > button,
@@ -91,6 +106,13 @@ button {
   .filters-card > *,
   .filter-group select {
     width: 100%;
+  }
+  .management-header > button,
+  .gallery-display-header > button,
+  .task-actions > button {
+    width: 100%;
+    justify-content: center;
+    align-self: stretch;
   }
 
   .stats-grid,

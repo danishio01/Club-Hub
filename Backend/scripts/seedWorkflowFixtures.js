@@ -6,6 +6,7 @@ import ClubAssignment from '../src/models/clubAssignmentModel.js';
 import Event from '../src/models/eventModel.js';
 import EventTask from '../src/models/eventTaskModel.js';
 import Registration from '../src/models/registrationModel.js';
+import Admin from '../src/models/adminModel.js';
 
 configDotenv();
 
@@ -28,6 +29,7 @@ await Event.deleteMany({ title: new RegExp(`^${prefix}`) });
 await ClubAssignment.deleteMany({ student: { $in: await Student.distinct('_id', { email: /@fixture\.clubhub\.local$/ }) } });
 await Club.deleteMany({ name: new RegExp(`^${prefix}`) });
 await Student.deleteMany({ email: /@fixture\.clubhub\.local$/ });
+await Admin.deleteMany({ adminId: /^FX/ });
 
 const createStudent = (name, usn, role) => Student.create({
     name,
@@ -40,12 +42,18 @@ const createStudent = (name, usn, role) => Student.create({
     role
 });
 
-const [grafikPresident, grafikMember, prPresident, prMember, attendee] = await Promise.all([
+const [grafikPresident, grafikMember, prPresident, prMember, clubPresident, clubMember, attendee] = await Promise.all([
     createStudent('Fixture Grafik President', 'FXG001', 'president'),
     createStudent('Fixture Grafik Member', 'FXG002', 'student'),
     createStudent('Fixture PR President', 'FXP001', 'president'),
     createStudent('Fixture PR Member', 'FXP002', 'student'),
+    createStudent('Fixture Club President', 'FXC001', 'president'),
+    createStudent('Fixture Club Member', 'FXC002', 'student'),
     createStudent('Fixture Attendee', 'FXS001', 'student')
+]);
+const [faculty, hod] = await Promise.all([
+    Admin.create({ adminId: 'FXFAC001', name: 'Fixture Faculty Coordinator', password, role: 'faculty_coordinator', active: true }),
+    Admin.create({ adminId: 'FXHOD001', name: 'Fixture HOD', password, role: 'hod', active: true })
 ]);
 
 const grafikClub = await Club.create({
@@ -62,11 +70,19 @@ const prClub = await Club.create({
     president: prPresident._id,
     members: [prMember._id]
 });
+const normalClub = await Club.create({
+    name: `${prefix} Normal Club`,
+    description: 'Local browser workflow fixture',
+    president: clubPresident._id,
+    members: [clubMember._id]
+});
 await ClubAssignment.insertMany([
     { student: grafikPresident._id, club: grafikClub._id, position: 'president' },
     { student: grafikMember._id, club: grafikClub._id, position: 'member' },
     { student: prPresident._id, club: prClub._id, position: 'president' },
     { student: prMember._id, club: prClub._id, position: 'member' }
+    ,{ student: clubPresident._id, club: normalClub._id, position: 'president' }
+    ,{ student: clubMember._id, club: normalClub._id, position: 'member' }
 ]);
 
 const eventBase = {
@@ -90,6 +106,8 @@ const completedEvent = await Event.create({
 });
 const galleryTakeoverEvent = await Event.create({ ...eventBase, title: `${prefix} Gallery Takeover Event`, status: 'completed' });
 const approvedEvent = await Event.create({ ...eventBase, title: `${prefix} Approved Event`, status: 'approved' });
+await Event.create({ ...eventBase, club: normalClub._id, title: `${prefix} Pending Faculty Event`, status: 'pending_faculty', creator: { student: clubPresident._id, name: clubPresident.name, usn: clubPresident.usn, role: 'President' } });
+await Event.create({ ...eventBase, club: normalClub._id, title: `${prefix} Pending HOD Event`, status: 'pending_hod', creator: { student: clubPresident._id, name: clubPresident.name, usn: clubPresident.usn, role: 'President' } });
 const prTakeoverEvent = await Event.create({
     ...eventBase,
     title: `${prefix} PR Takeover Event`,
@@ -116,7 +134,12 @@ console.log(JSON.stringify({
         grafikPresident: grafikPresident.email,
         grafikMember: grafikMember.email,
         prPresident: prPresident.email,
-        prMember: prMember.email
+        prMember: prMember.email,
+        clubPresident: clubPresident.email,
+        clubMember: clubMember.email,
+        student: attendee.email,
+        faculty: faculty.adminId,
+        hod: hod.adminId
     }
 }, null, 2));
 await mongoose.disconnect();

@@ -1,0 +1,6 @@
+.searchable-select { min-width: min(260px, 100%); width: 100%; }
+.searchable-select input { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 7px; box-sizing: border-box; }
+.searchable-results { display: flex; flex-direction: column; max-height: 170px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 7px; margin-top: 5px; background: #fff; }
+.searchable-results button { border: 0; background: #fff; text-align: left; padding: 9px 11px; cursor: pointer; }
+.searchable-results button:hover, .searchable-results button:focus-visible, .searchable-results button.selected { background: #eff6ff; color: #1d4ed8; outline: none; }
+.searchable-empty { padding: 10px; color: #64748b; }
