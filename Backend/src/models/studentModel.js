@@ -3,14 +3,14 @@ import bcrypt from 'bcryptjs';
 
 const studentSchema = new mongoose.Schema({
     name: { type: String, required: true },
-    usn: { type: String, required: true, unique: true },
-    email: { type: String, required: true, unique: true },
+    usn: { type: String, required: true, unique: true, trim: true, uppercase: true },
+    email: { type: String, required: true, unique: true, trim: true, lowercase: true },
     password: { type: String, required: true },
     department: { type: String, required: true },
     semester: { type: String, required: true },
     section: { type: String, required: true },
     interests: [{ type: String }],
-    role: { type: String, enum: ['student', 'president', 'pr', 'grafik'], default: 'student' },
+    role: { type: String, enum: ['student', 'president'], default: 'student', index: true },
     points: { type: Number, default: 0 },
     fcmTokens: { type: [String], default: [] }
 }, { timestamps: true });

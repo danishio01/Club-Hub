@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import axiosInstance from '../../../api/axiosInstance';
-import { getClubsList, deleteClubService, addClubMemberService, removeClubMemberService } from '../service/clubService';
+import { getClubsList, deleteClubService, addClubMemberService, removeClubMemberService, uploadClubLogoService } from '../service/clubService';
 import AddClubModal from '../components/AddClubModal';
 import EditClubModal from '../components/EditClubModal';
 import '../style/Clubs.scss';
@@ -15,28 +15,47 @@ const Clubs = () => {
     const [editingClub, setEditingClub] = useState(null);
     const [students, setStudents] = useState([]);
     const [selectedStudents, setSelectedStudents] = useState({});
+    const [memberSearch, setMemberSearch] = useState({});
     const isPresidentView = user?.role === 'president';
+    const isHodView = user?.role === 'hod';
 
     const loadClubs = useCallback(() => {
         dispatch(getClubsList());
     }, [dispatch]);
 
+    const loadAvailableStudents = useCallback(async () => {
+        if (isHodView) return;
+        try {
+            const res = await axiosInstance.get('/clubs/available-students?position=member');
+            setStudents(res.data.data);
+        } catch (error) {
+            console.error(error);
+        }
+    }, [isHodView]);
+
     useEffect(() => {
         loadClubs();
+        const refresh = () => loadClubs();
+        window.addEventListener('clubhub:clubs:changed', refresh);
+        return () => window.removeEventListener('clubhub:clubs:changed', refresh);
     }, [loadClubs]);
 
     useEffect(() => {
-        const loadStudents = async () => {
-            try {
-                const res = await axiosInstance.get('/students?role=student');
-                setStudents(res.data.data);
-            } catch (error) {
-                console.error(error);
-            }
-        };
+        if (isHodView) return;
+        axiosInstance.get('/clubs/available-students?position=member')
+            .then((response) => setStudents(response.data.data))
+            .catch(console.error);
+    }, [isHodView]);
 
-        loadStudents();
-    }, []);
+    const handleLogoUpload = (clubId, file) => {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async () => {
+            await uploadClubLogoService(clubId, reader.result);
+            loadClubs();
+        };
+        reader.readAsDataURL(file);
+    };
 
     const handleDelete = async (id) => {
         if(window.confirm('Are you sure you want to delete this club?')) {
@@ -64,6 +83,7 @@ const Clubs = () => {
             await addClubMemberService(clubId, studentId);
             setSelectedStudents(prev => ({ ...prev, [clubId]: '' }));
             loadClubs();
+            loadAvailableStudents();
         } catch (error) {
             console.error(error);
             alert(error.response?.data?.message || 'Failed to add club member.');
@@ -76,6 +96,7 @@ const Clubs = () => {
         try {
             await removeClubMemberService(clubId, studentId);
             loadClubs();
+            loadAvailableStudents();
         } catch (error) {
             console.error(error);
             alert('Failed to remove club member.');
@@ -83,9 +104,8 @@ const Clubs = () => {
     };
 
     const getAvailableStudents = (club) => {
-        const memberIds = new Set((club.members || []).map(member => member._id));
-        if (club.president?._id) memberIds.add(club.president._id);
-        return students.filter(student => !memberIds.has(student._id));
+        const query = (memberSearch[club._id] || '').trim().toLowerCase();
+        return students.filter((student) => !query || student.name?.toLowerCase().includes(query) || student.usn?.toLowerCase().includes(query));
     };
 
     return (
@@ -110,16 +130,19 @@ const Clubs = () => {
                 <div className="clubs-grid">
                     {clubs.map(club => (
                         <div key={club._id} className="club-card">
+                            <img src={club.logoUrl || 'https://ik.imagekit.io/p4nbkerbz/ClubHub/applogo.png'} alt={`${club.name} logo`} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 12, marginBottom: 12 }} />
                             <div className="club-header">
                                 <h3>{club.name}</h3>
                                 <span className={`status-badge ${club.isActive ? 'active' : 'inactive'}`}>
                                     {club.isActive ? 'Active' : 'Inactive'}
                                 </span>
                             </div>
-                            <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '8px', fontWeight: 500 }}>
-                                <i className="ri-user-star-line" style={{ color: '#2563eb', marginRight: '4px' }}></i> 
-                                President: <span style={{ color: '#0f172a' }}>{club.president?.name || 'Not Assigned'}</span>
+                            <div className="club-leadership">
+                                <div className="section-label"><i className="ri-user-star-line"></i> Leadership</div>
+                                <div className="leadership-name">{club.president?.name || 'President not assigned'}</div>
+                                {club.president?.usn && <div className="leadership-usn">{club.president.usn}</div>}
                             </div>
+                            {club.specialRole && <div style={{ fontWeight: 700, color: '#7c3aed', marginBottom: 8 }}>Designated {club.specialRole.toUpperCase()} Club</div>}
                             <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '12px', fontWeight: 500 }}>
                                 <i className="ri-group-line" style={{ color: '#16a34a', marginRight: '4px' }}></i>
                                 Club Members: <span style={{ color: '#0f172a' }}>{club.members?.length || 0}</span>
@@ -135,16 +158,23 @@ const Clubs = () => {
                                                     <div style={{ fontWeight: 600, color: '#0f172a' }}>{member.name}</div>
                                                     <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{member.usn} - {member.department}</div>
                                                 </div>
-                                                <button className="icon-btn delete" onClick={() => handleRemoveMember(club._id, member._id)} title="Remove member">
+                                                {!isHodView && <button className="icon-btn delete" onClick={() => handleRemoveMember(club._id, member._id)} title="Remove member">
                                                     <i className="ri-user-unfollow-line"></i>
-                                                </button>
+                                                </button>}
                                             </div>
                                         ))}
                                     </div>
                                 ) : (
                                     <div style={{ color: '#94a3b8', fontSize: '0.9rem' }}>No club members assigned.</div>
                                 )}
-                                <div className="add-member-container">
+                                {!isHodView && <div className="add-member-container">
+                                    <input
+                                        className="member-search"
+                                        type="search"
+                                        placeholder="Search name or USN"
+                                        value={memberSearch[club._id] || ''}
+                                        onChange={(event) => setMemberSearch((previous) => ({ ...previous, [club._id]: event.target.value }))}
+                                    />
                                     <select 
                                         className="member-select"
                                         value={selectedStudents[club._id] || ''} 
@@ -158,11 +188,15 @@ const Clubs = () => {
                                     <button className="btn-primary add-btn" onClick={() => handleAddMember(club._id)}>
                                         Add
                                     </button>
-                                </div>
+                                </div>}
                             </div>
                             <div className="club-actions">
                                 {!isPresidentView && (
                                     <>
+                                        <label className="icon-btn" title="Upload club logo">
+                                            <i className="ri-image-add-line"></i>
+                                            <input type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(event) => handleLogoUpload(club._id, event.target.files?.[0])} />
+                                        </label>
                                         <button className="icon-btn" onClick={() => setEditingClub(club)}>
                                             <i className="ri-pencil-line"></i>
                                         </button>

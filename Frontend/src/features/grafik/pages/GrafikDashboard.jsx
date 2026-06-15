@@ -1,42 +1,29 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getGrafikEventsApi } from '../../events/service/eventService';
 import '../style/GrafikDashboard.scss';
-import useRealtimeEventRefresh from '../../events/hooks/useRealtimeEventRefresh';
+import { formatDate } from '../../../utils/dateFormat';
+import { takeOverTaskApi } from '../../tasks/service/taskService';
+import { useSelector } from 'react-redux';
+import useAuthorizedTasks from '../../tasks/hooks/useAuthorizedTasks';
 
 const GrafikDashboard = () => {
     const navigate = useNavigate();
-    const [events, setEvents] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { user } = useSelector((state) => state.auth);
+    const { tasks, isLoading, refresh } = useAuthorizedTasks({ type: 'poster', specialRole: 'grafik' });
 
-    const loadEvents = useCallback(async () => {
-        try {
-            const data = await getGrafikEventsApi();
-            setEvents(data);
-        } catch (error) {
-            console.error("Failed to load Grafik events:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-    useRealtimeEventRefresh(loadEvents);
+    const takeOver = async (task) => {
+        await takeOverTaskApi(task._id);
+        await refresh();
+    };
 
-    useEffect(() => {
-        let isMounted = true;
-        
-        const fetchInitialData = async () => {
-            if (isMounted) await loadEvents();
-        };
-
-        fetchInitialData();
-        
-        return () => {
-            isMounted = false;
-        };
-    }, [loadEvents]);
-
-    const renderEventCard = (event, badgeClass, statusLabel) => (
-        <div key={event._id} className="grafik-card">
+    const renderEventCard = (task, badgeClass, statusLabel) => {
+        const event = task.event;
+        if (!event) return null;
+        const isGrafikPresident = user?.role === 'president' && user?.specialClubRole === 'grafik';
+        const isLocked = ['completed', 'cancelled'].includes(task.status)
+            || ['submitted_to_faculty', 'submitted_to_hod'].includes(task.stage);
+        return (
+        <div key={task._id} className="grafik-card">
             <div className="card-info">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <span className="club-badge">{event.club?.name}</span>
@@ -44,7 +31,12 @@ const GrafikDashboard = () => {
                 </div>
                 <h3>{event.title}</h3>
                 <p><i className="ri-user-line"></i> {event.creator?.name || 'Unknown'} ({event.creator?.role || 'N/A'})</p>
-                <p><i className="ri-calendar-line"></i> {new Date(event.date).toLocaleDateString()}</p>
+                <p><i className="ri-calendar-line"></i> {formatDate(event.date)}</p>
+                <p><i className="ri-palette-line"></i> Work: Poster Creation</p>
+                <p><i className="ri-user-settings-line"></i> Assigned to: {task?.assignee?.name || 'Unassigned'}</p>
+                <p><i className="ri-task-line"></i> Stage: {(task?.stage || task?.status || 'not created').replaceAll('_', ' ')}</p>
+                <p><i className="ri-calendar-check-line"></i> Assigned: {formatDate(task?.assignedAt)}</p>
+                <p><i className="ri-alarm-warning-line"></i> Due: {formatDate(task?.dueAt)}</p>
             </div>
             
             {event.bannerUrl ? (
@@ -59,70 +51,54 @@ const GrafikDashboard = () => {
             )}
 
             <div className="card-actions">
-                <button 
+                {isGrafikPresident && task.assignee?._id !== user?._id && !isLocked && (
+                    <button className="btn-manage" onClick={() => takeOver(task)}>
+                        <i className="ri-user-star-line"></i> Take Over
+                    </button>
+                )}
+                {!isLocked && <button
                     className="btn-manage" 
-                    onClick={() => navigate(`/grafik/events/${event._id}/banner`)}
+                    onClick={() => navigate(`/president/grafik/events/${event._id}/banner`)}
                 >
-                    <i className="ri-image-edit-line"></i> Manage Flyer
-                </button>
+                    <i className="ri-image-edit-line"></i> Open Poster Creation
+                </button>}
             </div>
         </div>
-    );
+    )};
 
-    const pendingCreation = events.filter(e => e.status === 'review');
-    const pendingAdmin = events.filter(e => e.status === 'pending_admin');
-    const rejectedBanners = events.filter(e => e.status === 'banner_rejected');
-    const approved = events.filter(e => e.status === 'approved');
+    const activeWork = tasks.filter(task => task.status !== 'completed');
+    const completedWork = tasks.filter(task => task.status === 'completed');
 
     return (
         <div className="grafik-dashboard-page">
             <div className="header-section">
-                <h1>Grafik Operations Dashboard</h1>
-                <p>Track your assignments and manage upcoming event flyers.</p>
+                <h1>Poster Work / Poster Creation</h1>
+                <p>Assigned members see their poster tasks. The Grafik President sees the full club queue.</p>
             </div>
             
             {isLoading ? (
                 <div className="loading-state">Loading dashboard data...</div>
-            ) : pendingCreation.length === 0 && pendingAdmin.length === 0 && rejectedBanners.length === 0 && approved.length === 0 ? (
+            ) : activeWork.length === 0 && completedWork.length === 0 ? (
                 <div className="placeholder-container">
                     <i className="ri-image-edit-fill placeholder-icon"></i>
-                    <h2>All Caught Up!</h2>
-                    <p>No active events require flyer management at this time.</p>
+                    <h2>{user?.role === 'president' ? 'No active Grafik poster tasks' : 'No poster tasks assigned to you'}</h2>
                 </div>
             ) : (
                 <div className="dashboard-sections">
-                    {rejectedBanners.length > 0 && (
+                    {activeWork.length > 0 && (
                         <div className="section-block">
-                            <h2 className="section-title error"><i className="ri-error-warning-fill"></i> Rejected Flyers</h2>
+                            <h2 className="section-title primary"><i className="ri-magic-line"></i> Assigned Grafik Work</h2>
                             <div className="grafik-grid">
-                                {rejectedBanners.map(e => renderEventCard(e, 'rejected', 'Fix Required'))}
+                                {activeWork.map(task => renderEventCard(task, 'pending', task.status))}
                             </div>
                         </div>
                     )}
 
-                    {pendingCreation.length > 0 && (
+                    {completedWork.length > 0 && (
                         <div className="section-block">
-                            <h2 className="section-title primary"><i className="ri-magic-line"></i> Pending Flyer Creation</h2>
+                            <h2 className="section-title success"><i className="ri-check-double-line"></i> Completed Grafik Work</h2>
                             <div className="grafik-grid">
-                                {pendingCreation.map(e => renderEventCard(e, 'pending', 'Needs Flyer'))}
-                            </div>
-                        </div>
-                    )}
-
-                    {pendingAdmin.length > 0 && (
-                        <div className="section-block">
-                            <h2 className="section-title warning"><i className="ri-time-line"></i> Pending Admin Review</h2>
-                            <div className="grafik-grid">
-                                {pendingAdmin.map(e => renderEventCard(e, 'waiting', 'Under Review'))}
-                            </div>
-                        </div>
-                    )}
-
-                    {approved.length > 0 && (
-                        <div className="section-block">
-                            <h2 className="section-title success"><i className="ri-check-double-line"></i> Published & Upcoming</h2>
-                            <div className="grafik-grid">
-                                {approved.map(e => renderEventCard(e, 'success', 'Approved'))}
+                                {completedWork.map(task => renderEventCard(task, 'success', 'Completed'))}
                             </div>
                         </div>
                     )}

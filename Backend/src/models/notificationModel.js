@@ -27,6 +27,8 @@ const notificationSchema = new mongoose.Schema({
             'FLYER_GENERATED', 'FLYER_APPROVED', 'FLYER_REJECTED',
             'REPORT_SUBMITTED', 'REPORT_APPROVED', 'REPORT_REJECTED',
             'GALLERY_UPLOADED', 'GALLERY_APPROVED', 'GALLERY_REJECTED',
+            'TASK_CREATED', 'TASK_ASSIGNED', 'TASK_UPDATED', 'TASK_SUBMITTED', 'TASK_COMPLETED',
+            'FACULTY_APPROVED', 'FACULTY_REJECTED', 'HOD_APPROVED', 'HOD_REJECTED',
             'SYSTEM'
         ]
     },
@@ -37,7 +39,13 @@ const notificationSchema = new mongoose.Schema({
     isRead: {
         type: Boolean,
         default: false
-    }
+    },
+    idempotencyKey: { type: String, default: null }
 }, { timestamps: true });
+
+notificationSchema.index(
+    { recipient: 1, idempotencyKey: 1 },
+    { unique: true, partialFilterExpression: { idempotencyKey: { $type: 'string' } } }
+);
 
 export default mongoose.model('Notification', notificationSchema);

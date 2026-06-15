@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { getEventByIdApi, deleteEventService, markEventCompletedApi, approveEventApi, rejectEventApi, approveProposalApi, rejectProposalApi } from '../service/eventService';
+import { getEventByIdApi, deleteEventService, markEventCompletedApi, approveEventApi, rejectEventApi, approveProposalApi, rejectProposalApi, approveEventByHodApi, rejectEventByHodApi } from '../service/eventService';
 import EditEventModal from '../components/EditEventModal';
 import RejectEventModal from '../components/RejectEventModal';
+import ConfirmActionModal from '../components/ConfirmActionModal';
 import ImageLightbox from '../../../components/common/ImageLightbox';
 import '../style/EventDetails.scss';
+import { formatDate } from '../../../utils/dateFormat';
+import { getTasksApi } from '../../tasks/service/taskService';
 
 const EventDetails = () => {
     const { eventId } = useParams();
@@ -17,7 +20,9 @@ const EventDetails = () => {
     
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+    const [approvalTarget, setApprovalTarget] = useState(null);
     const [lightboxImage, setLightboxImage] = useState(null);
+    const [tasks, setTasks] = useState([]);
 
     useEffect(() => {
         let isMounted = true;
@@ -26,11 +31,13 @@ const EventDetails = () => {
             try {
                 const evData = await getEventByIdApi(eventId);
                 if (isMounted) setEvent(evData);
+                const eventTasks = await getTasksApi(eventId);
+                if (isMounted) setTasks(eventTasks);
             } catch (error) {
                 console.error("Failed to load event:", error);
                 if (isMounted) {
                     alert('Failed to load event details. Redirecting.');
-                    navigate(user?.role === 'admin' ? '/admin/event-approvals' : '/president/events');
+                    navigate(user?.role === 'hod' ? '/hod/event-approvals' : ['admin', 'faculty_coordinator'].includes(user?.role) ? '/faculty/event-approvals' : '/president/events');
                 }
             } finally {
                 if (isMounted) setIsLoading(false);
@@ -57,16 +64,19 @@ const EventDetails = () => {
     };
 
     const handleApprove = async () => {
-        if(window.confirm('Approve this event? It will instantly become visible to the student portal.')) {
-            try {
-                await approveEventApi(eventId);
-                alert('Event Approved Successfully!');
-                navigate('/admin/event-approvals');
-            } catch (error) {
-                console.error("Approval Error:", error);
-                alert('Failed to approve event.');
-            }
+        try {
+            await approveEventApi(eventId);
+            alert('Event Approved Successfully!');
+            navigate('/faculty/event-approvals');
+        } catch (error) {
+            console.error("Approval Error:", error);
+            alert('Failed to approve event.');
         }
+    };
+
+    const handleHodApprove = async () => {
+        await approveEventByHodApi(eventId);
+        navigate('/hod/event-approvals');
     };
 
     const handleReject = async (payload) => {
@@ -74,7 +84,7 @@ const EventDetails = () => {
             await rejectEventApi(eventId, payload);
             alert('Event successfully rejected.');
             setIsRejectModalOpen(false);
-            navigate('/admin/event-approvals');
+            navigate('/faculty/event-approvals');
         } catch (error) {
             console.error("Rejection Error:", error);
             alert('Failed to reject event. Please try again.');
@@ -133,21 +143,22 @@ const EventDetails = () => {
     if (isLoading) return <div className="loading-state">Loading event framework...</div>;
     if (!event) return <div className="loading-state">Event not found or has been deleted.</div>;
 
-    const formattedDate = new Date(event.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    const formattedDate = formatDate(event.date);
     const isCompleted = event.status === 'completed' || event.status === 'Completed';
     const isApproved = event.status === 'approved';
-    const isReview = event.status === 'review';
+    const isReview = event.status === 'review' || event.status === 'pending_grafik_poster' || event.status === 'poster_submitted';
     const isPendingPresident = event.status === 'pending_president';
-    const isPendingAdmin = event.status === 'pending_admin';
+    const isPendingAdmin = event.status === 'pending_admin' || event.status === 'pending_faculty';
+    const isPendingHod = event.status === 'pending_hod';
     const isRejected = event.status === 'rejected' || event.status === 'president_rejected';
     const isBannerRejected = event.status === 'banner_rejected';
     
     const creatorId = typeof event.creator?.student === 'object' ? event.creator?.student?._id : event.creator?.student;
     const isOwnClubMemberProposal = user?.isClubMember && creatorId === user?._id;
-    const canManage = user?.role === 'admin' || user?.role === 'president' || isOwnClubMemberProposal;
+    const canManage = ['admin', 'faculty_coordinator', 'hod'].includes(user?.role) || user?.role === 'president' || isOwnClubMemberProposal;
     const canEditDelete = user?.role === 'president' || isOwnClubMemberProposal;
 
-    const statusLabel = isPendingPresident ? 'Pending President' : isReview ? 'Pending Grafik' : isPendingAdmin ? 'Pending Admin' : isBannerRejected ? 'Flyer Rejected' : event.status === 'president_rejected' ? 'President Rejected' : event.status;
+    const statusLabel = isPendingPresident ? 'Pending President' : isReview ? 'Pending Grafik' : isPendingAdmin ? 'Pending Faculty Coordinator' : isPendingHod ? 'Pending HOD Final Approval' : isBannerRejected ? 'Flyer Rejected' : event.status === 'president_rejected' ? 'President Rejected' : event.status;
 
     return (
         <div className="event-details-page">
@@ -156,12 +167,12 @@ const EventDetails = () => {
                 <p style={{ margin: 0, color: '#64748b' }}>Manage event status, view analytics, and control event lifecycle.</p>
             </div>
 
-            {user?.role === 'admin' && isPendingAdmin && (
+            {['admin', 'faculty_coordinator'].includes(user?.role) && isPendingAdmin && (
                 <div className="admin-review-bar">
                     <div className="review-info">
                         <i className="ri-shield-check-fill"></i>
                         <div>
-                            <h3>Pending Admin Review</h3>
+                            <h3>Pending Faculty Coordinator Review</h3>
                             <p>Review the event specifications and flyer below. You must approve or reject this submission to proceed.</p>
                         </div>
                     </div>
@@ -169,9 +180,19 @@ const EventDetails = () => {
                         <button className="btn-danger" onClick={() => setIsRejectModalOpen(true)}>
                             <i className="ri-close-circle-line"></i> Reject Event
                         </button>
-                        <button className="btn-success" onClick={handleApprove}>
+                        <button className="btn-success" onClick={() => setApprovalTarget('faculty')}>
                             <i className="ri-check-double-line"></i> Approve Event
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {user?.role === 'hod' && isPendingHod && (
+                <div className="admin-review-bar">
+                    <div className="review-info"><i className="ri-shield-star-fill"></i><div><h3>Pending HOD Final Approval</h3><p>Final approval publishes this event to students.</p></div></div>
+                    <div className="review-actions">
+                        <button className="btn-danger" onClick={() => setIsRejectModalOpen(true)}>Reject Event</button>
+                        <button className="btn-success" onClick={() => setApprovalTarget('hod')}>Final Approve</button>
                     </div>
                 </div>
             )}
@@ -211,7 +232,7 @@ const EventDetails = () => {
                 <div className="warning-banner">
                     <i className="ri-image-edit-line banner-icon"></i>
                     <div className="banner-text">
-                        <h3>Flyer Rejected By Admin</h3>
+                        <h3>Flyer Rejected By Faculty Coordinator</h3>
                         <p><strong>Reason:</strong> {event.rejectedReason}</p>
                         <span>Event details are accepted. The Grafik team has been notified and is currently working on a replacement flyer. No action required from you at this time.</span>
                     </div>
@@ -228,7 +249,7 @@ const EventDetails = () => {
                     </div>
                     <p>Organized by {event?.club?.name || 'Unknown/Deleted Club'}</p>
                     <p style={{ marginTop: '4px', color: '#475569' }}>
-                        Created by <strong>{event.creator?.name || 'Unknown'}</strong> ({event.creator?.usn || 'N/A'}) as <strong style={{ textTransform: 'capitalize' }}>{event.creator?.role || 'N/A'}</strong>
+                        Created by <strong>{event.creator?.name || 'Unknown'}</strong> ({event.creator?.usn || 'N/A'}) as <strong style={{ textTransform: 'capitalize' }}>{event.creator?.role === 'Admin' ? 'Faculty Coordinator' : event.creator?.role || 'N/A'}</strong>
                     </p>
                 </div>
                 
@@ -241,7 +262,7 @@ const EventDetails = () => {
                         </button>
                     )}
 
-                    {canManage && user?.role !== 'admin' && canEditDelete && (
+                    {canManage && !isCompleted && !['admin', 'faculty_coordinator', 'hod'].includes(user?.role) && canEditDelete && (
                         <>
                             {isApproved && (
                                 <button className="btn-primary complete-btn" onClick={handleMarkCompleted}>
@@ -274,6 +295,14 @@ const EventDetails = () => {
                                 {event.bannerUrl ? <><i className="ri-check-line"></i> Uploaded</> : <><i className="ri-time-line"></i> Not Uploaded</>}
                             </span>
                         </div>
+                        {tasks.map((task) => (
+                            <div className="status-item" key={task._id}>
+                                <span className="label" style={{ textTransform: 'capitalize' }}>{task.type.replaceAll('_', ' ')} Task</span>
+                                <span className={`value ${task.status === 'completed' ? 'success' : 'pending'}`}>
+                                    {(task.stage || task.status).replaceAll('_', ' ')}
+                                </span>
+                            </div>
+                        ))}
                         <div className="status-item">
                             <span className="label">Gallery Status</span>
                             <span className={`value ${event.gallery && event.gallery.length > 0 ? 'success' : 'pending'}`}>
@@ -360,7 +389,26 @@ const EventDetails = () => {
             )}
 
             {isEditModalOpen && <EditEventModal event={event} onClose={() => setIsEditModalOpen(false)} onSuccess={() => { setIsEditModalOpen(false); handleManualRefresh(); }} />}
-            {isRejectModalOpen && <RejectEventModal onClose={() => setIsRejectModalOpen(false)} onConfirm={handleReject} />}
+            {isRejectModalOpen && <RejectEventModal
+                onClose={() => setIsRejectModalOpen(false)}
+                allowTargetSelection={user?.role !== 'hod'}
+                title={user?.role === 'hod' ? 'Reject Event as HOD' : 'Reject Event Submission'}
+                onConfirm={user?.role === 'hod'
+                    ? async ({ reason }) => {
+                        await rejectEventByHodApi(eventId, reason);
+                        navigate('/hod/event-approvals');
+                    }
+                    : handleReject}
+            />}
+            {approvalTarget && <ConfirmActionModal
+                title={approvalTarget === 'hod' ? 'Publish Event?' : 'Send Event to HOD?'}
+                message={approvalTarget === 'hod'
+                    ? 'Confirm final HOD approval. This publishes the event to students and activates PR attendance work.'
+                    : 'Confirm Faculty Coordinator approval. The event will move to HOD final approval.'}
+                confirmLabel={approvalTarget === 'hod' ? 'Final Approve' : 'Approve and Send'}
+                onClose={() => setApprovalTarget(null)}
+                onConfirm={approvalTarget === 'hod' ? handleHodApprove : handleApprove}
+            />}
             {lightboxImage && <ImageLightbox imageUrl={lightboxImage} onClose={() => setLightboxImage(null)} />}
         </div>
     );

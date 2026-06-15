@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosInstance from '../../../api/axiosInstance';
 import '../style/FeedbackAnalytics.scss';
+import { formatDateTime } from '../../../utils/dateFormat';
 
 const FeedbackAnalytics = () => {
     const { eventId } = useParams();
@@ -236,7 +237,7 @@ const FeedbackAnalytics = () => {
                 <h2>Individual Student Submissions</h2>
                 <div className="reviews-grid">
                     {analytics.rawRegistrations.map((reg, idx) => {
-                        const dateStr = new Date(reg.feedbackSubmittedAt).toLocaleString();
+                        const dateStr = formatDateTime(reg.feedbackSubmittedAt);
                         return (
                             <div key={idx} className="student-review-card" onClick={() => setSelectedReview(reg)}>
                                 <div className="card-top">

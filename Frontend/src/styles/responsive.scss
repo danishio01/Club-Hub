@@ -36,6 +36,33 @@ button {
   min-width: 0;
 }
 
+.review-actions,
+.details-actions,
+.card-actions,
+.album-actions,
+.gallery-display-header,
+.management-header,
+.page-header,
+.title-row {
+  gap: 12px;
+}
+
+.review-actions,
+.details-actions,
+.card-actions,
+.album-actions,
+.gallery-display-header,
+.management-header {
+  flex-wrap: wrap;
+}
+
+.review-actions > button,
+.details-actions > button,
+.card-actions > button,
+.album-actions > button {
+  min-width: fit-content;
+}
+
 @media (max-width: 768px) {
   .page-title,
   .title-section h1,
@@ -45,12 +72,22 @@ button {
 
   .page-header-actions,
   .action-buttons,
-  .filters-card {
+  .filters-card,
+  .review-actions,
+  .details-actions,
+  .card-actions,
+  .album-actions,
+  .gallery-display-header,
+  .management-header {
     align-items: stretch;
     flex-direction: column;
   }
 
   .action-buttons > *,
+  .review-actions > *,
+  .details-actions > *,
+  .card-actions > *,
+  .album-actions > *,
   .filters-card > *,
   .filter-group select {
     width: 100%;
@@ -87,6 +124,17 @@ button {
   .report-modal-overlay,
   .review-modal-overlay {
     padding: 0 !important;
+  }
+
+  .modal-container {
+    width: calc(100vw - 24px) !important;
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+  }
+
+  .event-section > h2 {
+    margin: 0 0 16px !important;
+    line-height: 1.35;
   }
 }
 

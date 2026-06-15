@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import AdminLogin from "../features/auth/pages/AdminLogin";
 import StudentLogin from "../features/auth/pages/StudentLogin";
 import AdminLayout from "../components/layout/AdminLayout";
@@ -38,6 +38,8 @@ import AdminReportReview from "../features/reports/pages/AdminReportReview";
 
 import StudentFeedback from "../features/feedback/pages/StudentFeedback";
 import FeedbackAnalytics from "../features/reports/pages/FeedbackAnalytics";
+import TaskDashboard from "../features/tasks/pages/TaskDashboard";
+import FacultyAccounts from "../features/staff/pages/FacultyAccounts";
 
 export const routes = createBrowserRouter([
     {
@@ -46,9 +48,31 @@ export const routes = createBrowserRouter([
         errorElement: <ErrorBoundary />
     },
     {
-        path: "/admin/login",
+        path: "/staff/login",
         element: <AdminLogin />,
         errorElement: <ErrorBoundary />
+    },
+    {
+        path: "/admin/login",
+        element: <Navigate to="/staff/login" replace />,
+        errorElement: <ErrorBoundary />
+    },
+    {
+        path: "/faculty",
+        element: <AdminLayout />,
+        errorElement: <ErrorBoundary />,
+        children: [
+            { path: "dashboard", element: <Dashboard /> },
+            { path: "students", element: <Students /> },
+            { path: "clubs", element: <Clubs /> },
+            { path: "event-approvals", element: <AdminEventReviews /> },
+            { path: "events/:eventId", element: <EventDetails /> },
+            { path: "events/:eventId/analytics", element: <FeedbackAnalytics /> },
+            { path: "leaderboard", element: <Leaderboard isAdmin={true} /> },
+            { path: "attendance", element: <AdminAttendance /> },
+            { path: "reports", element: <AdminReportReview /> },
+            { path: "tasks", element: <TaskDashboard /> }
+        ]
     },
     {
         path: "/admin",
@@ -64,6 +88,7 @@ export const routes = createBrowserRouter([
             { path: "leaderboard", element: <Leaderboard isAdmin={true} /> },
             { path: "attendance", element: <AdminAttendance /> },
             { path: "reports", element: <AdminReportReview /> } 
+            ,{ path: "tasks", element: <TaskDashboard /> }
         ]
     },
     {
@@ -78,6 +103,31 @@ export const routes = createBrowserRouter([
             { path: "club", element: <Clubs /> },
             { path: "ai-agent", element: <AdminAiAgent /> },
             { path: "reports/write/:eventId", element: <ReportEditor /> } 
+            ,{ path: "tasks", element: <TaskDashboard /> }
+            ,{ path: "pr/dashboard", element: <PrDashboard /> }
+            ,{ path: "pr/events/:eventId", element: <PrEventManagement /> }
+            ,{ path: "pr/galleries", element: <PrEventGallery /> }
+            ,{ path: "pr/events/:eventId/share", element: <PrSocialShare /> }
+            ,{ path: "grafik/dashboard", element: <GrafikDashboard /> }
+            ,{ path: "grafik/galleries", element: <GrafikGalleriesList /> }
+            ,{ path: "grafik/events/:eventId/banner", element: <GrafikEventBanner /> }
+            ,{ path: "grafik/events/:eventId/gallery", element: <GrafikEventGallery /> }
+        ]
+    },
+    {
+        path: "/hod",
+        element: <AdminLayout />,
+        errorElement: <ErrorBoundary />,
+        children: [
+            { path: "dashboard", element: <Dashboard /> },
+            { path: "faculty-coordinators", element: <FacultyAccounts /> },
+            { path: "clubs", element: <Clubs /> },
+            { path: "event-approvals", element: <AdminEventReviews /> },
+            { path: "events/:eventId", element: <EventDetails /> },
+            { path: "tasks", element: <TaskDashboard /> },
+            { path: "attendance", element: <AdminAttendance /> },
+            { path: "reports", element: <AdminReportReview /> }
+            ,{ path: "leaderboard", element: <Leaderboard isAdmin={true} /> }
         ]
     },
     {

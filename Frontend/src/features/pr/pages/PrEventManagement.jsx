@@ -4,22 +4,29 @@ import { QRCodeSVG } from 'qrcode.react';
 import { getEventByIdApi, generateQrTokenApi, getEventRegistrationsApi } from '../../events/service/eventService';
 import '../style/PrEventManagement.scss';
 import useRealtimeEventRefresh from '../../events/hooks/useRealtimeEventRefresh';
+import { useSelector } from 'react-redux';
+import { completeTaskApi, getTasksApi } from '../../tasks/service/taskService';
+import { formatDate } from '../../../utils/dateFormat';
 
 const PrEventManagement = () => {
     const { eventId } = useParams();
     const navigate = useNavigate();
+    const { user } = useSelector((state) => state.auth);
     
     const [event, setEvent] = useState(null);
     const [registrations, setRegistrations] = useState([]);
     const [qrUrl, setQrUrl] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [task, setTask] = useState(null);
 
     const initializeSessionData = useCallback(async () => {
         try {
             const evData = await getEventByIdApi(eventId);
             const regData = await getEventRegistrationsApi(eventId);
+            const tasks = await getTasksApi(eventId);
             setEvent(evData);
             setRegistrations(regData);
+            setTask(tasks.find((item) => item.type === 'attendance') || null);
         } catch (error) {
             console.error(error);
         } finally {
@@ -29,10 +36,11 @@ const PrEventManagement = () => {
     useRealtimeEventRefresh(initializeSessionData);
 
     useEffect(() => {
-        Promise.all([getEventByIdApi(eventId), getEventRegistrationsApi(eventId)])
-            .then(([evData, regData]) => {
+        Promise.all([getEventByIdApi(eventId), getEventRegistrationsApi(eventId), getTasksApi(eventId)])
+            .then(([evData, regData, tasks]) => {
                 setEvent(evData);
                 setRegistrations(regData);
+                setTask(tasks.find((item) => item.type === 'attendance') || null);
             })
             .catch(console.error)
             .finally(() => setIsLoading(false));
@@ -57,12 +65,18 @@ const PrEventManagement = () => {
         }
     };
 
+    const submitAttendanceWork = async () => {
+        await completeTaskApi(task._id, { text: 'Attendance operations completed.' });
+        alert('Attendance task marked completed.');
+        navigate('/president/pr/dashboard');
+    };
+
     if (isLoading) return <div className="loading-state">Loading Session Data...</div>;
     if (!event) return <div className="loading-state">Event not found.</div>;
 
     return (
         <div className="pr-event-management">
-            <button className="btn-secondary" style={{ width: 'fit-content' }} onClick={() => navigate('/pr/dashboard')}>
+            <button className="btn-secondary" style={{ width: 'fit-content' }} onClick={() => navigate('/president/pr/dashboard')}>
                 <i className="ri-arrow-left-line"></i> Back to Events
             </button>
 
@@ -71,10 +85,17 @@ const PrEventManagement = () => {
                     <h1>{event.title}</h1>
                     <p>Attendance Session Control Panel</p>
                     <p>Created by {event.creator?.name || 'Unknown'} ({event.creator?.usn || 'N/A'}) as {event.creator?.role || 'N/A'}</p>
+                    <p>Assigned to {task?.assignee?.name || 'Unassigned'} ({task?.assignee?.usn || 'N/A'}) · Status: {task?.status || 'Not created'}</p>
+                    <p>Assigned: {formatDate(task?.assignedAt)} | Due: {formatDate(task?.dueAt)}</p>
                 </div>
                 <div className="stats-badge">
                     {registrations.length} / {event.maxParticipants} Registered
                 </div>
+                {task?.assignee?._id === user?._id && !['completed', 'cancelled'].includes(task?.status) && (
+                    <button className="btn-primary" onClick={submitAttendanceWork}>
+                        Mark Completed
+                    </button>
+                )}
             </div>
 
             {event.bannerUrl && (
@@ -97,7 +118,7 @@ const PrEventManagement = () => {
                         )}
                     </div>
                     
-                    <button className="btn-primary" style={{ width: '100%' }} onClick={handleGenerateQR}>
+                    <button className="btn-primary" style={{ width: '100%' }} onClick={handleGenerateQR} disabled={['completed', 'cancelled'].includes(task?.status)}>
                         <i className="ri-qr-code-line"></i> {qrUrl ? 'Regenerate Dynamic QR' : 'Generate Door QR Code'}
                     </button>
                 </div>

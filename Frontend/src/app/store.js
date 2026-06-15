@@ -7,6 +7,7 @@ import eventReducer from '../features/events/state/eventSlice';
 import studentEventsReducer from '../features/studentEvents/state/studentEventsSlice';
 import reportReducer from '../features/reports/state/reportSlice';
 import notificationReducer from '../features/notifications/state/notificationSlice';
+import taskReducer from '../features/tasks/state/taskSlice';
 
 export const store = configureStore({
     reducer: {
@@ -17,6 +18,7 @@ export const store = configureStore({
         events: eventReducer,
         studentEvents: studentEventsReducer,
         reports: reportReducer,
-        notifications: notificationReducer
+        notifications: notificationReducer,
+        tasks: taskReducer
     },
 });

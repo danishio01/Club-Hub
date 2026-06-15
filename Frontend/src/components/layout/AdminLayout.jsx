@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { loginSuccess, setAuthChecked } from '../../features/auth/state/authSlice';
+import { loginSuccess, logoutSuccess, setAuthChecked } from '../../features/auth/state/authSlice';
 import axiosInstance from '../../api/axiosInstance';
 import NotificationBell from '../..//features/notifications/components/NotificationBell';
 import { unregisterCurrentFcmToken } from '../../features/notifications/service/fcmClient';
@@ -17,12 +17,12 @@ const AdminLayout = () => {
     useEffect(() => {
         const verifyAdminSession = async () => {
             try {
-                const response = await axiosInstance.get('/admin/me');
-                dispatch(loginSuccess({ ...response.data.data, role: 'admin' }));
+                const response = await axiosInstance.get('/staff/me');
+                dispatch(loginSuccess(response.data.data));
             } catch (error) {
                 console.error("Admin session validation failed", error);
                 dispatch(setAuthChecked());
-                navigate('/admin/login', { replace: true });
+                navigate('/staff/login', { replace: true });
             }
         };
 
@@ -33,9 +33,10 @@ const AdminLayout = () => {
 
     const handleLogout = async () => {
         try {
-            await unregisterCurrentFcmToken();
-            await axiosInstance.post('/admin/logout');
-            navigate('/admin/login', { replace: true });
+            unregisterCurrentFcmToken().catch((error) => console.warn('FCM token cleanup failed during logout:', error));
+            await axiosInstance.post('/staff/logout');
+            dispatch(logoutSuccess());
+            navigate('/staff/login', { replace: true });
         } catch (error) {
             console.error('Logout failed:', error);
         }
@@ -45,24 +46,28 @@ const AdminLayout = () => {
     const closeMenu = () => setIsMobileMenuOpen(false);
 
     const isActiveLink = (path) => {
-        if (path === '/admin/event-approvals' && location.pathname.includes('/events/')) {
+        if (path.endsWith('/event-approvals') && location.pathname.includes('/events/')) {
             return true;
         }
         return location.pathname === path;
     };
 
+    const isHod = user?.role === 'hod';
+    const basePath = isHod ? '/hod' : '/faculty';
     const navItems = [
-        { path: '/admin/dashboard', icon: 'ri-dashboard-line', label: 'Dashboard' },
-        { path: '/admin/students', icon: 'ri-group-line', label: 'Students' },
-        { path: '/admin/clubs', icon: 'ri-team-line', label: 'Clubs' },
-        { path: '/admin/event-approvals', icon: 'ri-calendar-check-fill', label: 'Event Approvals' },
-        { path: '/admin/reports', icon: 'ri-file-list-3-fill', label: 'Report Reviews' },
-        { path: '/admin/leaderboard', icon: 'ri-trophy-line', label: 'Leaderboard' },
-        { path: '/admin/attendance', icon: 'ri-calendar-check-line', label: 'Master Grid' }
+        { path: `${basePath}/dashboard`, icon: 'ri-dashboard-line', label: 'Dashboard' },
+        ...(!isHod ? [{ path: `${basePath}/students`, icon: 'ri-group-line', label: 'Students' }] : []),
+        ...(isHod ? [{ path: `${basePath}/faculty-coordinators`, icon: 'ri-user-settings-line', label: 'Faculty Coordinators' }] : []),
+        { path: `${basePath}/clubs`, icon: 'ri-team-line', label: 'Clubs' },
+        { path: `${basePath}/event-approvals`, icon: 'ri-calendar-check-fill', label: 'Event Approvals' },
+        { path: `${basePath}/tasks`, icon: 'ri-task-line', label: 'Work Oversight' },
+        { path: `${basePath}/leaderboard`, icon: 'ri-trophy-line', label: 'Leaderboard' },
+        { path: `${basePath}/reports`, icon: 'ri-file-list-3-fill', label: 'Report Reviews' },
+        { path: `${basePath}/attendance`, icon: 'ri-calendar-check-line', label: 'Master Grid' }
     ];
 
     if (isCheckingAuth || !user) {
-        return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Authenticating Admin Session...</div>;
+        return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Authenticating staff session...</div>;
     }
 
     return (
@@ -70,7 +75,7 @@ const AdminLayout = () => {
             <nav className="top-navbar">
                 <div className="nav-brand">
                     <img src="https://ik.imagekit.io/p4nbkerbz/ClubHub/applogo.png" alt="Logo" className="nav-logo" />
-                    ClubHub Admin
+                    ClubHub {isHod ? 'HOD' : 'Faculty Coordinator'}
                 </div>
 
                 <div className="desktop-nav">
@@ -80,15 +85,15 @@ const AdminLayout = () => {
                             {item.label}
                         </NavLink>
                     ))}
-                    <NotificationBell />
                     <button className="nav-link logout-btn-header" onClick={handleLogout} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626' }}>
                         <i className="ri-logout-box-r-line"></i> Logout
                     </button>
                 </div>
 
-                <button className="mobile-menu-btn" onClick={toggleMenu}>
-                    <i className="ri-menu-line"></i>
-                </button>
+                <div className="staff-header-tools">
+                    <NotificationBell />
+                    <button className="mobile-menu-btn" onClick={toggleMenu}><i className="ri-menu-line"></i></button>
+                </div>
             </nav>
 
             <div className={`overlay ${isMobileMenuOpen ? 'show' : ''}`} onClick={closeMenu}></div>

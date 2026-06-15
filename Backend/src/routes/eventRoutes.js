@@ -19,9 +19,12 @@ import {
     uploadGalleryImage,
     deleteGalleryImage,
     getPrCompletedEvents,
+    getPrEvents,
     approveClubMemberProposal,
     rejectClubMemberProposal,
-    reviewGallery
+    reviewGallery,
+    approveEventByHod,
+    rejectEventByHod
 } from '../controllers/eventController.js';
 import { 
     registerForEvent, 
@@ -36,18 +39,18 @@ import {
     summarizeReviews
 } from '../controllers/registrationController.js';
 import { getLeaderboard, resetLeaderboard } from '../controllers/leaderboardController.js';
-import { protect, presidentOnly, prOnly, adminOnly, presidentOrAdmin, grafikOnly, presidentOrClubMember, presidentClubMemberOrAdmin } from '../middleware/authMiddleware.js';
+import { protect, presidentOnly, prClubOnly, facultyOnly, staffOnly, hodOnly, grafikClubOnly, specialTaskWorkerOnly, presidentOrClubMember, presidentClubMemberOrAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 router.get('/leaderboard/rankings', getLeaderboard);
-router.post('/leaderboard/reset', protect, adminOnly, resetLeaderboard);
+router.post('/leaderboard/reset', protect, staffOnly, resetLeaderboard);
 
 router.get('/student-events', protect, getStudentEvents);
 router.get('/student-events/:id', protect, getStudentEventById);
 router.get('/student/certificates', protect, getAttendedEvents);
 router.get('/student/attendance-report', protect, getStudentAttendanceReport);
-router.get('/admin/attendance-report', protect, adminOnly, getAdminAttendanceReport);
+router.get('/admin/attendance-report', protect, staffOnly, getAdminAttendanceReport);
 
 router.get('/president/all', protect, presidentOrClubMember, getPresidentEvents);
 router.post('/', protect, presidentClubMemberOrAdmin, createEvent);
@@ -59,25 +62,28 @@ router.patch('/:id/proposal/reject', protect, presidentOnly, rejectClubMemberPro
 
 router.post('/:eventId/reviews/summary', protect, presidentClubMemberOrAdmin, summarizeReviews);
 
-router.patch('/:id/approve', protect, adminOnly, approveEvent);
-router.patch('/:id/reject', protect, adminOnly, rejectEvent);
+router.patch('/:id/approve', protect, facultyOnly, approveEvent);
+router.patch('/:id/reject', protect, facultyOnly, rejectEvent);
+router.patch('/:id/hod/approve', protect, hodOnly, approveEventByHod);
+router.patch('/:id/hod/reject', protect, hodOnly, rejectEventByHod);
 
-router.get('/grafik/all', protect, grafikOnly, getGrafikEvents);
-router.get('/grafik/:id', protect, grafikOnly, getGrafikEventById);
-router.post('/:id/banner/generate', protect, grafikOnly, generateEventBanner);
-router.post('/:id/banner/upload', protect, grafikOnly, uploadCustomEventBanner);
-router.patch('/:id/banner/approve', protect, grafikOnly, approveEventBanner);
-router.post('/:id/gallery/upload', protect, grafikOnly, uploadGalleryImage);
-router.delete('/:id/gallery/:fileId', protect, grafikOnly, deleteGalleryImage);
+router.get('/grafik/all', protect, grafikClubOnly, getGrafikEvents);
+router.get('/grafik/:id', protect, specialTaskWorkerOnly(['poster', 'gallery_upload'], 'grafik'), getGrafikEventById);
+router.post('/:id/banner/generate', protect, specialTaskWorkerOnly('poster', 'grafik'), generateEventBanner);
+router.post('/:id/banner/upload', protect, specialTaskWorkerOnly('poster', 'grafik'), uploadCustomEventBanner);
+router.patch('/:id/banner/approve', protect, specialTaskWorkerOnly('poster', 'grafik'), approveEventBanner);
+router.post('/:id/gallery/upload', protect, specialTaskWorkerOnly('gallery_upload', 'grafik'), uploadGalleryImage);
+router.delete('/:id/gallery/:fileId', protect, specialTaskWorkerOnly('gallery_upload', 'grafik'), deleteGalleryImage);
 
-router.get('/pr/galleries', protect, prOnly, getPrCompletedEvents);
-router.patch('/:id/gallery/review', protect, prOnly, reviewGallery);
+router.get('/pr/all', protect, prClubOnly, getPrEvents);
+router.get('/pr/galleries', protect, prClubOnly, getPrCompletedEvents);
+router.patch('/:id/gallery/review', protect, prClubOnly, reviewGallery);
 
-router.get('/', getEvents);
-router.get('/:id', getEventById);
+router.get('/', protect, staffOnly, getEvents);
+router.get('/:id', protect, getEventById);
 
 router.get('/:eventId/registrations', protect, getEventRegistrations); 
-router.get('/:eventId/qr-token', protect, prOnly, generateAttendanceToken);
+router.get('/:eventId/qr-token', protect, specialTaskWorkerOnly('attendance', 'pr'), generateAttendanceToken);
 
 router.post('/:eventId/register', protect, registerForEvent);
 router.post('/:eventId/attendance', protect, markAttendance);

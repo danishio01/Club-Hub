@@ -26,12 +26,8 @@ const StudentLogin = () => {
                 navigate('/president/dashboard', { replace: true });
             } else if (user.isClubMember) {
                 navigate('/president/dashboard', { replace: true });
-            } else if (role === 'pr') {
-                navigate('/pr/dashboard', { replace: true });
-            } else if (role === 'grafik') {
-                navigate('/grafik/dashboard', { replace: true });
             } else if (role === 'admin') {
-                navigate('/admin/dashboard', { replace: true });
+                navigate('/faculty/dashboard', { replace: true });
             } else {
                 navigate('/student/dashboard', { replace: true });
             }
@@ -83,12 +79,12 @@ const StudentLogin = () => {
                     <button type="submit" className="submit-button" disabled={isLoading || !identifier || !password || isCheckingAuth}>
                         {isLoading || isCheckingAuth ? 'Authenticating...' : 'Secure Login'}
                     </button>
-                    <button type="button" className="submit-button" style={{ marginTop: '10px', background: '#334155' }} onClick={() => navigate('/admin/login')}>
-                        Login as Admin
+                    <button type="button" className="submit-button" style={{ marginTop: '10px', background: '#334155' }} onClick={() => navigate('/staff/login')}>
+                        Faculty / HOD Login
                     </button>
                     
                     <p style={{ textAlign: 'center', margin: '20px 0 0 0', fontSize: '0.85rem', color: '#64748b' }}>
-                        If you don't have an account, please contact your department admin.
+                        If you don't have an account, please contact your Faculty Coordinator.
                     </p>
                 </form>
             </div>

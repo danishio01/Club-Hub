@@ -116,6 +116,30 @@
 }
 
 @media (max-width: 768px) {
+  .pr-event-management {
+    min-width: 0;
+
+    .management-header {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .qr-panel, .registrations-panel {
+      min-width: 0;
+      padding: 16px;
+    }
+
+    .qr-container {
+      min-height: 0 !important;
+      overflow: auto;
+    }
+
+    .table-wrapper {
+      overflow-x: auto !important;
+    }
+  }
+
   .full-event-banner-container {
     max-width: 100%;
   }

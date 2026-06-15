@@ -49,7 +49,13 @@ const eventSchema = new mongoose.Schema({
     galleryRejectionReason: { type: String, default: null },
     status: { 
         type: String, 
-        enum: ['pending_president', 'review', 'pending_admin', 'approved', 'rejected', 'president_rejected', 'banner_rejected', 'completed'], 
+        enum: [
+            'pending_president', 'pending_grafik_poster', 'poster_submitted',
+            'pending_faculty', 'faculty_rejected', 'pending_hod', 'hod_rejected',
+            'approved', 'rejected', 'president_rejected', 'banner_rejected',
+            'completed', 'gallery_in_progress', 'gallery_submitted',
+            'gallery_approved', 'closed', 'review', 'pending_admin'
+        ],
         default: 'review' 
     },
     creator: {
@@ -62,9 +68,32 @@ const eventSchema = new mongoose.Schema({
     rejectedBy: { type: mongoose.Schema.Types.ObjectId, refPath: 'rejectedByModel', default: null },
     rejectedByModel: { type: String, enum: ['Admin', 'Student'], default: 'Admin' },
     rejectedAt: { type: Date, default: null },
+    approvals: {
+        president: {
+            reviewer: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', default: null },
+            decidedAt: { type: Date, default: null },
+            decision: { type: String, enum: ['approved', 'rejected', null], default: null },
+            reason: { type: String, default: null }
+        },
+        faculty: {
+            reviewer: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', default: null },
+            decidedAt: { type: Date, default: null },
+            decision: { type: String, enum: ['approved', 'rejected', null], default: null },
+            reason: { type: String, default: null }
+        },
+        hod: {
+            reviewer: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', default: null },
+            decidedAt: { type: Date, default: null },
+            decision: { type: String, enum: ['approved', 'rejected', null], default: null },
+            reason: { type: String, default: null }
+        }
+    },
     
     feedbackTemplateType: { type: String, enum: ['default', 'custom'], default: 'default' },
     feedbackQuestions: [feedbackQuestionSchema]
 }, { timestamps: true });
+
+eventSchema.index({ status: 1, createdAt: -1 });
+eventSchema.index({ club: 1, createdAt: -1 });
 
 export default mongoose.model('Event', eventSchema);

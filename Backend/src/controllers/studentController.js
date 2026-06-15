@@ -1,11 +1,19 @@
 import Student from '../models/studentModel.js';
 import bcrypt from 'bcryptjs';
 
+const normalizeStudent = (data) => ({
+    ...data,
+    usn: data.usn?.trim().toUpperCase(),
+    email: data.email?.trim().toLowerCase(),
+    name: data.name?.trim()
+});
+
 export const createStudent = async (req, res) => {
     try {
-        const student = new Student(req.body);
+        const student = new Student(normalizeStudent(req.body));
         await student.save();
-        return res.status(201).json({ success: true, data: student });
+        const safeStudent = await Student.findById(student._id).select('-password');
+        return res.status(201).json({ success: true, data: safeStudent });
     } catch (error) {
         console.error("Detailed Error:", error.message);
         return res.status(500).json({ success: false, message: error.message });
@@ -17,13 +25,19 @@ export const createManyStudents = async (req, res) => {
         const studentsData = req.body.students;
         const salt = await bcrypt.genSalt(10);
         
-        const hashedStudents = await Promise.all(studentsData.map(async (student) => {
+        const hashedStudents = await Promise.all(studentsData.map(async (rawStudent) => {
+            const student = normalizeStudent(rawStudent);
             const hashedPassword = await bcrypt.hash(student.password, salt);
             return { ...student, password: hashedPassword };
         }));
 
         const students = await Student.insertMany(hashedStudents);
-        return res.status(201).json({ success: true, data: students });
+        return res.status(201).json({
+            success: true,
+            data: students.map(({ _id, name, usn, email, department, semester, section, role }) => ({
+                _id, name, usn, email, department, semester, section, role
+            }))
+        });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to bulk create students' });
     }
@@ -56,7 +70,7 @@ export const getStudents = async (req, res) => {
 export const updateStudent = async (req, res) => {
     try {
         const { id } = req.params;
-        const updateData = { ...req.body };
+        const updateData = normalizeStudent(req.body);
         
         if (updateData.password) {
             const salt = await bcrypt.genSalt(10);

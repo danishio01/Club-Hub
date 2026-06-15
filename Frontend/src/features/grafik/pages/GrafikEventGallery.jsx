@@ -2,11 +2,15 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getGrafikEventByIdApi, uploadGalleryImageApi, deleteGalleryImageApi } from '../../events/service/eventService';
 import ImageLightbox from '../../../components/common/ImageLightbox';
+import { useSelector } from 'react-redux';
+import { completeTaskApi, getTasksApi } from '../../tasks/service/taskService';
 import '../style/GrafikEventGallery.scss';
+import { formatDate } from '../../../utils/dateFormat';
 
 const GrafikEventGallery = () => {
     const { eventId } = useParams();
     const navigate = useNavigate();
+    const { user } = useSelector((state) => state.auth);
     const fileInputRef = useRef(null);
     
     const [event, setEvent] = useState(null);
@@ -18,16 +22,18 @@ const GrafikEventGallery = () => {
     const [uploadedImages, setUploadedImages] = useState([]);
     
     const [lightboxImage, setLightboxImage] = useState(null);
+    const [task, setTask] = useState(null);
 
     const loadEventDetails = useCallback(async () => {
         try {
-            const data = await getGrafikEventByIdApi(eventId);
+            const [data, tasks] = await Promise.all([getGrafikEventByIdApi(eventId), getTasksApi(eventId)]);
             setEvent(data);
+            setTask(tasks.find((item) => item.type === 'gallery_upload') || null);
             if (data.gallery) setUploadedImages(data.gallery);
         } catch (error) {
             console.error(error);
             alert("Failed to load event gallery.");
-            navigate('/grafik/dashboard');
+            navigate('/president/grafik/galleries');
         } finally {
             setIsLoading(false);
         }
@@ -107,6 +113,13 @@ const GrafikEventGallery = () => {
         }
     };
 
+    const submitGalleryWork = async () => {
+        if (!task) return;
+        await completeTaskApi(task._id, { text: `Completed gallery upload with ${uploadedImages.length} photos.` });
+        alert('Gallery upload marked completed and shared with PR.');
+        navigate('/president/grafik/galleries');
+    };
+
     if (isLoading) return <div className="loading-state">Loading Event Gallery...</div>;
     if (!event) return null;
 
@@ -117,17 +130,19 @@ const GrafikEventGallery = () => {
                     <i className="ri-error-warning-fill"></i>
                     Galleries can only be curated for completed events.
                 </div>
-                <button className="btn-secondary" onClick={() => navigate('/grafik/dashboard')}>Back to Dashboard</button>
+                <button className="btn-secondary" onClick={() => navigate('/president/grafik/galleries')}>Back to Dashboard</button>
             </div>
         );
     }
 
-    const formattedDate = new Date(event.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    const formattedDate = formatDate(event.date);
+    const canSubmit = task?.assignee?._id === user?._id && !['completed', 'cancelled'].includes(task?.status);
+    const isTaskCompleted = ['completed', 'cancelled'].includes(task?.status);
 
     return (
         <div className="grafik-gallery-page">
             <div className="page-header">
-                <button className="btn-secondary" onClick={() => navigate('/grafik/dashboard')}>
+                <button className="btn-secondary" onClick={() => navigate('/president/grafik/galleries')}>
                     <i className="ri-arrow-left-line"></i> Back to Dashboard
                 </button>
                 <div className="title-row">
@@ -135,6 +150,8 @@ const GrafikEventGallery = () => {
                     <span className="club-chip">{event.club?.name}</span>
                 </div>
                 <p>Curate the official photo gallery for <strong>{event.title}</strong>.</p>
+                <p>Assigned to {task?.assignee?.name || 'Unassigned'} ({task?.assignee?.usn || 'N/A'}) · Status: {task?.status || 'Not created'}</p>
+                <p>Assigned: {formatDate(task?.assignedAt)} | Due: {formatDate(task?.dueAt)}</p>
             </div>
 
             <div className="management-grid">
@@ -178,7 +195,7 @@ const GrafikEventGallery = () => {
             </div>
 
             <div className="gallery-workspace">
-                <div className="upload-panel">
+                {!isTaskCompleted && <div className="upload-panel">
                     <div className="upload-box" onClick={!isUploading ? handleUploadClick : undefined}>
                         <i className={isUploading ? "ri-loader-4-line spin" : "ri-upload-cloud-2-line"}></i>
                         <h3>Select Photos to Upload</h3>
@@ -193,7 +210,7 @@ const GrafikEventGallery = () => {
                             disabled={isUploading}
                         />
                     </div>
-                </div>
+                </div>}
 
                 {uploadQueue.length > 0 && (
                     <div className="queue-panel">
@@ -207,13 +224,13 @@ const GrafikEventGallery = () => {
                             {uploadQueue.map((item, index) => (
                                 <div key={index} className="photo-card preview">
                                     <img src={item.previewUrl} alt="Upload Preview" />
-                                    <button 
+                                    {!isTaskCompleted && <button
                                         className="btn-delete-photo" 
                                         onClick={(e) => { e.stopPropagation(); removeFromQueue(index); }}
                                         disabled={isUploading}
                                     >
                                         <i className="ri-close-line"></i>
-                                    </button>
+                                    </button>}
                                 </div>
                             ))}
                         </div>
@@ -223,6 +240,11 @@ const GrafikEventGallery = () => {
                 <div className="gallery-display-panel">
                     <div className="gallery-display-header">
                         <h2>Live Gallery Content ({uploadedImages.length})</h2>
+                        {uploadedImages.length > 0 && canSubmit && (
+                            <button className="btn-primary" onClick={submitGalleryWork}>
+                                Mark Completed
+                            </button>
+                        )}
                     </div>
                     <div className="photos-grid">
                         {uploadedImages.length === 0 ? (
@@ -234,13 +256,13 @@ const GrafikEventGallery = () => {
                             uploadedImages.map(img => (
                                 <div key={img.fileId} className="photo-card" onClick={() => setLightboxImage(img.url)}>
                                     <img src={img.url} alt="Event Moment" />
-                                    <button 
+                                    {!isTaskCompleted && <button
                                         className="btn-delete-photo" 
                                         onClick={(e) => { e.stopPropagation(); handleDelete(img.fileId); }}
                                         disabled={deletingId === img.fileId}
                                     >
                                         <i className={deletingId === img.fileId ? "ri-loader-4-line spin" : "ri-delete-bin-line"}></i>
-                                    </button>
+                                    </button>}
                                 </div>
                             ))
                         )}

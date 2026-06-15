@@ -59,6 +59,17 @@
   flex-grow: 1;
 }
 
+.club-leadership {
+  padding: 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+}
+
+.section-label { color: #2563eb; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; }
+.leadership-name { margin-top: 4px; color: #0f172a; font-weight: 700; }
+.leadership-usn { color: #64748b; font-size: 0.8rem; }
+
 /* Members Section Styling */
 .member-item {
   display: flex;
@@ -73,6 +84,7 @@
 
 .add-member-container {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 16px;
   width: 100%;
@@ -98,6 +110,14 @@
     }
   }
 
+  .member-search {
+    flex: 1 1 100%;
+    min-width: 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+
   .add-btn {
     padding: 10px 18px;
     background-color: #2563eb;
@@ -113,6 +133,13 @@
       background-color: #1d4ed8;
     }
   }
+}
+
+@media (max-width: 480px) {
+  .club-card { padding: 16px; }
+  .club-header { align-items: flex-start; gap: 8px; }
+  .add-member-container .member-select,
+  .add-member-container .add-btn { width: 100%; flex: 1 1 100%; }
 }
 
 .club-actions {

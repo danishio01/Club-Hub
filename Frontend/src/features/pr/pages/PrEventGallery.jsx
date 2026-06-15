@@ -1,34 +1,27 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getPrCompletedEventsApi } from '../../events/service/eventService';
 import ImageLightbox from '../../../components/common/ImageLightbox';
 import '../style/PrEventGallery.scss';
-import useRealtimeEventRefresh from '../../events/hooks/useRealtimeEventRefresh';
+import { takeOverTaskApi } from '../../tasks/service/taskService';
+import { useSelector } from 'react-redux';
+import { formatDate } from '../../../utils/dateFormat';
+import useAuthorizedTasks from '../../tasks/hooks/useAuthorizedTasks';
 
 const PrEventGallery = () => {
     const navigate = useNavigate();
-    const [events, setEvents] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [lightboxImage, setLightboxImage] = useState(null);
+    const { user } = useSelector((state) => state.auth);
+    const { tasks, isLoading, refresh } = useAuthorizedTasks({ type: 'social_media', specialRole: 'pr' });
+    const events = tasks.map((task) => task.event).filter((event) => event?.status === 'completed');
 
-    const fetchGalleries = useCallback(async () => {
-        try {
-            setEvents(await getPrCompletedEventsApi());
-        } catch (error) {
-            console.error("Failed to load PR galleries:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-    useRealtimeEventRefresh(fetchGalleries);
+    const getSocialTask = (eventId) => tasks.find((task) => task.event?._id === eventId);
+    const isPrPresident = user?.role === 'president' && user?.specialClubRole === 'pr';
 
-    useEffect(() => {
-        getPrCompletedEventsApi()
-            .then(setEvents)
-            .catch((error) => console.error("Failed to load PR galleries:", error))
-            .finally(() => setIsLoading(false));
-    }, []);
+    const takeOver = async (task) => {
+        await takeOverTaskApi(task._id);
+        refresh();
+    };
 
     const openGallery = (event) => {
         setSelectedEvent(event);
@@ -56,25 +49,27 @@ const PrEventGallery = () => {
                         <div className="header-details">
                             <h2>{selectedEvent.title}</h2>
                             <p>Organized by {selectedEvent.club?.name}</p>
+                            <p>Assigned to: {getSocialTask(selectedEvent._id)?.assignee?.name || 'Unassigned'} ({getSocialTask(selectedEvent._id)?.assignee?.usn || 'N/A'})</p>
+                            <p>Status: {getSocialTask(selectedEvent._id)?.status || 'Not created'}</p>
                         </div>
-                        <button 
+                        {!['completed', 'cancelled'].includes(getSocialTask(selectedEvent._id)?.status) && <button
                             className="btn-primary" 
                             style={{ marginLeft: 'auto' }}
-                            onClick={() => navigate(`/pr/events/${selectedEvent._id}/share`)}
+                            onClick={() => navigate(`/president/pr/events/${selectedEvent._id}/share`)}
                         >
                             <i className="ri-share-forward-line"></i> Create Social Post
-                        </button>
+                        </button>}
                     </div>
                     
                     <div className="photos-grid">
-                        {selectedEvent.gallery.map(img => (
+                        {selectedEvent.galleryStatus === 'approved' && selectedEvent.gallery?.length ? selectedEvent.gallery.map(img => (
                             <div key={img.fileId} className="photo-card" onClick={() => setLightboxImage(img.url)}>
                                 <img src={img.url} alt="Event Capture" />
                                 <div className="zoom-overlay">
                                     <i className="ri-zoom-in-line"></i>
                                 </div>
                             </div>
-                        ))}
+                        )) : <div className="empty-state">Grafik gallery photos are not approved yet. The social-media task remains available for planning.</div>}
                     </div>
                 </div>
             ) : (
@@ -85,29 +80,44 @@ const PrEventGallery = () => {
                             <p>No completed event galleries are currently available.</p>
                         </div>
                     ) : (
-                        events.map(event => (
+                        events.map(event => {
+                            const task = getSocialTask(event._id);
+                            return (
                             <div key={event._id} className="album-card">
                                 <div className="album-cover">
-                                    <img src={event.gallery[0].url} alt="Album Cover" />
+                                    {event.galleryStatus === 'approved' && event.gallery?.[0]?.url ? <img src={event.gallery[0].url} alt="Album Cover" /> : <div className="empty-state">Photos pending approval</div>}
                                     <div className="photo-count">
-                                        <i className="ri-image-2-fill"></i> {event.gallery.length} Photos
+                                        <i className="ri-image-2-fill"></i> {event.galleryStatus === 'approved' ? event.gallery?.length || 0 : 0} Photos
                                     </div>
                                 </div>
                                 <div className="album-info">
                                     <h3>{event.title}</h3>
-                                    <p>{new Date(event.date).toLocaleDateString()}</p>
-                                    <p>Ready for social media</p>
+                                    <p>{formatDate(event.date)}</p>
+                                    <p>Assigned to: {task?.assignee?.name || 'Unassigned'} ({task?.assignee?.usn || 'N/A'})</p>
+                                    <p>Status: {task?.status || 'Not created'}</p>
+                                    <p>Assigned: {formatDate(task?.assignedAt)} | Due: {formatDate(task?.dueAt)}</p>
+                                    <p>{event.galleryStatus === 'approved' ? 'Approved photos ready' : 'Waiting for approved Grafik photos'}</p>
                                 </div>
                                 <div className="album-actions">
                                     <button className="btn-action view" onClick={() => openGallery(event)}>
                                         <i className="ri-eye-line"></i> View Gallery
                                     </button>
-                                    <button className="btn-action share" onClick={() => navigate(`/pr/events/${event._id}/share`)}>
+                                    {task && !['completed', 'cancelled'].includes(task.status) && <button className="btn-action share" onClick={() => navigate(`/president/pr/events/${event._id}/share`)}>
                                         <i className="ri-share-forward-line"></i> Create Post
-                                    </button>
+                                    </button>}
+                                    {isPrPresident && task && task.assignee?._id !== user?._id && !['completed', 'cancelled'].includes(task.status) && (
+                                        <button className="btn-action share" onClick={() => takeOver(task)}>
+                                            <i className="ri-user-star-line"></i> Take Over
+                                        </button>
+                                    )}
+                                    {isPrPresident && task && !['completed', 'cancelled'].includes(task.status) && (
+                                        <button className="btn-action view" onClick={() => navigate('/president/tasks')}>
+                                            <i className="ri-user-settings-line"></i> Assign / Reassign
+                                        </button>
+                                    )}
                                 </div>
                             </div>
-                        ))
+                        )})
                     )}
                 </div>
             )}

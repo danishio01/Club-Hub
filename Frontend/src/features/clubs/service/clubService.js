@@ -31,3 +31,7 @@ export const addClubMemberService = async (clubId, studentId) => {
 export const removeClubMemberService = async (clubId, studentId) => {
     return await axiosInstance.delete(`/clubs/${clubId}/members/${studentId}`);
 };
+
+export const uploadClubLogoService = async (clubId, imageBase64) => {
+    return await axiosInstance.post(`/clubs/${clubId}/logo`, { imageBase64 });
+};

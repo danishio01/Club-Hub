@@ -5,6 +5,7 @@ import { getEventsList, approveProposalApi, rejectProposalApi } from '../service
 import AddEventModal from '../components/AddEventModal';
 import '../../students/style/Students.scss';
 import useRealtimeEventRefresh from '../hooks/useRealtimeEventRefresh';
+import { formatDate } from '../../../utils/dateFormat';
 
 const EventTable = ({ data, navigate, user, onApproveProposal, onRejectProposal }) => (
     <div className="table-container">
@@ -22,8 +23,9 @@ const EventTable = ({ data, navigate, user, onApproveProposal, onRejectProposal 
             </thead>
             <tbody>
                 {data.map(event => {
-                    const statusLabel = event.status === 'review' ? 'Waiting on Grafik' : 
-                                        event.status === 'pending_admin' ? 'Waiting on Admin' : 
+                    const statusLabel = ['review', 'pending_grafik_poster', 'poster_submitted'].includes(event.status) ? 'Waiting on Grafik' :
+                                        ['pending_admin', 'pending_faculty'].includes(event.status) ? 'Waiting on Faculty Coordinator' :
+                                        event.status === 'pending_hod' ? 'Waiting on HOD' :
                                         event.status === 'pending_president' ? 'Pending President' :
                                         event.status === 'president_rejected' ? 'President Rejected' :
                                         event.status === 'banner_rejected' ? 'Banner Rejected' :
@@ -42,7 +44,7 @@ const EventTable = ({ data, navigate, user, onApproveProposal, onRejectProposal 
                                 </span>
                             </td>
                             <td>
-                                <div style={{ fontWeight: 500 }}>{new Date(event.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                                <div style={{ fontWeight: 500 }}>{formatDate(event.date)}</div>
                                 <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{event.time}</div>
                             </td>
                             <td style={{ fontWeight: 600, color: '#0f172a' }}>{event.title}</td>
@@ -136,7 +138,7 @@ const Events = () => {
                 <div style={{ padding: '40px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#991b1b', textAlign: 'center' }}>
                     <i className="ri-error-warning-line" style={{ fontSize: '2rem', display: 'block', marginbottom: '10px' }}></i>
                     <h2>Club is not assigned</h2>
-                    <p>You cannot view or manage events until a system administrator links you to an active club.</p>
+                    <p>You cannot view or manage events until a Faculty Coordinator links you to an active club.</p>
                 </div>
             </div>
         );
@@ -144,13 +146,14 @@ const Events = () => {
 
     if (isLoading) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading your events...</div>;
 
-    const pendingPresidentEvents = events.filter(e => e.status === 'pending_president');
-    const pendingGrafikEvents = events.filter(e => e.status === 'review');
-    const bannerRejectedEvents = events.filter(e => e.status === 'banner_rejected');
-    const pendingAdminEvents = events.filter(e => e.status === 'pending_admin');
-    const upcomingEvents = events.filter(e => e.status === 'approved');
-    const rejectedEvents = events.filter(e => e.status === 'rejected' || e.status === 'president_rejected');
-    const completedEvents = events.filter(e => e.status === 'completed' || e.status === 'Completed');
+    const newestFirst = (items) => [...items].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const pendingPresidentEvents = newestFirst(events.filter(e => e.status === 'pending_president'));
+    const pendingGrafikEvents = newestFirst(events.filter(e => ['review', 'pending_grafik_poster', 'poster_submitted'].includes(e.status)));
+    const bannerRejectedEvents = newestFirst(events.filter(e => e.status === 'banner_rejected'));
+    const pendingAdminEvents = newestFirst(events.filter(e => ['pending_admin', 'pending_faculty', 'pending_hod'].includes(e.status)));
+    const upcomingEvents = newestFirst(events.filter(e => e.status === 'approved'));
+    const rejectedEvents = newestFirst(events.filter(e => ['rejected', 'president_rejected', 'faculty_rejected', 'hod_rejected'].includes(e.status)));
+    const completedEvents = newestFirst(events.filter(e => e.status === 'completed' || e.status === 'Completed'));
 
     return (
         <div className="students-page" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -203,7 +206,7 @@ const Events = () => {
 
             {pendingAdminEvents.length > 0 && (
                 <div>
-                    <h2 style={{ fontSize: '1.25rem', color: '#854d0e', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}><i className="ri-time-fill"></i> Pending Admin Approval</h2>
+                    <h2 style={{ fontSize: '1.25rem', color: '#854d0e', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}><i className="ri-time-fill"></i> Pending Faculty / HOD Approval</h2>
                     <EventTable data={pendingAdminEvents} navigate={navigate} user={user} onApproveProposal={handleApproveProposal} onRejectProposal={handleRejectProposal} />
                 </div>
             )}

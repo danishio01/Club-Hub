@@ -3,23 +3,29 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getEventByIdApi } from '../../events/service/eventService';
 import ImageLightbox from '../../../components/common/ImageLightbox';
 import '../style/PrSocialShare.scss';
+import { useSelector } from 'react-redux';
+import { completeTaskApi, getTasksApi } from '../../tasks/service/taskService';
+import { formatDate } from '../../../utils/dateFormat';
 
 const PrSocialShare = () => {
     const { eventId } = useParams();
     const navigate = useNavigate();
+    const { user } = useSelector((state) => state.auth);
     
     const [event, setEvent] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedImages, setSelectedImages] = useState([]);
     const [lightboxImage, setLightboxImage] = useState(null);
+    const [task, setTask] = useState(null);
 
     useEffect(() => {
         let isMounted = true;
         
         const fetchEventDetails = async () => {
             try {
-                const data = await getEventByIdApi(eventId);
+                const [data, tasks] = await Promise.all([getEventByIdApi(eventId), getTasksApi(eventId)]);
                 if (isMounted) setEvent(data);
+                if (isMounted) setTask(tasks.find((item) => item.type === 'social_media') || null);
             } catch (error) {
                 console.error("Failed to load event for sharing:", error);
                 if (isMounted) navigate('/pr/galleries');
@@ -40,7 +46,7 @@ const PrSocialShare = () => {
     };
 
     const handleSelectAll = () => {
-        if (event?.gallery) {
+        if (event?.galleryStatus === 'approved' && event?.gallery) {
             setSelectedImages(event.gallery.map(img => img.url));
         }
     };
@@ -53,7 +59,7 @@ const PrSocialShare = () => {
         if (!event) return {};
 
         const eventUrl = `${window.location.origin}/student/events/${event._id}`;
-        const dateStr = new Date(event.date).toLocaleDateString();
+        const dateStr = formatDate(event.date);
         const safeClubName = (event.club?.name || 'ClubHub').replace(/\s+/g, '');
 
         const instagram = `🎉 ✨ Successfully Completed ✨ 🎉\n\n${event.title}\nOrganized by: ${event.club?.name || 'Our Team'}\n📍 Venue: ${event.venue} | 📅 Date: ${dateStr}\n\nThank you to everyone who made this event a grand success! Check out the official gallery on ClubHub!\n\nLink in bio! 🔗\n#ClubHub #${safeClubName} #CollegeEvent #Success`;
@@ -115,10 +121,18 @@ const PrSocialShare = () => {
         }
     };
 
+    const submitSocialWork = async () => {
+        if (!task) return;
+        await completeTaskApi(task._id, { text: 'Social-media publishing completed.' });
+        alert('Social-media task marked completed.');
+        navigate('/president/pr/dashboard');
+    };
+
     if (isLoading) return <div className="pr-social-page"><div className="loading-state">Loading Event Data...</div></div>;
     if (!event) return null;
 
     const templates = generateTemplates();
+    const isTaskLocked = ['completed', 'cancelled'].includes(task?.status);
 
     return (
         <div className="pr-social-page">
@@ -131,6 +145,13 @@ const PrSocialShare = () => {
                     <span className="club-chip">{event.club?.name}</span>
                 </div>
                 <p>Select event photos and generate optimized promotional content for <strong>{event.title}</strong>.</p>
+                <p>Assigned to {task?.assignee?.name || 'Unassigned'} ({task?.assignee?.usn || 'N/A'}) · Status: {task?.status || 'Not created'}</p>
+                <p>Assigned: {formatDate(task?.assignedAt)} | Due: {formatDate(task?.dueAt)}</p>
+                {task?.assignee?._id === user?._id && !['completed', 'cancelled'].includes(task?.status) && (
+                    <button className="btn-primary" onClick={submitSocialWork}>
+                        Mark Completed
+                    </button>
+                )}
             </div>
 
             <div className="social-workspace-grid">
@@ -139,7 +160,7 @@ const PrSocialShare = () => {
                         <h2>Event Reference</h2>
                         <div className="info-list">
                             <div className="info-item"><strong>Title:</strong> {event.title}</div>
-                            <div className="info-item"><strong>Date:</strong> {new Date(event.date).toLocaleDateString()}</div>
+                            <div className="info-item"><strong>Date:</strong> {formatDate(event.date)}</div>
                             <div className="info-item"><strong>Time:</strong> {event.time}</div>
                             <div className="info-item"><strong>Venue:</strong> {event.venue}</div>
                             <div className="info-item"><strong>Entry Fee:</strong> {event.eventType === 'Free' ? 'Free Entry' : `₹${event.price}`}</div>
@@ -155,14 +176,14 @@ const PrSocialShare = () => {
                     <div className="gallery-selection-card">
                         <div className="card-header">
                             <h2>Select Photos ({selectedImages.length} chosen)</h2>
-                            <div className="selection-actions">
+                            {!isTaskLocked && <div className="selection-actions">
                                 <button className="btn-text" onClick={handleSelectAll}>Select All</button>
                                 <button className="btn-text danger" onClick={handleClearSelection}>Clear</button>
-                            </div>
+                            </div>}
                         </div>
 
-                        {(!event.gallery || event.gallery.length === 0) ? (
-                            <div className="empty-gallery">No photos uploaded by Grafik yet.</div>
+                        {event.galleryStatus !== 'approved' || !event.gallery || event.gallery.length === 0 ? (
+                            <div className="empty-gallery">No approved Grafik photos are available yet.</div>
                         ) : (
                             <div className="thumbnail-grid">
                                 {event.gallery.map(img => {
@@ -171,7 +192,7 @@ const PrSocialShare = () => {
                                         <div 
                                             key={img.fileId} 
                                             className={`thumbnail-card ${isSelected ? 'selected' : ''}`}
-                                            onClick={() => handleToggleImage(img.url)}
+                                            onClick={() => !isTaskLocked && handleToggleImage(img.url)}
                                         >
                                             <img src={img.url} alt="Gallery Thumbnail" />
                                             <div className="selection-overlay">
@@ -201,14 +222,14 @@ const PrSocialShare = () => {
                                 <i className="ri-instagram-fill"></i> Instagram Format
                             </div>
                             <textarea readOnly value={templates.instagram}></textarea>
-                            <div className="card-actions">
+                            {!isTaskLocked && <div className="card-actions">
                                 <button className="btn-outline" onClick={() => handleCopyToClipboard(templates.instagram)}>
                                     <i className="ri-clipboard-line"></i> Copy
                                 </button>
                                 <button className="btn-solid" onClick={() => handleNativeShare(templates.instagram)}>
                                     <i className="ri-share-forward-line"></i> Share
                                 </button>
-                            </div>
+                            </div>}
                         </div>
 
                         <div className="template-card linkedin">
@@ -216,14 +237,14 @@ const PrSocialShare = () => {
                                 <i className="ri-linkedin-fill"></i> LinkedIn Format
                             </div>
                             <textarea readOnly value={templates.linkedin}></textarea>
-                            <div className="card-actions">
+                            {!isTaskLocked && <div className="card-actions">
                                 <button className="btn-outline" onClick={() => handleCopyToClipboard(templates.linkedin)}>
                                     <i className="ri-clipboard-line"></i> Copy
                                 </button>
                                 <button className="btn-solid" onClick={() => handleNativeShare(templates.linkedin)}>
                                     <i className="ri-share-forward-line"></i> Share
                                 </button>
-                            </div>
+                            </div>}
                         </div>
 
                         <div className="template-card whatsapp">
@@ -231,14 +252,14 @@ const PrSocialShare = () => {
                                 <i className="ri-whatsapp-fill"></i> WhatsApp Format
                             </div>
                             <textarea readOnly value={templates.whatsapp}></textarea>
-                            <div className="card-actions">
+                            {!isTaskLocked && <div className="card-actions">
                                 <button className="btn-outline" onClick={() => handleCopyToClipboard(templates.whatsapp)}>
                                     <i className="ri-clipboard-line"></i> Copy
                                 </button>
                                 <button className="btn-solid" onClick={() => handleNativeShare(templates.whatsapp)}>
                                     <i className="ri-share-forward-line"></i> Share
                                 </button>
-                            </div>
+                            </div>}
                         </div>
 
                         <div className="template-card twitter">
@@ -246,14 +267,14 @@ const PrSocialShare = () => {
                                 <i className="ri-twitter-x-fill"></i> X (Twitter) Format
                             </div>
                             <textarea readOnly value={templates.twitter}></textarea>
-                            <div className="card-actions">
+                            {!isTaskLocked && <div className="card-actions">
                                 <button className="btn-outline" onClick={() => handleCopyToClipboard(templates.twitter)}>
                                     <i className="ri-clipboard-line"></i> Copy
                                 </button>
                                 <button className="btn-solid" onClick={() => handleNativeShare(templates.twitter)}>
                                     <i className="ri-share-forward-line"></i> Share
                                 </button>
-                            </div>
+                            </div>}
                         </div>
                     </div>
                 </div>

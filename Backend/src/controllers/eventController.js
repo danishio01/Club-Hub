@@ -6,6 +6,10 @@ import { generatePosterBuffer } from '../services/bannerService.js';
 import { uploadBannerToImageKit, deleteBannerFromImageKit } from '../services/imagekitService.js';
 import { executeDynamicLifecycleBroadcasting } from '../services/notificationService.js';
 import { emitWorkflowUpdate } from '../services/socketService.js';
+import { activateTaskForEvent, createTaskForEvent, emitTaskChanged, finalizeTaskForEvent, reopenPosterTaskAfterStaffRejection } from './taskController.js';
+import Admin from '../models/adminModel.js';
+import EventTask from '../models/eventTaskModel.js';
+import { canAccessEventThroughTask } from '../services/taskAccessService.js';
 
 const populateEventQuery = (query) => query
     .populate('club', 'name isActive president members')
@@ -42,7 +46,7 @@ export const getPresidentEvents = async (req, res) => {
             : { club: club._id, 'creator.student': req.user._id };
 
         const events = await populateEventQuery(Event.find(filter))
-            .sort({ date: 1 })
+            .sort({ createdAt: -1 })
             .lean();
 
         const eventsWithCounts = await Promise.all(events.map(async (event) => {
@@ -62,27 +66,31 @@ export const createEvent = async (req, res) => {
             const club = await Club.findOne({ president: req.user._id });
             if (!club) return res.status(403).json({ success: false, message: 'You are not assigned to any club.' });
             req.body.club = club._id; 
-            req.body.status = 'review';
+            req.body.status = 'pending_grafik_poster';
             req.body.creator = getCreatorPayload(req.user, 'President');
         } else if (req.memberClub) {
             req.body.club = req.memberClub._id;
             req.body.status = 'pending_president';
             req.body.creator = getCreatorPayload(req.user, 'Club Member');
-        } else if (req.user.role === 'admin') {
+        } else if (['admin', 'faculty_coordinator'].includes(req.user.role)) {
             req.body.creator = {
-                name: req.user.name || req.user.email || req.user.adminId || 'Admin',
+                name: req.user.name || req.user.email || req.user.adminId || 'Faculty Coordinator',
                 usn: null,
-                role: 'Admin'
+                role: 'Faculty Coordinator'
             };
         }
 
         const event = new Event(req.body);
+        if (event.status === 'pending_grafik_poster' && !await Club.exists({ specialRole: 'grafik' })) {
+            return res.status(409).json({ success: false, message: 'Designate a Grafik club before submitting President-created events' });
+        }
         await event.save();
         const populatedEvent = await populateEventQuery(Event.findById(event._id));
         
         if (populatedEvent.status === 'pending_president') {
             await executeDynamicLifecycleBroadcasting('EVENT_CREATED', populatedEvent);
-        } else if (populatedEvent.status === 'review') {
+        } else if (populatedEvent.status === 'pending_grafik_poster') {
+            await createTaskForEvent(populatedEvent, 'poster', 'grafik');
             await executeDynamicLifecycleBroadcasting('EVENT_APPROVED', populatedEvent);
         }
         
@@ -95,7 +103,7 @@ export const createEvent = async (req, res) => {
 export const getEvents = async (req, res) => {
     try {
         const events = await populateEventQuery(Event.find())
-            .sort({ date: 1 })
+            .sort({ createdAt: -1 })
             .lean();
 
         const eventsWithCounts = await Promise.all(events.map(async (event) => {
@@ -113,6 +121,15 @@ export const getEventById = async (req, res) => {
     try {
         const event = await populateEventQuery(Event.findById(req.params.id)).lean();
         if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+        if (!['admin', 'faculty_coordinator', 'hod'].includes(req.user.role)) {
+            const ownsEventClub = event.club?.president?.toString() === req.user._id.toString()
+                || event.club?.members?.some((member) => member.toString() === req.user._id.toString());
+            const participatesInTask = await canAccessEventThroughTask(event._id, req.user);
+            const isPublishedStudentEvent = req.user.role === 'student' && ['approved', 'completed'].includes(event.status);
+            if (!ownsEventClub && !participatesInTask && !isPublishedStudentEvent) {
+                return res.status(403).json({ success: false, message: 'You cannot access this event' });
+            }
+        }
         
         const currentRegistrations = await Registration.countDocuments({ event: event._id });
         const feedbackCount = await Registration.countDocuments({ event: event._id, feedbackSubmittedAt: { $ne: null } });
@@ -178,7 +195,7 @@ export const updateEvent = async (req, res) => {
         const event = await populateEventQuery(Event.findByIdAndUpdate(id, updateData, { new: true }));
         
         if (event.status === 'pending_president') {
-            await executeDynamicLifecycleBroadcasting('EVENT_CREATED', event);
+            await executeDynamicLifecycleBroadcasting('EVENT_CREATED', event, { idempotencySuffix: String(event.updatedAt?.getTime?.() || Date.now()) });
         } else if (event.status === 'review') {
             await executeDynamicLifecycleBroadcasting('EVENT_APPROVED', event);
         }
@@ -232,17 +249,41 @@ export const deleteEvent = async (req, res) => {
 export const approveEvent = async (req, res) => {
     try {
         const { id } = req.params;
+        const posterTask = await EventTask.findOne({ event: id, type: 'poster' }).select('stage status');
+        const posterReadyForFaculty = posterTask
+            && (
+                ['approved_by_president', 'submitted_to_faculty'].includes(posterTask.stage)
+                || (!posterTask.stage && ['submitted', 'completed'].includes(posterTask.status))
+            );
+        if (!posterReadyForFaculty) {
+            return res.status(409).json({ success: false, message: 'Grafik President must approve the poster before Faculty Coordinator approval' });
+        }
         const event = await Event.findOneAndUpdate(
-            { _id: id, status: 'pending_admin' },
-            { status: 'approved', rejectedReason: null, rejectedBy: null, rejectedByModel: 'Admin', rejectedAt: null }, 
+            { _id: id, status: { $in: ['pending_faculty', 'pending_admin'] } },
+            {
+                status: 'pending_hod',
+                rejectedReason: null,
+                rejectedBy: null,
+                rejectedByModel: 'Admin',
+                rejectedAt: null,
+                'approvals.faculty': { reviewer: req.user._id, decidedAt: new Date(), decision: 'approved', reason: null }
+            },
             { new: true }
         ).populate('club', 'name isActive president members').populate('creator.student', 'name usn email');
         
         if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+        const updatedPosterTask = await EventTask.findOneAndUpdate(
+            { event: event._id, type: 'poster' },
+            { stage: 'submitted_to_hod' },
+            { new: true }
+        );
+        if (updatedPosterTask) emitTaskChanged(updatedPosterTask);
         
-        await executeDynamicLifecycleBroadcasting('FLYER_APPROVED', event);
+        const hods = await Admin.find({ role: 'hod', active: true }).select('_id');
+        await executeDynamicLifecycleBroadcasting('FACULTY_APPROVED', event);
+        emitWorkflowUpdate(event, 'event:updated', { status: event.status });
         
-        return res.status(200).json({ success: true, data: event, message: 'Event approved successfully' });
+        return res.status(200).json({ success: true, data: event, message: `Faculty approved. Sent to ${hods.length} HOD account(s).` });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to approve event' });
     }
@@ -257,33 +298,28 @@ export const rejectEvent = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Rejection reason is required.' });
         }
 
-        const eventToUpdate = await Event.findOne({ _id: id, status: 'pending_admin' });
+        const eventToUpdate = await Event.findOne({ _id: id, status: { $in: ['pending_faculty', 'pending_admin'] } });
         if (!eventToUpdate) return res.status(404).json({ success: false, message: 'Event not found' });
 
-        const targetStatus = rejectType === 'banner' ? 'banner_rejected' : 'rejected';
-
-        if (rejectType === 'event' && eventToUpdate.bannerFileId) {
-            try {
-                await deleteBannerFromImageKit(eventToUpdate.bannerFileId);
-                eventToUpdate.bannerUrl = null;
-                eventToUpdate.bannerFileId = null;
-            } catch (err) {}
-        }
+        const targetStatus = rejectType === 'banner' ? 'banner_rejected' : 'faculty_rejected';
 
         eventToUpdate.status = targetStatus;
         eventToUpdate.rejectedReason = reason;
         eventToUpdate.rejectedBy = req.user._id;
         eventToUpdate.rejectedByModel = 'Admin';
         eventToUpdate.rejectedAt = new Date();
+        eventToUpdate.approvals.faculty = { reviewer: req.user._id, decidedAt: new Date(), decision: 'rejected', reason };
         await eventToUpdate.save();
 
-        const populatedEvent = await populateEventQuery(Event.findById(id));
+          const populatedEvent = await populateEventQuery(Event.findById(id));
+          await reopenPosterTaskAfterStaffRejection(populatedEvent, 'rejected_by_faculty', req.user._id, reason.trim());
         
         if (targetStatus === 'banner_rejected') {
             await executeDynamicLifecycleBroadcasting('FLYER_REJECTED', populatedEvent);
         } else {
             await executeDynamicLifecycleBroadcasting('ADMIN_EVENT_REJECTED', populatedEvent);
         }
+        emitWorkflowUpdate(populatedEvent, 'event:updated', { status: populatedEvent.status });
         
         return res.status(200).json({ success: true, data: populatedEvent, message: 'Rejection processed successfully' });
     } catch (error) {
@@ -316,6 +352,10 @@ export const markEventCompleted = async (req, res) => {
         }
 
         const event = await populateEventQuery(Event.findByIdAndUpdate(id, { status: 'completed' }, { new: true }));
+        await Promise.all([
+            createTaskForEvent(event, 'gallery_upload', 'grafik'),
+            activateTaskForEvent(event, 'social_media', 'pr', req.user._id)
+        ]);
         await executeDynamicLifecycleBroadcasting('EVENT_COMPLETED', event, {
             actorId: req.user._id,
             actorRole: req.user.role
@@ -380,9 +420,14 @@ export const getStudentEventById = async (req, res) => {
 
 export const getGrafikEvents = async (req, res) => {
     try {
-        const events = await Event.find({ 
-            status: { $in: ['review', 'pending_admin', 'banner_rejected', 'approved', 'completed'] } 
-        }).populate('club', 'name isActive president members').populate('creator.student', 'name usn email').sort({ createdAt: -1 });
+        const isGrafikPresident = String(req.specialClub?.president || '') === String(req.user._id);
+        const filter = {};
+        if (isGrafikPresident) {
+            filter.status = { $in: ['review', 'pending_grafik_poster', 'poster_submitted', 'pending_faculty', 'pending_hod', 'banner_rejected', 'faculty_rejected', 'hod_rejected', 'approved', 'completed', 'gallery_in_progress', 'gallery_submitted'] };
+        } else {
+            filter._id = { $in: await EventTask.distinct('event', { responsibleClub: req.specialClub._id, assignee: req.user._id, type: { $in: ['poster', 'gallery_upload'] } }) };
+        }
+        const events = await Event.find(filter).populate('club', 'name isActive president members').populate('creator.student', 'name usn email').sort({ createdAt: -1 });
         
         return res.status(200).json({ success: true, data: events });
     } catch (error) {
@@ -392,7 +437,7 @@ export const getGrafikEvents = async (req, res) => {
 
 export const generateEventBanner = async (req, res) => {
     try {
-        const event = await Event.findOne({ _id: req.params.id, status: { $in: ['review', 'banner_rejected'] } }).populate('club');
+          const event = await Event.findOne({ _id: req.params.id, status: { $in: ['review', 'pending_grafik_poster', 'banner_rejected', 'faculty_rejected', 'hod_rejected'] } }).populate('club');
         if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
 
         if (event.bannerFileId) {
@@ -420,7 +465,7 @@ export const uploadCustomEventBanner = async (req, res) => {
         const { imageBase64 } = req.body;
         if (!imageBase64) return res.status(400).json({ success: false, message: 'Image data is required' });
 
-        const event = await Event.findOne({ _id: req.params.id, status: { $in: ['review', 'banner_rejected'] } });
+          const event = await Event.findOne({ _id: req.params.id, status: { $in: ['review', 'pending_grafik_poster', 'banner_rejected', 'faculty_rejected', 'hod_rejected'] } });
         if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
 
         if (event.bannerFileId) {
@@ -444,15 +489,55 @@ export const uploadCustomEventBanner = async (req, res) => {
 
 export const approveEventBanner = async (req, res) => {
     try {
+        const task = req.eventTask || await EventTask.findOne({ event: req.params.id, type: 'poster' });
+        if (!task) return res.status(404).json({ success: false, message: 'Poster task not found' });
+        const isGrafikPresident = String(req.specialClub?.president || '') === String(req.user._id);
+
+        if (!isGrafikPresident) {
+            if (String(task.assignee || '') !== String(req.user._id)) {
+                return res.status(403).json({ success: false, message: 'Only the assigned Grafik member can submit this poster' });
+            }
+            const event = await Event.findOneAndUpdate(
+                  { _id: req.params.id, status: { $in: ['review', 'pending_grafik_poster', 'banner_rejected', 'faculty_rejected', 'hod_rejected'] }, bannerUrl: { $ne: null } },
+                { status: 'poster_submitted' },
+                { new: true }
+            );
+            if (!event) return res.status(409).json({ success: false, message: 'Upload a poster before submitting it' });
+              task.status = 'submitted';
+              task.stage = 'submitted_to_president';
+            task.submission = { url: event.bannerUrl, text: 'Poster submitted to Grafik President for review.' };
+            task.audit.push({ action: 'submitted', actor: req.user._id, actorModel: 'Student', note: 'Submitted from Grafik workspace' });
+            await task.save();
+            emitTaskChanged(task);
+            emitWorkflowUpdate(event, 'event:updated', { status: event.status });
+            return res.status(200).json({ success: true, data: event, message: 'Poster submitted to Grafik President' });
+        }
+
+        if (task.status !== 'submitted') {
+            return res.status(409).json({ success: false, message: 'The assigned Grafik worker must submit the poster before President approval' });
+        }
         const event = await Event.findOneAndUpdate(
-            { _id: req.params.id, status: { $in: ['review', 'banner_rejected'] }, bannerUrl: { $ne: null } },
-            { status: 'pending_admin' }, 
+            { _id: req.params.id, status: 'poster_submitted', bannerUrl: { $ne: null } },
+            { status: 'pending_faculty' },
             { new: true }
         ).populate('club', 'name isActive president members').populate('creator.student', 'name usn email');
         
         if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
+        const updatedPosterTask = await EventTask.findOneAndUpdate(
+            { event: event._id, type: 'poster' },
+            {
+                  status: 'submitted',
+                  stage: 'submitted_to_faculty',
+                reviewedBy: req.user._id,
+                  completedAt: null,
+                $push: { audit: { action: 'approved', actor: req.user._id, actorModel: 'Student', note: 'Poster approved from Grafik workspace' } }
+            },
+            { new: true }
+        );
+        if (updatedPosterTask) emitTaskChanged(updatedPosterTask);
         await executeDynamicLifecycleBroadcasting('FLYER_GENERATED', event);
-        return res.status(200).json({ success: true, data: event, message: 'Flyer approved. Event submitted to Admin.' });
+        emitWorkflowUpdate(event, 'event:updated', { status: event.status });
+        return res.status(200).json({ success: true, data: event, message: 'Poster approved. Event submitted to Faculty Coordinator.' });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to approve flyer' });
     }
@@ -517,10 +602,17 @@ export const deleteGalleryImage = async (req, res) => {
 
 export const getPrCompletedEvents = async (req, res) => {
     try {
-        const events = await Event.find({ status: 'completed', 'gallery.0': { $exists: true } })
+        const isPrPresident = String(req.specialClub?.president || '') === String(req.user._id);
+        const taskFilter = { responsibleClub: req.specialClub._id, type: 'social_media' };
+        if (!isPrPresident) taskFilter.assignee = req.user._id;
+        const filter = {
+            status: 'completed',
+            _id: { $in: await EventTask.distinct('event', taskFilter) }
+        };
+        const events = await Event.find(filter)
             .populate('club', 'name isActive president members')
             .populate('creator.student', 'name usn email')
-            .sort({ date: -1 })
+            .sort({ createdAt: -1 })
             .lean();
         return res.status(200).json({ success: true, data: events });
     } catch (error) {
@@ -540,8 +632,12 @@ export const approveClubMemberProposal = async (req, res) => {
         if (event.status !== 'pending_president') {
             return res.status(400).json({ success: false, message: 'Only pending club member proposals can be approved' });
         }
+        if (!await Club.exists({ specialRole: 'grafik' })) {
+            return res.status(409).json({ success: false, message: 'Designate a Grafik club before approving event proposals' });
+        }
 
-        event.status = 'review';
+        event.status = 'pending_grafik_poster';
+        event.approvals.president = { reviewer: req.user._id, decidedAt: new Date(), decision: 'approved', reason: null };
         event.rejectedReason = null;
         event.rejectedBy = null;
         event.rejectedByModel = 'Admin';
@@ -549,12 +645,71 @@ export const approveClubMemberProposal = async (req, res) => {
         await event.save();
 
         const populatedEvent = await populateEventQuery(Event.findById(id));
+        await createTaskForEvent(populatedEvent, 'poster', 'grafik');
         await executeDynamicLifecycleBroadcasting('EVENT_APPROVED', populatedEvent);
         
         return res.status(200).json({ success: true, data: populatedEvent, message: 'Proposal approved and sent to Grafik' });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to approve proposal' });
     }
+};
+
+export const getPrEvents = async (req, res) => {
+    try {
+        const isPrPresident = String(req.specialClub?.president || '') === String(req.user._id);
+        const filter = isPrPresident ? { status: { $in: ['approved', 'completed'] } } : {};
+        if (!isPrPresident) {
+            filter._id = { $in: await EventTask.distinct('event', { responsibleClub: req.specialClub._id, assignee: req.user._id, type: { $in: ['attendance', 'social_media'] } }) };
+        }
+        const events = await Event.find(filter).populate('club', 'name').populate('creator.student', 'name usn email').sort({ createdAt: -1 });
+        return res.json({ success: true, data: events });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Failed to fetch PR events' });
+    }
+};
+
+export const approveEventByHod = async (req, res) => {
+    if (!await Club.exists({ specialRole: 'pr' })) {
+        return res.status(409).json({ success: false, message: 'Designate a PR club before final event approval' });
+    }
+    const event = await populateEventQuery(Event.findOneAndUpdate(
+        { _id: req.params.id, status: 'pending_hod' },
+        {
+            status: 'approved',
+            'approvals.hod': { reviewer: req.user._id, decidedAt: new Date(), decision: 'approved', reason: null }
+        },
+        { new: true }
+    ));
+      if (!event) return res.status(404).json({ success: false, message: 'Event awaiting HOD approval not found' });
+      await finalizeTaskForEvent(event, 'poster', req.user._id);
+    await Promise.all([
+        createTaskForEvent(event, 'attendance', 'pr'),
+        createTaskForEvent(event, 'social_media', 'pr')
+    ]);
+    await executeDynamicLifecycleBroadcasting('HOD_APPROVED', event);
+    emitWorkflowUpdate(event, 'event:updated', { status: event.status });
+    return res.json({ success: true, data: event, message: 'Event published to students' });
+};
+
+export const rejectEventByHod = async (req, res) => {
+    if (!req.body.reason?.trim()) return res.status(400).json({ success: false, message: 'Rejection reason is required' });
+    const event = await populateEventQuery(Event.findOneAndUpdate(
+        { _id: req.params.id, status: 'pending_hod' },
+        {
+            status: 'hod_rejected',
+            rejectedReason: req.body.reason.trim(),
+            rejectedBy: req.user._id,
+            rejectedByModel: 'Admin',
+            rejectedAt: new Date(),
+            'approvals.hod': { reviewer: req.user._id, decidedAt: new Date(), decision: 'rejected', reason: req.body.reason.trim() }
+        },
+        { new: true }
+    ));
+      if (!event) return res.status(404).json({ success: false, message: 'Event awaiting HOD approval not found' });
+      await reopenPosterTaskAfterStaffRejection(event, 'rejected_by_hod', req.user._id, req.body.reason.trim());
+    await executeDynamicLifecycleBroadcasting('HOD_REJECTED', event);
+    emitWorkflowUpdate(event, 'event:updated', { status: event.status });
+    return res.json({ success: true, data: event });
 };
 
 export const rejectClubMemberProposal = async (req, res) => {

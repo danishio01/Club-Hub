@@ -8,18 +8,18 @@ import {
     deleteStudent,
     updateStudentInterests
 } from '../controllers/studentController.js';
-import { adminOnly, protect, selfOrAdmin } from '../middleware/authMiddleware.js';
+import { facultyOnly, protect, selfOrAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/', protect, adminOnly, createStudent);
-router.post('/bulk', protect, adminOnly, createManyStudents);
-router.get('/', protect, adminOnly, getStudents);
+router.post('/', protect, facultyOnly, createStudent);
+router.post('/bulk', protect, facultyOnly, createManyStudents);
+router.get('/', protect, facultyOnly, getStudents);
 
-router.put('/bulk-update', protect, adminOnly, bulkUpdateStudents);
-router.put('/:id', protect, adminOnly, updateStudent);
+router.put('/bulk-update', protect, facultyOnly, bulkUpdateStudents);
+router.put('/:id', protect, facultyOnly, updateStudent);
 router.put('/:id/interests', protect, selfOrAdmin, updateStudentInterests);
 
-router.delete('/:id', protect, adminOnly, deleteStudent);
+router.delete('/:id', protect, facultyOnly, deleteStudent);
 
 export default router;

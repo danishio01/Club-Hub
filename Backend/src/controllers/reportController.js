@@ -48,6 +48,11 @@ export const saveDraft = async (req, res) => {
         );
 
         if (!report) return res.status(404).json({ success: false, message: 'Report not found or locked.' });
+        const event = await Event.findById(eventId);
+        if (event) {
+            await executeDynamicLifecycleBroadcasting('REPORT_EDITED', event, { idempotencySuffix: String(report.updatedAt?.getTime?.() || Date.now()) });
+            emitWorkflowUpdate(event, 'report:changed', { reportStatus: report.status });
+        }
         return res.status(200).json({ success: true, data: report, message: 'Draft saved.' });
     } catch (error) {
         console.error(error);
@@ -136,11 +141,12 @@ export const submitReport = async (req, res) => {
 
         await executeDynamicLifecycleBroadcasting('REPORT_SUBMITTED', event, {
             actorId: req.user._id,
-            actorRole: req.user.role
+            actorRole: req.user.role,
+            idempotencySuffix: String(report.updatedAt?.getTime?.() || Date.now())
         });
         emitWorkflowUpdate(event, 'report:changed', { reportStatus: report.status });
 
-        return res.status(200).json({ success: true, data: report, message: 'Report submitted successfully to Admin.' });
+        return res.status(200).json({ success: true, data: report, message: 'Report submitted successfully to the Faculty Coordinator.' });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ success: false, message: 'Failed to submit report' });
@@ -203,7 +209,7 @@ export const rejectReportAdmin = async (req, res) => {
         if (!report) return res.status(404).json({ success: false, message: 'Submitted report not found.' });
         const event = await Event.findById(report.event);
         if (event) {
-            await executeDynamicLifecycleBroadcasting('REPORT_REJECTED', event);
+            await executeDynamicLifecycleBroadcasting('REPORT_REJECTED', event, { idempotencySuffix: String(report.updatedAt?.getTime?.() || Date.now()) });
             emitWorkflowUpdate(event, 'report:changed', { reportStatus: report.status });
         }
         return res.status(200).json({ success: true, data: report, message: 'Report rejected with feedback.' });

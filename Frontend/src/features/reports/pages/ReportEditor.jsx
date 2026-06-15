@@ -118,7 +118,7 @@ const ReportEditor = () => {
             setIsSaving(true);
             try {
                 await submitReportApi(eventId, { content });
-                alert("Report successfully generated and submitted to Admin.");
+                alert("Report successfully generated and submitted to the Faculty Coordinator.");
                 navigate('/president/events');
             } catch (error) {
                 console.error(error);
@@ -182,7 +182,7 @@ const ReportEditor = () => {
                                 <i className="ri-save-line"></i> {isSaving ? 'Saving...' : 'Save Draft'}
                             </button>
                             <button className="btn-primary" onClick={handleSubmit} disabled={isSaving}>
-                                <i className="ri-send-plane-fill"></i> Submit to Admin
+                                <i className="ri-send-plane-fill"></i> Submit to Faculty Coordinator
                             </button>
                         </>
                     )}
@@ -198,7 +198,7 @@ const ReportEditor = () => {
                 <div className="admin-remarks-banner">
                     <i className="ri-feedback-fill"></i>
                     <div>
-                        <strong>Admin Feedback:</strong>
+                        <strong>Faculty Coordinator Feedback:</strong>
                         <p>{report.adminRemarks}</p>
                     </div>
                 </div>

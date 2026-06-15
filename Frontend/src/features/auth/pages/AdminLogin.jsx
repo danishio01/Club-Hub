@@ -16,8 +16,8 @@ const AdminLogin = () => {
     useEffect(() => {
         const verifyAdminStatus = async () => {
             try {
-                await axiosInstance.get('/admin/me');
-                navigate('/admin/dashboard', { replace: true });
+                const response = await axiosInstance.get('/staff/me');
+                navigate(response.data.data.role === 'hod' ? '/hod/dashboard' : '/faculty/dashboard', { replace: true });
             } catch (error) {
                 // Not authenticated as admin, safe to remain on login screen
                 console.log("Awaiting Admin Login...");
@@ -33,8 +33,8 @@ const AdminLogin = () => {
         if (!adminId || !password) return;
         
         try {
-            await dispatch(loginAdmin({ adminId, password }));
-            navigate('/admin/dashboard', { replace: true });
+            const account = await dispatch(loginAdmin({ adminId, password }));
+            navigate(account.role === 'hod' ? '/hod/dashboard' : '/faculty/dashboard', { replace: true });
         } catch (err) {
             console.error("Admin Login Failed:", err);
         }
@@ -51,13 +51,14 @@ const AdminLogin = () => {
                     />
                     <h1 className="college-name">Gopalan College of Engineering and Management</h1>
                     <h2 className="portal-title">Club Activity Management Portal</h2>
+                    <h3 className="portal-title">Faculty / HOD Login</h3>
                 </div>
 
                 {error && <div className="error-message">{error}</div>}
 
                 <form className="login-form" onSubmit={handleSubmit}>
                     <div className="input-group">
-                        <label htmlFor="adminId" className="input-label">Administrator ID</label>
+                        <label htmlFor="adminId" className="input-label">Staff ID</label>
                         <input
                             id="adminId"
                             type="text"

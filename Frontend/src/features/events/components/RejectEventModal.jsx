@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import '../style/EventModals.scss';
 
-const RejectEventModal = ({ onClose, onConfirm }) => {
+const RejectEventModal = ({ onClose, onConfirm, allowTargetSelection = true, title = 'Reject Event Submission' }) => {
     const [reason, setReason] = useState('');
     const [rejectType, setRejectType] = useState('banner');
 
@@ -14,19 +14,19 @@ const RejectEventModal = ({ onClose, onConfirm }) => {
             return;
         }
         
-        onConfirm({ reason: trimmedReason, rejectType });
+        onConfirm({ reason: trimmedReason, rejectType: allowTargetSelection ? rejectType : 'event' });
     };
 
     return (
         <div className="modal-overlay">
             <div className="modal-container" style={{ maxWidth: '500px' }}>
                 <div className="modal-header">
-                    <h2>Reject Event Submission</h2>
+                    <h2>{title}</h2>
                     <button className="close-button" onClick={onClose}><i className="ri-close-line"></i></button>
                 </div>
                 <form onSubmit={handleSubmit}>
                     <div className="modal-body">
-                        <div className="form-group">
+                        {allowTargetSelection && <div className="form-group">
                             <label style={{ color: '#0f172a' }}>Rejection Target *</label>
                             <select 
                                 value={rejectType} 
@@ -36,7 +36,7 @@ const RejectEventModal = ({ onClose, onConfirm }) => {
                                 <option value="banner">Reject Flyer Design (Returns to Grafik)</option>
                                 <option value="event">Reject Entire Event Details (Returns to President)</option>
                             </select>
-                        </div>
+                        </div>}
 
                         <div className="form-group">
                             <label style={{ color: '#dc2626' }}>Reason for Rejection *</label>

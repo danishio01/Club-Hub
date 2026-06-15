@@ -8,7 +8,8 @@ const EditClubModal = ({ club, onClose, onSuccess }) => {
         name: club?.name || '',
         description: club?.description || '',
         president: club?.president?._id || '',
-        isActive: club?.isActive ?? true
+        isActive: club?.isActive ?? true,
+        specialRole: club?.specialRole || ''
     });
     const [presidents, setPresidents] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -16,7 +17,7 @@ const EditClubModal = ({ club, onClose, onSuccess }) => {
     useEffect(() => {
         const fetchPresidents = async () => {
             try {
-                const res = await axiosInstance.get('/students?role=president');
+                const res = await axiosInstance.get(`/clubs/available-students?position=president&clubId=${club._id}`);
                 const loadedPresidents = res.data.data;
                 
                 // If current president is not in the list (e.g. role changed), we still want to show them if they exist in club
@@ -81,6 +82,14 @@ const EditClubModal = ({ club, onClose, onSuccess }) => {
                         <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '10px', marginTop: '8px' }}>
                             <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} style={{ width: 'auto' }} />
                             <label style={{ margin: 0 }}>Active Club</label>
+                        </div>
+                        <div className="form-group">
+                            <label>College-Wide Special Responsibility</label>
+                            <select name="specialRole" value={formData.specialRole} onChange={handleChange}>
+                                <option value="">Normal Club</option>
+                                <option value="pr">Designated PR Club</option>
+                                <option value="grafik">Designated Grafik Club</option>
+                            </select>
                         </div>
                     </div>
                     <div className="modal-footer">

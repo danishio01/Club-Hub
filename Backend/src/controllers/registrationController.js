@@ -2,16 +2,18 @@ import Registration from '../models/registrationModel.js';
 import Event from '../models/eventModel.js';
 import Student from '../models/studentModel.js';
 import Club from '../models/clubModel.js';
+import ClubAssignment from '../models/clubAssignmentModel.js';
 import jwt from 'jsonwebtoken';
 import { ChatMistralAI } from "@langchain/mistralai";
 import { HumanMessage } from "@langchain/core/messages";
 import { dispatchNotification } from '../services/notificationService.js';
 import { jwtSecret } from '../config/auth.js';
 import { emitWorkflowUpdate } from '../services/socketService.js';
+import { findAccessibleEventTask } from '../services/taskAccessService.js';
 
 const blockClubMemberStudentFeature = (req, res) => {
-    if (req.user?.isClubMember) {
-        res.status(403).json({ success: false, message: 'Club members do not have access to student attendance or review features.' });
+    if (req.user?.clubAssignment || req.user?.isClubMember || req.user?.role === 'president') {
+        res.status(403).json({ success: false, message: 'Club Presidents and members do not participate in student attendance, reviews, certificates, or leaderboard points.' });
         return true;
     }
     return false;
@@ -30,7 +32,8 @@ export const registerForEvent = async (req, res) => {
         const existingRegistration = await Registration.findOne({ student: studentId, event: eventId });
         if (existingRegistration) return res.status(400).json({ success: false, message: 'You are already registered for this event.' });
 
-        const currentRegistrations = await Registration.countDocuments({ event: eventId });
+        const assignedStudentIds = await ClubAssignment.distinct('student');
+        const currentRegistrations = await Registration.countDocuments({ event: eventId, student: { $nin: assignedStudentIds } });
         if (currentRegistrations >= event.maxParticipants) return res.status(400).json({ success: false, message: 'Sorry, this event is full!' });
 
         const registration = new Registration({ student: studentId, event: eventId });
@@ -42,7 +45,8 @@ export const registerForEvent = async (req, res) => {
             title: "Registration Confirmed",
             message: `Successfully registered for event "${event.title}". See you there!`,
             type: 'SYSTEM',
-            referenceId: event._id
+            referenceId: event._id,
+            idempotencyKey: `registration:${registration._id}:confirmed`
         });
 
         return res.status(201).json({ success: true, message: 'Successfully registered for the event!' });
@@ -61,7 +65,16 @@ export const getEventRegistrations = async (req, res) => {
         const event = await Event.findById(eventId).populate('club');
         if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
 
-        if (req.user?.isClubMember) {
+        const prAttendanceWorker = await findAccessibleEventTask({
+            eventId,
+            types: 'attendance',
+            specialRole: 'pr',
+            user: req.user
+        });
+
+        if (prAttendanceWorker || ['admin', 'faculty_coordinator', 'hod'].includes(req.user.role)) {
+            // Attendance operators and staff may view the registrations.
+        } else if (req.user?.isClubMember) {
             if (event.creator?.student?.toString() !== req.user._id.toString()) {
                 return res.status(403).json({ success: false, message: 'Club members can only view registrations for their own events.' });
             }
@@ -73,7 +86,8 @@ export const getEventRegistrations = async (req, res) => {
             }
         }
 
-        const registrations = await Registration.find({ event: eventId })
+        const assignedStudentIds = await ClubAssignment.distinct('student');
+        const registrations = await Registration.find({ event: eventId, student: { $nin: assignedStudentIds } })
             .populate('student', 'name usn email department semester section')
             .sort({ createdAt: -1 });
 
@@ -119,7 +133,8 @@ export const markAttendance = async (req, res) => {
             title: "Attendance Scanned",
             message: `Attendance scanned for "${event?.title || 'Event'}". Submit feedback to finalize and earn points.`,
             type: 'SYSTEM',
-            referenceId: eventId
+            referenceId: eventId,
+            idempotencyKey: `registration:${registration._id}:scanned`
         });
 
         return res.status(200).json({ success: true, message: 'QR Scanned! Please submit a review to mark your attendance and earn points.' });
@@ -243,10 +258,8 @@ export const getAdminAttendanceReport = async (req, res) => {
             eventDateMap[formattedDate].push(e);
         });
 
-        const clubs = await Club.find().select('members').lean();
-        const memberIds = new Set(clubs.flatMap(club => (club.members || []).map(member => member.toString())));
-        const students = await Student.find({ role: 'student' }).select('name usn department section semester').lean();
-        const attendanceStudents = students.filter(student => !memberIds.has(student._id.toString()));
+        const assignedIds = await ClubAssignment.distinct('student');
+        const attendanceStudents = await Student.find({ role: 'student', _id: { $nin: assignedIds } }).select('name usn department section semester').lean();
         const allRegs = await Registration.find().lean();
 
         const regMap = {};

@@ -34,3 +34,15 @@ export const deleteBannerFromImageKit = async (fileId) => {
         throw error;
     }
 };
+
+export const uploadImageToImageKit = async (bufferOrBase64, filename, folder = '/ClubHub/Banners/') => {
+    const fileData = Buffer.isBuffer(bufferOrBase64)
+        ? bufferOrBase64.toString('base64')
+        : bufferOrBase64.replace(/^data:image\/[a-zA-Z0-9+.-]+;base64,/, '');
+    const response = await imagekit.upload({
+        file: fileData,
+        fileName: `${filename}_${Date.now()}.png`,
+        folder
+    });
+    return { url: response.url, fileId: response.fileId };
+};

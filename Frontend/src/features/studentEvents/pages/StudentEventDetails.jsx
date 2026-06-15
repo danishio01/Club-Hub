@@ -4,6 +4,7 @@ import { Scanner } from '@yudiel/react-qr-scanner';
 import { getStudentEventByIdApi, registerForEventApi, createPaymentOrderApi, verifyPaymentApi, markAttendanceApi } from '../service/studentEventsService';
 import '../style/StudentEventDetails.scss';
 import useRealtimeEventRefresh from '../../events/hooks/useRealtimeEventRefresh';
+import { formatDate } from '../../../utils/dateFormat';
 
 const loadRazorpayScript = () => {
     return new Promise((resolve) => {
@@ -91,7 +92,7 @@ const StudentEventDetails = () => {
                             await reloadEvent();
                         } catch (err) {
                             console.error("Payment Verification Event Error:", err);
-                            alert('Payment verification failed. Please contact admin.');
+                            alert('Payment verification failed. Please contact the Faculty Coordinator.');
                         }
                     },
                     theme: { color: "#2563eb" }
@@ -137,7 +138,7 @@ const StudentEventDetails = () => {
     if (!event) return null;
 
     const isFull = event.currentRegistrations >= event.maxParticipants;
-    const formattedDate = new Date(event.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    const formattedDate = formatDate(event.date);
 
     return (
         <div className="student-event-details">

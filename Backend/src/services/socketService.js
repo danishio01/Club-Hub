@@ -32,8 +32,10 @@ export const emitWorkflowUpdate = (event, eventName, extra = {}) => {
     const creatorId = event?.creator?.student?._id || event?.creator?.student;
     emitToRooms([
         'role:admin',
-        'role:pr',
-        'role:grafik',
+        'role:faculty_coordinator',
+        'role:hod',
+        'special:pr',
+        'special:grafik',
         'role:student',
         clubId ? `club:${clubId}` : null,
         presidentId ? `user:${presidentId}` : null,

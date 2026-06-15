@@ -2,6 +2,7 @@ import { io } from 'socket.io-client';
 import { API_ORIGIN } from '../../../api/axiosInstance';
 
 let socket;
+let subscriberCount = 0;
 
 const getSocket = () => {
     if (socket) return socket;
@@ -18,12 +19,15 @@ const getSocket = () => {
 
 export const subscribeToRealtimeNotifications = ({ onNotification, onEventsChanged }) => {
     const client = getSocket();
+    subscriberCount += 1;
     const workflowEvents = [
         'registrations:changed',
         'attendance:changed',
         'event:updated',
         'gallery:changed',
         'report:changed'
+        ,'tasks:changed',
+        'clubs:changed'
     ];
     const forwardWorkflowEvent = (eventName) => (payload) => {
         console.info(`[SOCKET] ${eventName} received`, payload);
@@ -43,5 +47,10 @@ export const subscribeToRealtimeNotifications = ({ onNotification, onEventsChang
         client.off('notification:new', notificationHandler);
         client.off('events:changed', onEventsChanged);
         workflowHandlers.forEach(([eventName, handler]) => client.off(eventName, handler));
+        subscriberCount = Math.max(0, subscriberCount - 1);
+        if (subscriberCount === 0) {
+            client.disconnect();
+            socket = undefined;
+        }
     };
 };

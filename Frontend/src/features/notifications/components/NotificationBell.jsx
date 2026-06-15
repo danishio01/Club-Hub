@@ -24,6 +24,7 @@ import {
 } from '../service/fcmClient';
 import { subscribeToRealtimeNotifications } from '../service/socketClient';
 import '../style/NotificationBell.scss';
+import { formatDateTime } from '../../../utils/dateFormat';
 
 const NotificationBell = () => {
     const dispatch = useDispatch();
@@ -68,15 +69,18 @@ const NotificationBell = () => {
         const data = payload.data || payload;
         const title = payload.notification?.title || data.title || 'ClubHub Notification';
         const message = payload.notification?.body || data.body || data.message || 'A new update is available.';
+        const key = `${data.type || ''}:${data.referenceId || ''}:${title}:${message}`;
+        const lastDelivered = recentDeliveries.current.get(key) || 0;
+        if (Date.now() - lastDelivered < 15000) return;
+        recentDeliveries.current.set(key, Date.now());
 
-        // System display is intentionally before toast/bell deduplication.
         try {
             showSystemNotification({
                 title,
                 body: message,
                 data: { ...data, source },
-                tag: `clubhub-${source.toLowerCase()}-${data._id || data.referenceId || Date.now()}`,
-                targetUrl: user?.role === 'admin' ? '/admin/dashboard' : (data.url || '/')
+                tag: `clubhub-${data.type || 'notification'}-${data.referenceId || data._id || 'general'}`,
+                targetUrl: user?.role === 'hod' ? '/hod/dashboard' : ['admin', 'faculty_coordinator'].includes(user?.role) ? '/faculty/dashboard' : (data.url || '/')
             });
         } catch (error) {
             console.error('[SYSTEM NOTIFICATION] Display failed', {
@@ -85,11 +89,6 @@ const NotificationBell = () => {
                 message: error.message
             });
         }
-
-        const key = `${data.type || ''}:${data.referenceId || ''}:${title}`;
-        const lastDelivered = recentDeliveries.current.get(key) || 0;
-        if (Date.now() - lastDelivered < 5000) return;
-        recentDeliveries.current.set(key, Date.now());
 
         console.info(`[${source}] Notification received`, { title, type: data.type, referenceId: data.referenceId });
         await playNotificationSound();
@@ -224,7 +223,7 @@ const NotificationBell = () => {
         }
     };
 
-    const displayTime = (value) => value ? new Date(value).toLocaleString() : 'Never';
+    const displayTime = (value) => formatDateTime(value);
 
     const handleMarkAsRead = async (id) => {
         try {
@@ -344,7 +343,7 @@ const NotificationBell = () => {
                                     <div className="item-title">{alert.title}</div>
                                     <div className="item-message">{alert.message}</div>
                                     <div className="item-time">
-                                        {new Date(alert.createdAt).toLocaleString()}
+                                        {formatDateTime(alert.createdAt)}
                                     </div>
                                 </div>
                                 {!alert.isRead && <span className="unread-dot"></span>}

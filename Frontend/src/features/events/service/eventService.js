@@ -48,6 +48,16 @@ export const rejectEventApi = async (id, payload) => {
     return response.data.data;
 };
 
+export const approveEventByHodApi = async (id) => {
+    const response = await axiosInstance.patch(`/events/${id}/hod/approve`);
+    return response.data.data;
+};
+
+export const rejectEventByHodApi = async (id, reason) => {
+    const response = await axiosInstance.patch(`/events/${id}/hod/reject`, { reason });
+    return response.data.data;
+};
+
 export const approveProposalApi = async (id) => {
     const response = await axiosInstance.patch(`/events/${id}/proposal/approve`);
     return response.data.data;
@@ -120,6 +130,11 @@ export const deleteGalleryImageApi = async (id, fileId) => {
 
 export const getPrCompletedEventsApi = async () => {
     const response = await axiosInstance.get('/events/pr/galleries');
+    return response.data.data;
+};
+
+export const getPrEventsApi = async () => {
+    const response = await axiosInstance.get('/events/pr/all');
     return response.data.data;
 };
 

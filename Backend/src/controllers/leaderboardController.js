@@ -1,8 +1,10 @@
 import Student from '../models/studentModel.js';
+import ClubAssignment from '../models/clubAssignmentModel.js';
 
 export const getLeaderboard = async (req, res) => {
     try {
-        const students = await Student.find({ role: 'student' })
+        const assignedStudentIds = await ClubAssignment.distinct('student');
+        const students = await Student.find({ role: 'student', _id: { $nin: assignedStudentIds } })
             .select('name usn points department')
             .sort({ points: -1, name: 1 })
             .lean();
@@ -20,7 +22,8 @@ export const getLeaderboard = async (req, res) => {
 
 export const resetLeaderboard = async (req, res) => {
     try {
-        await Student.updateMany({ role: 'student' }, { points: 0 });
+        const assignedStudentIds = await ClubAssignment.distinct('student');
+        await Student.updateMany({ role: 'student', _id: { $nin: assignedStudentIds } }, { points: 0 });
         return res.status(200).json({ success: true, message: 'Leaderboard reset successfully' });
     } catch (error) {
         return res.status(500).json({ success: false, message: 'Failed to reset leaderboard' });

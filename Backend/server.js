@@ -40,14 +40,15 @@ io.use(async (socket, next) => {
         if (!token) return next(new Error('Authentication required'));
 
         const decoded = jwt.verify(decodeURIComponent(token), jwtSecret);
-        const user = decoded.role === 'admin'
+        const isStaff = ['admin', 'faculty_coordinator', 'hod'].includes(decoded.role);
+        const user = isStaff
             ? await Admin.findById(decoded.id).select('_id')
             : await Student.findById(decoded.id).select('_id role department');
         if (!user) return next(new Error('User no longer exists'));
 
         socket.user = {
             id: String(user._id),
-            role: decoded.role === 'admin' ? 'admin' : user.role,
+            role: isStaff ? decoded.role : user.role,
             department: user.department
         };
         next();
@@ -62,11 +63,16 @@ io.on('connection', async (socket) => {
     socket.join(`role:${socket.user.role}`);
     if (socket.user.department) socket.join(`department:${socket.user.department}`);
 
-    if (socket.user.role !== 'admin') {
+    if (!['admin', 'faculty_coordinator', 'hod'].includes(socket.user.role)) {
         const clubs = await Club.find({
             $or: [{ president: socket.user.id }, { members: socket.user.id }]
         }).select('_id');
         clubs.forEach((club) => socket.join(`club:${club._id}`));
+        const specialClubs = await Club.find({
+            specialRole: { $in: ['pr', 'grafik'] },
+            $or: [{ president: socket.user.id }, { members: socket.user.id }]
+        }).select('specialRole');
+        specialClubs.forEach((club) => socket.join(`special:${club.specialRole}`));
     }
 
     console.info('[SOCKET] Client connected', {

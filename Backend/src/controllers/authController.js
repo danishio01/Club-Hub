@@ -8,12 +8,15 @@ const buildStudentSession = async (student) => {
     let clubId = null;
     let isClubMember = false;
     let clubMemberRole = null;
+    let specialClubRole = null;
 
     if (student.role === 'president') {
         const club = await Club.findOne({ president: student._id });
         if (club) {
             clubName = club.name;
             clubId = club._id;
+            clubMemberRole = 'president';
+            specialClubRole = club.specialRole || null;
         }
     } else {
         const club = await Club.findOne({ members: student._id });
@@ -21,7 +24,8 @@ const buildStudentSession = async (student) => {
             clubName = club.name;
             clubId = club._id;
             isClubMember = true;
-            clubMemberRole = 'clubMember';
+            clubMemberRole = club.specialRole || 'clubMember';
+            specialClubRole = club.specialRole || null;
         }
     }
 
@@ -38,16 +42,21 @@ const buildStudentSession = async (student) => {
         clubName,
         clubId,
         isClubMember,
-        clubMemberRole
+        clubMemberRole,
+        specialClubRole
     };
 };
 
 export const studentLogin = async (req, res) => {
     try {
         const { identifier, password } = req.body;
+        const normalizedIdentifier = identifier?.trim();
         
         const student = await Student.findOne({
-            $or: [{ email: identifier }, { usn: identifier }]
+            $or: [
+                { email: normalizedIdentifier?.toLowerCase() },
+                { usn: normalizedIdentifier?.toUpperCase() }
+            ]
         });
 
         if (!student) {

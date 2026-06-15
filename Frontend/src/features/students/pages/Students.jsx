@@ -131,8 +131,8 @@ const Students = () => {
                                     <td>
                                         <span style={{ 
                                             padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, textTransform: 'capitalize',
-                                            backgroundColor: student.role === 'president' ? '#fef08a' : student.role === 'pr' ? '#e9d5ff' : student.role === 'grafik' ? '#fbcfe8' : '#f1f5f9',
-                                            color: student.role === 'president' ? '#854d0e' : student.role === 'pr' ? '#6b21a8' : student.role === 'grafik' ? '#831843' : '#475569'
+                                            backgroundColor: student.role === 'president' ? '#fef08a' : '#f1f5f9',
+                                            color: student.role === 'president' ? '#854d0e' : '#475569'
                                         }}>
                                             {student.role}
                                         </span>

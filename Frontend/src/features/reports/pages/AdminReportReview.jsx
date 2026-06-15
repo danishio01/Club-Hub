@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getAllAdminReportsList, rejectReportApi, reviewReportApi } from '../service/reportService';
 import '../style/AdminReportReview.scss';
+import { formatDate } from '../../../utils/dateFormat';
 
 const AdminReportReview = () => {
     const dispatch = useDispatch();
@@ -129,7 +130,7 @@ const AdminReportReview = () => {
                     )}
 
                     <div className="admin-remarks-input" style={{ marginTop: '24px' }}>
-                        <label>Admin Feedback / Remarks</label>
+                        <label>Faculty Coordinator Feedback / Remarks</label>
                         <textarea 
                             rows="3" 
                             placeholder="Add internal remarks or feedback for the club..."
@@ -175,7 +176,7 @@ const AdminReportReview = () => {
                         <div key={report._id} className="report-card">
                             <div className="card-header">
                                 <span className={`status-badge ${report.status}`}>{report.status}</span>
-                                <span className="date-text">{new Date(report.submittedAt).toLocaleDateString()}</span>
+                                <span className="date-text">{formatDate(report.submittedAt)}</span>
                             </div>
                             <h3>{report.event?.title}</h3>
                             <div className="meta-text">

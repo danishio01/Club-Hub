@@ -13,8 +13,8 @@ const PresidentLayout = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
-        if (!user) dispatch(checkAuthStatus());
-    }, [dispatch, user]);
+        dispatch(checkAuthStatus());
+    }, [dispatch]);
 
     useEffect(() => {
         if (!isCheckingAuth) {
@@ -53,7 +53,7 @@ const PresidentLayout = () => {
     if (isCheckingAuth || !user) return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Authenticating President...</div>;
 
     const clubLabel = user.clubName ? user.clubName : 'Unassigned';
-    const userRoleLabel = user.isClubMember ? 'Club Member' : 'President';
+    const userRoleLabel = user.role === 'president' ? 'President' : 'Club Member';
 
     return (
         <div className="president-layout">
@@ -73,6 +73,21 @@ const PresidentLayout = () => {
                     <NavLink to="/president/events" className={`nav-item ${isActiveLink('/president/events') ? 'active' : ''}`} onClick={closeSidebar}>
                         <i className="ri-calendar-event-line"></i> Event Management
                     </NavLink>
+                    <NavLink to="/president/tasks" className={`nav-item ${isActiveLink('/president/tasks') ? 'active' : ''}`} onClick={closeSidebar}>
+                        <i className="ri-task-line"></i> {user?.specialClubRole ? `${user.specialClubRole.toUpperCase()} Work` : 'Assigned Work'}
+                    </NavLink>
+                    {user?.specialClubRole === 'pr' && (
+                        <>
+                            <NavLink to="/president/pr/dashboard" className="nav-item" onClick={closeSidebar}><i className="ri-qr-scan-2-line"></i> PR Assigned Work</NavLink>
+                            <NavLink to="/president/pr/galleries" className="nav-item" onClick={closeSidebar}><i className="ri-gallery-line"></i> PR Event Gallery</NavLink>
+                        </>
+                    )}
+                    {user?.specialClubRole === 'grafik' && (
+                        <>
+                            <NavLink to="/president/grafik/dashboard" className="nav-item" onClick={closeSidebar}><i className="ri-image-edit-line"></i> Poster Work / Creation</NavLink>
+                            <NavLink to="/president/grafik/galleries" className="nav-item" onClick={closeSidebar}><i className="ri-gallery-upload-line"></i> Grafik Event Gallery</NavLink>
+                        </>
+                    )}
                     {user?.role === 'president' && (
                         <NavLink to="/president/club" className={`nav-item ${isActiveLink('/president/club') ? 'active' : ''}`} onClick={closeSidebar}>
                             <i className="ri-team-line"></i> Club Members

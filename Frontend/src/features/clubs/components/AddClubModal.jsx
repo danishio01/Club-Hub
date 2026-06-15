@@ -4,14 +4,14 @@ import axiosInstance from '../../../api/axiosInstance';
 import '../style/ClubModals.scss';
 
 const AddClubModal = ({ onClose, onSuccess }) => {
-    const [formData, setFormData] = useState({ name: '', description: '', president: '', isActive: true });
+    const [formData, setFormData] = useState({ name: '', description: '', president: '', specialRole: '', isActive: true });
     const [presidents, setPresidents] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         const fetchPresidents = async () => {
             try {
-                const res = await axiosInstance.get('/students?role=president');
+                const res = await axiosInstance.get('/clubs/available-students?position=president');
                 setPresidents(res.data.data);
             } catch (error) {
                 console.error("Failed to load presidents", error);
@@ -36,7 +36,7 @@ const AddClubModal = ({ onClose, onSuccess }) => {
             onSuccess();
         } catch (error) {
             console.error(error);
-            alert('Failed to add club. Ensure the name is unique.');
+            alert(error.response?.data?.message || 'Failed to add club.');
         } finally {
             setIsLoading(false);
         }
@@ -64,6 +64,14 @@ const AddClubModal = ({ onClose, onSuccess }) => {
                             <select name="president" value={formData.president} onChange={handleChange}>
                                 <option value="">None</option>
                                 {presidents.map(p => <option key={p._id} value={p._id}>{p.name} ({p.usn})</option>)}
+                            </select>
+                        </div>
+                        <div className="form-group">
+                            <label>College-Wide Special Responsibility</label>
+                            <select name="specialRole" value={formData.specialRole} onChange={handleChange}>
+                                <option value="">Normal Club</option>
+                                <option value="pr">Designated PR Club</option>
+                                <option value="grafik">Designated Grafik Club</option>
                             </select>
                         </div>
                         <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '10px', marginTop: '8px' }}>

@@ -1,33 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import axiosInstance from '../../../api/axiosInstance';
 import '../style/PrDashboard.scss';
-import useRealtimeEventRefresh from '../../events/hooks/useRealtimeEventRefresh';
+import { formatDate } from '../../../utils/dateFormat';
+import useAuthorizedTasks from '../../tasks/hooks/useAuthorizedTasks';
 
 const PrDashboard = () => {
-    const [events, setEvents] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
     const navigate = useNavigate();
-
-    const initializeEvents = useCallback(async () => {
-        try {
-            setIsLoading(true);
-            const res = await axiosInstance.get('/events');
-            setEvents(res.data.data.filter(e => e.status === 'approved'));
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-    useRealtimeEventRefresh(initializeEvents);
-
-    useEffect(() => {
-        axiosInstance.get('/events')
-            .then((res) => setEvents(res.data.data.filter(e => e.status === 'approved')))
-            .catch(console.error)
-            .finally(() => setIsLoading(false));
-    }, []);
+    const { tasks, isLoading } = useAuthorizedTasks({ specialRole: 'pr' });
+    const events = [...new Map(tasks.filter((task) => ['attendance', 'social_media'].includes(task.type) && task.event)
+        .map((task) => [task.event._id, task.event])).values()];
 
     return (
         <div className="pr-dashboard-page">
@@ -42,7 +23,9 @@ const PrDashboard = () => {
                 <div className="empty-state">No approved active events currently require attendance management.</div>
             ) : (
                 <div className="events-grid">
-                    {events.map(event => (
+                    {events.map(event => {
+                        const eventTasks = tasks.filter((task) => task.event?._id === event._id);
+                        return (
                         <div key={event._id} className="pr-event-card">
                             {event.bannerUrl ? (
                                 <div className="card-banner">
@@ -61,13 +44,26 @@ const PrDashboard = () => {
                                     <p><i className="ri-user-line"></i> {event.creator?.name || 'Unknown'} ({event.creator?.role || 'N/A'})</p>
                                     <p><i className="ri-map-pin-line"></i> {event.venue}</p>
                                     <p><i className="ri-time-line"></i> {event.time}</p>
+                                    {eventTasks.map((task) => (
+                                        <React.Fragment key={task._id}>
+                                            <p><i className="ri-task-line"></i> {task.type.replace('_', ' ')}: {task.assignee?.name || 'Unassigned'} ({task.status})</p>
+                                            <p><i className="ri-calendar-check-line"></i> Assigned: {formatDate(task.assignedAt)} · Due: {formatDate(task.dueAt)}</p>
+                                        </React.Fragment>
+                                    ))}
                                 </div>
-                                <button className="btn-manage-trigger" onClick={() => navigate(`/pr/events/${event._id}`)}>
-                                    <i className="ri-group-line"></i> Open Ops Dashboard
-                                </button>
+                                {eventTasks.some((task) => task.type === 'attendance' && !['completed', 'cancelled'].includes(task.status)) && (
+                                    <button className="btn-manage-trigger" onClick={() => navigate(`/president/pr/events/${event._id}`)}>
+                                        <i className="ri-group-line"></i> Open Attendance Work
+                                    </button>
+                                )}
+                                {eventTasks.some((task) => task.type === 'social_media' && !['completed', 'cancelled'].includes(task.status)) && event.status === 'completed' && (
+                                    <button className="btn-manage-trigger" onClick={() => navigate('/president/pr/galleries')}>
+                                        <i className="ri-share-forward-line"></i> Open Social-Media Work
+                                    </button>
+                                )}
                             </div>
                         </div>
-                    ))}
+                    )})}
                 </div>
             )}
         </div>

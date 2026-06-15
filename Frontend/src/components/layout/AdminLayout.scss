@@ -79,7 +79,7 @@
 /* --------------------------------------
    MAIN CONTENT
 --------------------------------------- */
-.main-content {
+.admin-layout > .main-content {
   flex: 1;
   padding: 32px;
   width: 100%;
@@ -154,6 +154,12 @@
   &.show { display: block; }
 }
 
+.staff-header-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* --------------------------------------
    RESPONSIVE BREAKPOINTS
 --------------------------------------- */
@@ -162,12 +168,12 @@
   .nav-link { padding: 8px 10px; font-size: 0.85rem; }
 }
 
-@media (max-width: 992px) {
+@media (max-width: 1600px) {
   .desktop-nav { display: none; }
   .mobile-menu-btn { display: block; }
 }
 
 @media (max-width: 768px) {
   .top-navbar { padding: 0 20px; }
-  .main-content { padding: 20px; }
+  .admin-layout > .main-content { padding: 20px; }
 }

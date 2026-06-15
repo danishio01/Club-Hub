@@ -5,12 +5,11 @@ import { unregisterCurrentFcmToken } from '../../notifications/service/fcmClient
 export const loginAdmin = (credentials) => async (dispatch) => {
     dispatch(loginStart());
     try {
-        const response = await axiosInstance.post('/admin/login', credentials);
-        // Explicitly stamp admin role for frontend routing convenience
-        dispatch(loginSuccess({ ...response.data.data, role: 'admin' }));
+        const response = await axiosInstance.post('/staff/login', credentials);
+        dispatch(loginSuccess(response.data.data));
         return response.data.data;
     } catch (error) {
-        dispatch(loginFailure(error.response?.data?.message || 'Admin login failed'));
+        dispatch(loginFailure(error.response?.data?.message || 'Faculty / HOD login failed'));
         throw error;
     }
 };
@@ -30,7 +29,7 @@ export const loginStudent = (credentials) => async (dispatch) => {
 
 export const logoutStudent = () => async (dispatch) => {
     try {
-        await unregisterCurrentFcmToken();
+        unregisterCurrentFcmToken().catch((error) => console.warn('FCM token cleanup failed during logout:', error));
         await axiosInstance.post('/auth/student/logout');
         dispatch(logoutSuccess());
     } catch (error) {

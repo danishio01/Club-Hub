@@ -70,8 +70,6 @@ const EditStudentModal = ({ student, onClose, onSuccess }) => {
                                 <select name="role" required value={formData.role} onChange={handleChange}>
                                     <option value="student">Student</option>
                                     <option value="president">President</option>
-                                    <option value="pr">PR</option>
-                                    <option value="grafik">Grafik Team</option>
                                 </select>
                             </div>
                         </div>

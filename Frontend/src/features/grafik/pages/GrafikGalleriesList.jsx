@@ -1,37 +1,21 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getGrafikEventsApi } from '../../events/service/eventService';
 import '../style/GrafikGalleriesList.scss';
+import { formatDate } from '../../../utils/dateFormat';
+import useAuthorizedTasks from '../../tasks/hooks/useAuthorizedTasks';
+import { takeOverTaskApi } from '../../tasks/service/taskService';
+import { useSelector } from 'react-redux';
 
 const GrafikGalleriesList = () => {
     const navigate = useNavigate();
-    const [events, setEvents] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { user } = useSelector((state) => state.auth);
+    const { tasks, isLoading, refresh } = useAuthorizedTasks({ type: 'gallery_upload', specialRole: 'grafik' });
+    const isGrafikPresident = user?.role === 'president' && user?.specialClubRole === 'grafik';
 
-    const loadEvents = useCallback(async () => {
-        try {
-            const data = await getGrafikEventsApi();
-            setEvents(data.filter(e => e.status === 'completed' || e.status === 'Completed'));
-        } catch (error) {
-            console.error("Failed to load completed events:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        let isMounted = true;
-        
-        const fetchInitialData = async () => {
-            if (isMounted) await loadEvents();
-        };
-
-        fetchInitialData();
-        
-        return () => {
-            isMounted = false;
-        };
-    }, [loadEvents]);
+    const takeOver = async (task) => {
+        await takeOverTaskApi(task._id);
+        await refresh();
+    };
 
     return (
         <div className="grafik-galleries-list-page">
@@ -42,7 +26,7 @@ const GrafikGalleriesList = () => {
             
             {isLoading ? (
                 <div className="loading-state">Loading completed events...</div>
-            ) : events.length === 0 ? (
+            ) : tasks.length === 0 ? (
                 <div className="placeholder-container">
                     <i className="ri-camera-off-fill placeholder-icon"></i>
                     <h2>No Completed Events Yet</h2>
@@ -50,15 +34,19 @@ const GrafikGalleriesList = () => {
                 </div>
             ) : (
                 <div className="grafik-grid">
-                    {events.map(event => (
-                        <div key={event._id} className="grafik-card gallery-card">
+                    {tasks.map(task => {
+                        const event = task.event;
+                        if (!event) return null;
+                        return <div key={task._id} className="grafik-card gallery-card">
                             <div className="card-info">
                                 <div className="card-header-row">
                                     <span className="club-badge">{event.club?.name}</span>
                                     <span className="status-badge success">Completed</span>
                                 </div>
                                 <h3>{event.title}</h3>
-                                <p><i className="ri-calendar-line"></i> {new Date(event.date).toLocaleDateString()}</p>
+                                <p><i className="ri-calendar-line"></i> {formatDate(event.date)}</p>
+                                <p>Assigned: {formatDate(task?.assignedAt)}</p>
+                                <p>Due: {formatDate(task?.dueAt)}</p>
                                 
                                 <div className="gallery-stats">
                                     <span className="stat-label">Gallery Status</span>
@@ -69,15 +57,18 @@ const GrafikGalleriesList = () => {
                             </div>
                             
                             <div className="card-actions">
-                                <button 
+                                {!['completed', 'cancelled'].includes(task.status) && <button
                                     className="btn-manage gallery-btn" 
-                                    onClick={() => navigate(`/grafik/events/${event._id}/gallery`)}
+                                    onClick={() => navigate(`/president/grafik/events/${event._id}/gallery`)}
                                 >
                                     <i className="ri-camera-lens-fill"></i> Manage Gallery
-                                </button>
+                                </button>}
+                                {isGrafikPresident && task.assignee?._id !== user?._id && !['completed', 'cancelled'].includes(task.status) && (
+                                    <button className="btn-manage gallery-btn" onClick={() => takeOver(task)}>Take Over</button>
+                                )}
                             </div>
-                        </div>
-                    ))}
+                        </div>;
+                    })}
                 </div>
             )}
         </div>

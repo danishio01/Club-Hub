@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getStudentEventsList, registerForEventApi } from '../service/studentEventsService';
 import useRealtimeEventRefresh from '../../events/hooks/useRealtimeEventRefresh';
+import { formatDate } from '../../../utils/dateFormat';
 
 export const useStudentEvents = () => {
     const dispatch = useDispatch();
@@ -49,11 +50,6 @@ export const useStudentEvents = () => {
                 alert(error.response?.data?.message || 'Failed to register. Please try again.');
             }
         }
-    };
-
-    const formatDate = (dateString) => {
-        const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
-        return new Date(dateString).toLocaleDateString(undefined, options);
     };
 
     return {

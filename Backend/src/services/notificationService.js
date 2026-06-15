@@ -8,7 +8,7 @@ import NotificationToken from '../models/notificationTokenModel.js';
 import { messaging } from '../config/firebase.js';
 import { emitToUsers } from './socketService.js';
 
-export const dispatchNotification = async ({ recipients, title, message, type, referenceId }) => {
+export const dispatchNotification = async ({ recipients, title, message, type, referenceId, idempotencyKey }) => {
     const delivery = {
         dbDeliveredCount: 0,
         socketDeliveredCount: 0,
@@ -29,6 +29,9 @@ export const dispatchNotification = async ({ recipients, title, message, type, r
         const dbWrites = [];
         console.info('[FCM] Notification flow started', { type, recipients: targetUsers.length });
 
+        const alreadyDelivered = idempotencyKey
+            ? new Set((await Notification.find({ recipient: { $in: targetUsers }, idempotencyKey }).select('recipient')).map((item) => String(item.recipient)))
+            : new Set();
         for (const target of targetUsers) {
             let roleModel = 'Student';
             let userObj = await Student.findById(target);
@@ -38,7 +41,7 @@ export const dispatchNotification = async ({ recipients, title, message, type, r
                 if (userObj) roleModel = 'Admin';
             }
 
-            if (userObj) {
+            if (userObj && !alreadyDelivered.has(target)) {
                 dbWrites.push({
                     recipient: userObj._id,
                     recipientModel: roleModel,
@@ -46,7 +49,8 @@ export const dispatchNotification = async ({ recipients, title, message, type, r
                     message,
                     type,
                     referenceId,
-                    isRead: false
+                    isRead: false,
+                    idempotencyKey
                 });
                 if (Array.isArray(userObj.fcmTokens)) {
                     legacyTokens.push(...userObj.fcmTokens);
@@ -125,8 +129,9 @@ export const dispatchNotification = async ({ recipients, title, message, type, r
             const tokenModels = new Map(tokenDocuments.map((entry) => [entry.token, entry.userModel]));
             const tokenOwners = new Map(tokenDocuments.map((entry) => [entry.token, entry]));
             const response = await messaging.sendEach(uniqueTokens.map((token) => {
+                const tokenOwner = tokenOwners.get(token);
                 const url = (tokenModels.get(token) || legacyTokenModels.get(token)) === 'Admin'
-                    ? '/admin/dashboard'
+                    ? (tokenOwner?.role === 'hod' ? '/hod/dashboard' : '/faculty/dashboard')
                     : '/';
                 return {
                     token,
@@ -145,8 +150,8 @@ export const dispatchNotification = async ({ recipients, title, message, type, r
                             body: message,
                             icon: 'https://ik.imagekit.io/p4nbkerbz/ClubHub/applogo.png',
                             badge: 'https://ik.imagekit.io/p4nbkerbz/ClubHub/applogo.png',
-                            tag: referenceId ? String(referenceId) : 'clubhub-background',
-                            renotify: true
+                            tag: `${type}:${referenceId ? String(referenceId) : idempotencyKey || 'clubhub-background'}`,
+                            renotify: false
                         }
                     }
                 };
@@ -402,7 +407,7 @@ export const sendCurrentBrowserTokenTest = async ({ userId, role, token, deviceI
                 body: 'Firebase delivered this push directly to this browser token.',
                 type: 'SYSTEM',
                 referenceId: '',
-                url: tokenDocument.userModel === 'Admin' ? '/admin/dashboard' : '/',
+                url: tokenDocument.userModel === 'Admin' ? '/faculty/dashboard' : '/',
                 diagnostic: 'current-browser-token'
             },
             webpush: {
@@ -482,7 +487,7 @@ export const sendFirebaseOnlyTest = async (userId) => {
             body: 'This message was sent through Firebase only.',
             type: 'SYSTEM',
             referenceId: '',
-            url: tokenModels.get(token) === 'Admin' ? '/admin/dashboard' : '/'
+            url: tokenModels.get(token) === 'Admin' ? '/faculty/dashboard' : '/'
         },
         webpush: {
             headers: { Urgency: 'high', TTL: '300' },
@@ -557,19 +562,15 @@ const getEventDepartment = async (event) => {
     return null;
 };
 
-const getRelevantGrafikIds = async (event) => {
-    const department = await getEventDepartment(event);
-    const departmentGrafik = department ? await Student.find({ role: 'grafik', department }).select('_id') : [];
-    if (departmentGrafik.length > 0) return departmentGrafik.map((user) => user._id);
-
-    const allGrafik = await Student.find({ role: 'grafik' }).select('_id');
-    if (department) {
-        console.warn('[FCM] No department-specific Grafik user found; falling back to all Grafik users.', { department });
-    }
-    return allGrafik.map((user) => user._id);
+const getSpecialClubUserIds = async (specialRole) => {
+    const club = await Club.findOne({ specialRole }).select('president members');
+    if (!club) return [];
+    return [club.president, ...(club.members || [])].filter(Boolean);
 };
 
-export const executeDynamicLifecycleBroadcasting = async (eventType, contextData, { dryRun = false, actorId, actorRole } = {}) => {
+const getRelevantGrafikIds = () => getSpecialClubUserIds('grafik');
+
+export const executeDynamicLifecycleBroadcasting = async (eventType, contextData, { dryRun = false, actorId, actorRole, idempotencySuffix } = {}) => {
     try {
         let title = "ClubHub Notification";
         let message = "";
@@ -597,10 +598,35 @@ export const executeDynamicLifecycleBroadcasting = async (eventType, contextData
                 break;
 
             case 'ADMIN_EVENT_REJECTED':
-                title = "Event Details Rejected by Admin";
+                title = "Event Details Rejected by Faculty Coordinator";
                 message = `Event details for "${contextData.title}" require corrections before approval.`;
                 if (getCreatorId(contextData)) recipients.push(getCreatorId(contextData));
                 if (await getRelatedPresidentId(contextData)) recipients.push(await getRelatedPresidentId(contextData));
+                break;
+
+            case 'FACULTY_APPROVED':
+                title = "Event Awaiting HOD Approval";
+                message = `Faculty Coordinator approved "${contextData.title}". Final HOD approval is required.`;
+                recipients.push(...(await Admin.find({ role: 'hod', active: true }).select('_id')).map((user) => user._id));
+                if (await getRelatedPresidentId(contextData)) recipients.push(await getRelatedPresidentId(contextData));
+                break;
+
+            case 'HOD_APPROVED':
+                title = "New Event Published";
+                message = `"${contextData.title}" received final HOD approval and is open for registration.`;
+                if (getCreatorId(contextData)) recipients.push(getCreatorId(contextData));
+                if (await getRelatedPresidentId(contextData)) recipients.push(await getRelatedPresidentId(contextData));
+                recipients.push(...await getSpecialClubUserIds('pr'));
+                recipients.push(...await getSpecialClubUserIds('grafik'));
+                recipients.push(...(await Student.find({ role: 'student' }).select('_id')).map((user) => user._id));
+                break;
+
+            case 'HOD_REJECTED':
+                title = "Event Rejected by HOD";
+                message = `"${contextData.title}" requires correction after HOD review.`;
+                if (getCreatorId(contextData)) recipients.push(getCreatorId(contextData));
+                if (await getRelatedPresidentId(contextData)) recipients.push(await getRelatedPresidentId(contextData));
+                recipients.push(...(await Admin.find({ role: 'faculty_coordinator', active: true }).select('_id')).map((user) => user._id));
                 break;
 
             case 'FLYER_GENERATED':
@@ -612,7 +638,7 @@ export const executeDynamicLifecycleBroadcasting = async (eventType, contextData
 
             case 'FLYER_REJECTED':
                 title = "Flyer Changes Required";
-                message = `The flyer design for "${contextData.title}" was rejected by Admin and requires Grafik changes.`;
+                message = `The flyer design for "${contextData.title}" was rejected by the Faculty Coordinator and requires Grafik changes.`;
                 recipients = await getRelevantGrafikIds(contextData);
                 break;
 
@@ -623,8 +649,7 @@ export const executeDynamicLifecycleBroadcasting = async (eventType, contextData
                 const activeClub = await contextData.populate('club');
                 if (activeClub.club?.president) recipients.push(activeClub.club.president);
                 
-                const prTeam = await Student.find({ role: 'pr' });
-                prTeam.forEach(pr => recipients.push(pr._id));
+                recipients.push(...await getSpecialClubUserIds('pr'));
                 recipients.push(...await getRelevantGrafikIds(contextData));
                 const allSystemStudents = await Student.find({ role: 'student' });
                 allSystemStudents.forEach(s => recipients.push(s._id));
@@ -644,11 +669,9 @@ export const executeDynamicLifecycleBroadcasting = async (eventType, contextData
                 title = "Post-Event Photos Required";
                 message = `Event "${contextData.title}" is complete. Upload post-event photos and continue the reporting workflow.`;
                 recipients.push(...(await Admin.find({}).select('_id')).map((user) => user._id));
-                recipients.push(...(await Student.find({ role: 'pr' }).select('_id')).map((user) => user._id));
+                recipients.push(...await getSpecialClubUserIds('pr'));
                 recipients.push(...await getRelevantGrafikIds(contextData));
-                if (actorRole !== 'president' && await getRelatedPresidentId(contextData)) {
-                    recipients.push(await getRelatedPresidentId(contextData));
-                }
+                if (await getRelatedPresidentId(contextData)) recipients.push(await getRelatedPresidentId(contextData));
                 if (actorRole === 'president' && getCreatorId(contextData) && String(getCreatorId(contextData)) !== String(actorId)) {
                     recipients.push(getCreatorId(contextData));
                 }
@@ -660,8 +683,7 @@ export const executeDynamicLifecycleBroadcasting = async (eventType, contextData
                 if (contextData.creator?.student) recipients.push(contextData.creator.student);
                 const reportingClub = await contextData.populate('club');
                 if (reportingClub.club?.president) recipients.push(reportingClub.club.president);
-                const prOfficers = await Student.find({ role: 'pr' });
-                prOfficers.forEach(pr => recipients.push(pr._id));
+                recipients.push(...await getSpecialClubUserIds('pr'));
                 break;
 
             case 'REPORT_REJECTED':
@@ -670,6 +692,13 @@ export const executeDynamicLifecycleBroadcasting = async (eventType, contextData
                 if (contextData.creator?.student) recipients.push(contextData.creator.student);
                 const underlyingClub = await contextData.populate('club');
                 if (underlyingClub.club?.president) recipients.push(underlyingClub.club.president);
+                recipients.push(...(await Admin.find({ role: { $in: ['faculty_coordinator', 'hod'] }, active: true }).select('_id')).map((user) => user._id));
+                break;
+
+            case 'REPORT_EDITED':
+                title = "Post-Event Report Updated";
+                message = `The post-event report for "${contextData.title}" was edited and requires tracking.`;
+                recipients.push(...(await Admin.find({ role: { $in: ['faculty_coordinator', 'hod'] }, active: true }).select('_id')).map((user) => user._id));
                 break;
 
             case 'GALLERY_UPLOADED':
@@ -680,8 +709,7 @@ export const executeDynamicLifecycleBroadcasting = async (eventType, contextData
                 if (sourceClub.club?.president) recipients.push(sourceClub.club.president);
                 const appAdmins = await Admin.find({});
                 appAdmins.forEach(a => recipients.push(a._id));
-                const prStaff = await Student.find({ role: 'pr' });
-                prStaff.forEach(pr => recipients.push(pr._id));
+                recipients.push(...await getSpecialClubUserIds('pr'));
                 break;
 
             case 'GALLERY_APPROVED':
@@ -690,8 +718,7 @@ export const executeDynamicLifecycleBroadcasting = async (eventType, contextData
                 if (contextData.creator?.student) recipients.push(contextData.creator.student);
                 const parentClub = await contextData.populate('club');
                 if (parentClub.club?.president) recipients.push(parentClub.club.president);
-                const prUsers = await Student.find({ role: 'pr' });
-                prUsers.forEach(pr => recipients.push(pr._id));
+                recipients.push(...await getSpecialClubUserIds('pr'));
                 const generalStudents = await Student.find({ role: 'student' });
                 generalStudents.forEach(s => recipients.push(s._id));
                 break;
@@ -702,8 +729,7 @@ export const executeDynamicLifecycleBroadcasting = async (eventType, contextData
                 if (contextData.creator?.student) recipients.push(contextData.creator.student);
                 const contextClub = await contextData.populate('club');
                 if (contextClub.club?.president) recipients.push(contextClub.club.president);
-                const prEmployees = await Student.find({ role: 'pr' });
-                prEmployees.forEach(pr => recipients.push(pr._id));
+                recipients.push(...await getSpecialClubUserIds('pr'));
                 break;
         }
 
@@ -713,7 +739,8 @@ export const executeDynamicLifecycleBroadcasting = async (eventType, contextData
             title,
             message,
             type: eventType,
-            referenceId
+            referenceId,
+            idempotencyKey: `lifecycle:${eventType}:${referenceId}${idempotencySuffix ? `:${idempotencySuffix}` : ''}`
         };
 
         if (dryRun) return resolvedNotification;
